@@ -3,7 +3,7 @@ import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai"
 
 // --- API CONFIGURATION ---
 // PASTE YOUR API KEY HERE
-const API_KEY = process.env.API_KEY || "AIzaSyB5OfYVGwnNzk2wtQsSvaFSHhEn2_YUjyg"; 
+const API_KEY = process.env.API_KEY || "YOUR_API_KEY_HERE"; 
 
 // --- Types ---
 export interface ToolCall {
