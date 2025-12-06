@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai";
 
 // --- API CONFIGURATION ---
-// PASTE YOUR API KEY HERE
-const API_KEY = process.env.API_KEY || "YOUR_API_KEY_HERE"; 
+// We access the key from process.env which is injected by Vite during build
+const API_KEY = process.env.API_KEY || ""; 
 
 // --- Types ---
 export interface ToolCall {
@@ -176,8 +176,8 @@ export const sendMessageToGemini = async (
 ) => {
   return addToQueue(async () => {
     try {
-      if (!API_KEY || API_KEY.includes("YOUR_API_KEY")) {
-         return language === 'ar' ? "يرجى ضبط مفتاح API في الكود." : "Please configure your API Key in the code.";
+      if (!API_KEY) {
+         return language === 'ar' ? "يرجى ضبط مفتاح API في إعدادات النشر." : "Please configure your API Key in deployment settings.";
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -266,7 +266,7 @@ function writeString(view: DataView, offset: number, string: string) {
 // --- Gemini TTS ---
 export const generateSpeechWithGemini = async (text: string, language: 'ar' | 'en') => {
   try {
-    if (!API_KEY || API_KEY.includes("YOUR_API_KEY")) {
+    if (!API_KEY) {
         throw new Error("API Key missing");
     }
 

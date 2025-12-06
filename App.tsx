@@ -15,9 +15,9 @@ import {
     useNodesState, 
     useEdgesState, 
     addEdge, 
-    Connection, 
-    Edge, 
-    Node,
+    type Connection, 
+    type Edge, 
+    type Node,
     useReactFlow,
     ReactFlowProvider
 } from 'reactflow';
@@ -295,7 +295,6 @@ const AppContent: React.FC = () => {
                 <ToolBtn id="add-text" icon="fa-font" label="Text" />
                 <ToolBtn id="add-image" icon="fa-image" label="Upload Image" onClick={triggerImageUpload} />
                 <ToolBtn id="add-shape" icon="fa-shapes" label="Shape" />
-                {/* Video Tool Removed */}
                 
                 <div className="w-px h-6 bg-gray-300 mx-2"></div>
                 

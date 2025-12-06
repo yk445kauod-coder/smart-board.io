@@ -1,6 +1,6 @@
 
 import React, { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { ElementData } from '../types';
 
 const getFontClass = (text: string) => {
@@ -90,8 +90,6 @@ export const ListNode = memo(({ data, selected }: NodeProps<ElementData>) => {
 });
 
 export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
-  // Description hidden as requested
-  // const fontClass = getFontClass(data.description || "");
   const rotation = data.rotation || 0;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -125,8 +123,6 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
              </div>
            )}
         </div>
-        {/* Description removed as requested */}
-        {/* <p className={`text-center mt-3 text-sm text-gray-500 ${fontClass}`}>{data.description}</p> */}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -201,7 +197,6 @@ export const CodeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   );
 });
 
-// --- Sketch Node (For Drawings) ---
 export const SketchNode = memo(({ data, selected }: NodeProps<ElementData>) => {
     return (
         <div className="relative group" style={{ width: data.width, height: data.height, pointerEvents: 'none' }}>

@@ -1,13 +1,12 @@
 
 import React, { useRef, useState, useMemo, useCallback } from 'react';
-import { 
-    ReactFlow, 
+import ReactFlow, { 
     Background, 
     Controls, 
     MiniMap, 
     ConnectionMode,
-    Node,
-    Edge,
+    type Node,
+    type Edge,
     Panel,
     useReactFlow
 } from 'reactflow';
@@ -52,7 +51,6 @@ interface SmartBoardProps {
 const BOARD_WIDTH = 1600;
 const BOARD_HEIGHT = 900;
 
-// Helper: Convert stroke points to SVG path
 const getSvgPathFromStroke = (stroke: any[]) => {
   if (!stroke.length) return "";
   const d = stroke.reduce(
@@ -85,12 +83,10 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   const [points, setPoints] = useState<number[][]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Get viewport directly for manual math (more robust than screenToFlowPosition for vector strokes)
   const { getViewport } = useReactFlow();
 
   const isDrawTool = activeTool === 'pen' || activeTool === 'highlighter';
 
-  // --- Eraser Logic ---
   const handleNodeClick = (event: React.MouseEvent, node: Node) => {
       if (activeTool === 'eraser' && onDeleteNode) {
           onDeleteNode(node.id);
@@ -98,21 +94,17 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   };
 
   const handleNodeMouseEnter = (event: React.MouseEvent, node: Node) => {
-      // Drag to erase: if Eraser is active AND primary mouse button is down
       if (activeTool === 'eraser' && event.buttons === 1 && onDeleteNode) {
           onDeleteNode(node.id);
       }
   };
   
-  // --- Right Click Edit ---
   const handleNodeContextMenu = (event: React.MouseEvent, node: Node) => {
-      event.preventDefault(); // Prevent native browser context menu
+      event.preventDefault(); 
       if (onNodeContextMenu) {
           onNodeContextMenu(event, node);
       }
   };
-
-  // --- Drawing Logic ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
       if (!isDrawTool) return;
