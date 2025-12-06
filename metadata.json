@@ -1,0 +1,5 @@
+{
+  "name": "SmartBoard AI",
+  "description": "An interactive, AI-powered whiteboard supporting Arabic and English with handwriting aesthetics. Users can add notes, lists, images, and shapes via chat or manual tools.",
+  "requestFramePermissions": []
+}
