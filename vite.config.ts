@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // Polyfill process.env for the existing code structure
-    'process.env': {}
+    // This allows access to process.env.API_KEY in the code by replacing it with the build-time string
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "")
   }
-});
+}); 
