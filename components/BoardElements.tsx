@@ -256,7 +256,7 @@ export const SketchNode = memo(({ data, selected }: NodeProps<ElementData>) => {
                 width={data.width} 
                 height={data.height} 
                 viewBox={`0 0 ${data.width} ${data.height}`}
-                style={{ overflow: 'visible' }}
+                style={{ overflow: 'visible', pointerEvents: 'auto' }}
                 className={selected ? 'drop-shadow-[0_0_2px_blue]' : ''}
              >
                  <path 
@@ -268,4 +268,4 @@ export const SketchNode = memo(({ data, selected }: NodeProps<ElementData>) => {
              </svg>
         </div>
     )
-})
+});

@@ -45,6 +45,9 @@ interface SmartBoardProps {
   onAddSketch: (node: Node<ElementData>) => void;
   setNodes: any;
   onPaneClick: (event: React.MouseEvent) => void;
+  penColor?: string;
+  penSize?: number;
+  onDeleteNode?: (id: string) => void;
 }
 
 const BOARD_WIDTH = 1600;
@@ -73,7 +76,10 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   onConnect,
   activeTool,
   onAddSketch,
-  onPaneClick
+  onPaneClick,
+  penColor = '#000000',
+  penSize = 6,
+  onDeleteNode
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [points, setPoints] = useState<number[][]>([]);
@@ -83,6 +89,20 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   const { getViewport } = useReactFlow();
 
   const isDrawTool = activeTool === 'pen' || activeTool === 'highlighter';
+
+  // --- Eraser Logic ---
+  const handleNodeClick = (event: React.MouseEvent, node: Node) => {
+      if (activeTool === 'eraser' && onDeleteNode) {
+          onDeleteNode(node.id);
+      }
+  };
+
+  const handleNodeMouseEnter = (event: React.MouseEvent, node: Node) => {
+      // Drag to erase: if Eraser is active AND primary mouse button is down
+      if (activeTool === 'eraser' && event.buttons === 1 && onDeleteNode) {
+          onDeleteNode(node.id);
+      }
+  };
 
   // --- Drawing Logic ---
 
@@ -110,7 +130,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       const bbox = svgRef.current?.getBoundingClientRect();
       if(bbox) {
           const nativeEvent = e.nativeEvent;
-          // Get coalesced events for higher precision (if available)
           const events = (nativeEvent as any).getCoalescedEvents 
               ? (nativeEvent as any).getCoalescedEvents() 
               : [nativeEvent];
@@ -142,19 +161,15 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
           const isStylus = e.pointerType === 'pen';
           const hasPressureData = isStylus || points.some(p => Math.abs(p[2] - 0.5) > 0.05);
 
-          // 1. Transform ALL input points to World Space BEFORE generating the shape.
-          // Formula: World = (ScreenPixel - Pan) / Zoom
           const worldPoints = points.map(([x, y, p]) => {
               const wx = (x - vpX) / zoom;
               const wy = (y - vpY) / zoom;
               return [wx, wy, p];
           });
 
-          // 2. Scale Stroke Options
-          // If zoomed out (0.5), a 10px line on screen needs to be 20px in world space.
-          const baseSize = activeTool === 'highlighter' ? 24 : 6;
+          const currentSize = activeTool === 'highlighter' ? 24 : penSize;
           const options = {
-            size: baseSize / zoom, 
+            size: currentSize / zoom, 
             thinning: 0.6,
             smoothing: 0.7,
             streamline: 0.6,
@@ -162,10 +177,8 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
             last: true
           };
           
-          // 3. Generate Polygon from World Points
           const stroke = getStroke(worldPoints, options);
           
-          // 4. Calculate Bounding Box in World Space
           const xs = stroke.map(p => p[0]);
           const ys = stroke.map(p => p[1]);
           const minX = Math.min(...xs);
@@ -176,7 +189,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
           const width = Math.max(maxX - minX, 1);
           const height = Math.max(maxY - minY, 1);
           
-          // 5. Normalize Path Data relative to the Node's Top-Left
           const relativeStroke = stroke.map(([x, y]) => [x - minX, y - minY]);
           const pathData = getSvgPathFromStroke(relativeStroke);
 
@@ -188,7 +200,7 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                   id: `sketch-${Date.now()}`,
                   type: 'sketch',
                   svgPath: pathData,
-                  strokeColor: activeTool === 'highlighter' ? 'rgba(255, 235, 59, 0.5)' : '#000',
+                  strokeColor: activeTool === 'highlighter' ? 'rgba(255, 235, 59, 0.5)' : penColor,
                   strokeWidth: 0,
                   width: width,
                   height: height,
@@ -202,8 +214,9 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
 
   const currentPath = useMemo(() => {
       if (points.length < 2) return '';
+      const currentSize = activeTool === 'highlighter' ? 24 : penSize;
       const options = {
-        size: activeTool === 'highlighter' ? 24 : 6,
+        size: currentSize,
         thinning: 0.6,
         smoothing: 0.7,
         streamline: 0.6,
@@ -211,7 +224,7 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       };
       const stroke = getStroke(points, options);
       return getSvgPathFromStroke(stroke);
-  }, [points, activeTool]);
+  }, [points, activeTool, penSize]);
 
   return (
     <div className="w-full h-full relative touch-none bg-gray-200 flex items-center justify-center p-4" dir="ltr">
@@ -243,7 +256,10 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                 selectionOnDrag={activeTool === 'pointer'}
                 nodesDraggable={activeTool === 'pointer'}
                 elementsSelectable={activeTool === 'pointer' || activeTool === 'eraser'}
+                nodesConnectable={activeTool === 'pointer'}
                 onPaneClick={onPaneClick}
+                onNodeClick={handleNodeClick}
+                onNodeMouseEnter={handleNodeMouseEnter}
                 proOptions={{ hideAttribution: true }}
                 className={`${isDrawTool ? 'cursor-pen' : ''} ${activeTool === 'eraser' ? 'cursor-eraser' : ''} ${activeTool === 'pan' ? 'cursor-grab active:cursor-grabbing' : ''}`}
             >
@@ -272,7 +288,7 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                         {currentPath && (
                             <path 
                                 d={currentPath}
-                                fill={activeTool === 'highlighter' ? 'rgba(255, 235, 59, 0.5)' : '#000'}
+                                fill={activeTool === 'highlighter' ? 'rgba(255, 235, 59, 0.5)' : penColor}
                                 stroke="none"
                             />
                         )}
