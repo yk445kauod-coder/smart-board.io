@@ -11,8 +11,7 @@ export type ToolType =
   | 'add-note'
   | 'add-text'
   | 'add-image'
-  | 'add-shape'
-  | 'add-video';
+  | 'add-shape';
 
 export interface TeacherPersona {
   name: string;
@@ -28,7 +27,6 @@ export type ElementType =
   | 'wordArt' 
   | 'shape' 
   | 'sketch' 
-  | 'video' 
   | 'code';
 
 // React Flow Data Interface

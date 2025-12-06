@@ -3,10 +3,12 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import SmartBoard from './components/Board';
 import Chat from './components/Chat';
 import SettingsModal from './components/SettingsModal';
+import EditNodeModal from './components/EditNodeModal';
 import { 
     TeacherPersona, 
     ToolType, 
-    Language 
+    Language,
+    ElementData
 } from './types';
 import { speakText } from './services/tts';
 import { 
@@ -34,11 +36,14 @@ const AppContent: React.FC = () => {
     voice: 'female'
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [projectorMode, setProjectorMode] = useState(false); // State for Projector Mode
+  const [projectorMode, setProjectorMode] = useState(false);
   
   // Drawing Options
   const [penColor, setPenColor] = useState('#000000');
   const [penSize, setPenSize] = useState(6);
+  
+  // Node Editing
+  const [editingNode, setEditingNode] = useState<Node<ElementData> | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +52,21 @@ const AppContent: React.FC = () => {
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
   }, [setNodes, setEdges]);
+  
+  // Handle Edit Node Save
+  const handleEditNode = useCallback((id: string, newData: Partial<ElementData>) => {
+      setNodes((nds) => nds.map(n => {
+          if (n.id === id) {
+              return { ...n, data: { ...n.data, ...newData } };
+          }
+          return n;
+      }));
+  }, [setNodes]);
+
+  // Handle Right Click on Node
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+      setEditingNode(node);
+  }, []);
 
   useEffect(() => {
       (window as any).deleteNode = handleDeleteNode;
@@ -56,7 +76,7 @@ const AppContent: React.FC = () => {
 
   // Handle Board Click for Manual Tools
   const handlePaneClick = useCallback((event: React.MouseEvent) => {
-    const manualTools = ['add-note', 'add-text', 'add-shape', 'add-video'];
+    const manualTools = ['add-note', 'add-text', 'add-shape'];
     if (!manualTools.includes(activeTool)) return;
 
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -80,12 +100,6 @@ const AppContent: React.FC = () => {
             newNode = {
                 id, type: 'shape', position,
                 data: { id, type: 'shape', shapeType: 'rectangle', color: '#a8e6cf' }
-            };
-            break;
-        case 'add-video':
-             newNode = {
-                id, type: 'video', position,
-                data: { id, type: 'video', title: 'Video', url: '' }
             };
             break;
     }
@@ -151,15 +165,20 @@ const AppContent: React.FC = () => {
       case 'addImage':
         const encodedDesc = encodeURIComponent(args.description);
         const seed = Math.floor(Math.random() * 100000);
+        
+        // Improve Pollinations with randomized style models for variety
+        const styles = ['flux', 'flux-realism', 'flux-anime', 'flux-3d', 'any-dark'];
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+        
         newNode = {
             id, type: 'image', position: { x: defaultX, y: defaultY },
             data: { 
                 id, type: 'image', description: args.description, 
-                // Enhanced Pollinations URL with seed, nologo, and explicit dimensions
-                url: `https://image.pollinations.ai/prompt/${encodedDesc}?width=512&height=512&nologo=true&seed=${seed}&model=flux`
+                url: `https://image.pollinations.ai/prompt/${encodedDesc}?width=512&height=512&nologo=true&seed=${seed}&model=${randomStyle}`
             }
         };
-        textToSpeak = "Generating image of " + args.description;
+        // DISABLE TTS for image descriptions as requested
+        textToSpeak = ""; 
         break;
       case 'addShape':
         newNode = {
@@ -179,17 +198,6 @@ const AppContent: React.FC = () => {
             id, type: 'code', position: { x: defaultX, y: defaultY },
             data: { id, type: 'code', code: args.code, language: args.language }
         };
-        break;
-      case 'addVideo':
-        newNode = {
-            id, type: 'video', position: { x: defaultX, y: defaultY },
-            data: { 
-                id, type: 'video', 
-                title: args.topic,
-                url: args.url || `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(args.topic)}`
-            }
-        };
-        textToSpeak = `Video about ${args.topic}`;
         break;
       case 'connectElements':
         if (args.fromId && args.toId) {
@@ -287,7 +295,7 @@ const AppContent: React.FC = () => {
                 <ToolBtn id="add-text" icon="fa-font" label="Text" />
                 <ToolBtn id="add-image" icon="fa-image" label="Upload Image" onClick={triggerImageUpload} />
                 <ToolBtn id="add-shape" icon="fa-shapes" label="Shape" />
-                <ToolBtn id="add-video" icon="fa-video" label="Video" />
+                {/* Video Tool Removed */}
                 
                 <div className="w-px h-6 bg-gray-300 mx-2"></div>
                 
@@ -355,6 +363,7 @@ const AppContent: React.FC = () => {
             penColor={penColor}
             penSize={penSize}
             onDeleteNode={handleDeleteNode}
+            onNodeContextMenu={handleNodeContextMenu}
         />
 
         <Chat onToolCall={handleToolCall} projectorMode={projectorMode} />
@@ -364,6 +373,14 @@ const AppContent: React.FC = () => {
                 settings={settings} 
                 onSave={setSettings} 
                 onClose={() => setShowSettings(false)} 
+            />
+        )}
+        
+        {editingNode && (
+            <EditNodeModal
+                node={editingNode}
+                onSave={handleEditNode}
+                onClose={() => setEditingNode(null)}
             />
         )}
     </div>

@@ -139,20 +139,6 @@ const functionDeclarations: FunctionDeclaration[] = [
     }
   },
   {
-    name: "addVideo",
-    description: "Add a YouTube video to the board.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        topic: { type: Type.STRING, description: "The topic of the video" },
-        url: { type: Type.STRING, description: "The specific YouTube URL if known" },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["topic"]
-    }
-  },
-  {
     name: "connectElements",
     description: "Connect two elements visually.",
     parameters: {
@@ -178,7 +164,8 @@ Guidelines:
 3. If asking for a layout, organize elements logically.
 4. When using coordinates (x,y), assume the center is (800, 450). Range: x[0-1600], y[0-900].
 5. Spread elements out so they don't overlap.
-6. When using addImage, provide a highly detailed visual description for the prompt (e.g., "A diagram of the solar system with planets labeled, dark background, realistic style").
+6. When using addImage, provide a highly detailed visual description for the prompt.
+7. Use Google Search to verify information when needed.
 `;
 
 export const sendMessageToGemini = async (
@@ -198,7 +185,7 @@ export const sendMessageToGemini = async (
         model: "gemini-2.5-flash",
         config: {
             systemInstruction: getSystemInstruction(language),
-            tools: [{ functionDeclarations }],
+            tools: [{ functionDeclarations }, { googleSearch: {} }],
         },
         history: history.map(h => ({
             role: h.role,

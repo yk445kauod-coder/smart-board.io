@@ -90,7 +90,8 @@ export const ListNode = memo(({ data, selected }: NodeProps<ElementData>) => {
 });
 
 export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
-  const fontClass = getFontClass(data.description || "");
+  // Description hidden as requested
+  // const fontClass = getFontClass(data.description || "");
   const rotation = data.rotation || 0;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -124,7 +125,8 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
              </div>
            )}
         </div>
-        <p className={`text-center mt-3 text-sm text-gray-500 ${fontClass}`}>{data.description}</p>
+        {/* Description removed as requested */}
+        {/* <p className={`text-center mt-3 text-sm text-gray-500 ${fontClass}`}>{data.description}</p> */}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -197,50 +199,6 @@ export const CodeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
         <Handle type="source" position={Position.Right} className="opacity-0" />
     </div>
   );
-});
-
-const getYouTubeId = (url: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
-
-export const VideoNode = memo(({ data, selected }: NodeProps<ElementData>) => {
-    const videoId = getYouTubeId(data.url || "");
-    const fontClass = getFontClass(data.title || "");
-
-    return (
-        <div className="relative group">
-             <Handle type="target" position={Position.Top} className="opacity-0" />
-             <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
-             <div className={`w-96 bg-white shadow-xl rounded-lg overflow-hidden border border-gray-200 ${selected ? 'ring-2 ring-indigo-500' : ''}`}>
-                 <div className="relative pt-[56.25%] bg-black">
-                     {videoId ? (
-                         <iframe
-                             className="absolute top-0 left-0 w-full h-full"
-                             src={`https://www.youtube.com/embed/${videoId}`}
-                             title={data.title || "YouTube Video"}
-                             frameBorder="0"
-                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                             allowFullScreen
-                         ></iframe>
-                     ) : (
-                         <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-white p-4 text-center">
-                             <i className="fa-brands fa-youtube text-4xl mb-2 text-red-600"></i>
-                             <p>Invalid Video URL</p>
-                         </div>
-                     )}
-                 </div>
-                 {data.title && (
-                     <div className="p-3 bg-white">
-                         <p className={`text-sm font-bold text-gray-800 ${fontClass}`}>{data.title}</p>
-                     </div>
-                 )}
-             </div>
-             <Handle type="source" position={Position.Bottom} className="opacity-0" />
-        </div>
-    );
 });
 
 // --- Sketch Node (For Drawings) ---

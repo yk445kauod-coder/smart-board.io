@@ -20,8 +20,7 @@ import {
   WordArtNode, 
   ShapeNode, 
   CodeNode, 
-  SketchNode,
-  VideoNode
+  SketchNode
 } from './BoardElements';
 
 const nodeTypes = {
@@ -31,8 +30,7 @@ const nodeTypes = {
   wordArt: WordArtNode,
   shape: ShapeNode,
   code: CodeNode,
-  sketch: SketchNode,
-  video: VideoNode
+  sketch: SketchNode
 };
 
 interface SmartBoardProps {
@@ -48,6 +46,7 @@ interface SmartBoardProps {
   penColor?: string;
   penSize?: number;
   onDeleteNode?: (id: string) => void;
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void;
 }
 
 const BOARD_WIDTH = 1600;
@@ -79,7 +78,8 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   onPaneClick,
   penColor = '#000000',
   penSize = 6,
-  onDeleteNode
+  onDeleteNode,
+  onNodeContextMenu
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [points, setPoints] = useState<number[][]>([]);
@@ -101,6 +101,14 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       // Drag to erase: if Eraser is active AND primary mouse button is down
       if (activeTool === 'eraser' && event.buttons === 1 && onDeleteNode) {
           onDeleteNode(node.id);
+      }
+  };
+  
+  // --- Right Click Edit ---
+  const handleNodeContextMenu = (event: React.MouseEvent, node: Node) => {
+      event.preventDefault(); // Prevent native browser context menu
+      if (onNodeContextMenu) {
+          onNodeContextMenu(event, node);
       }
   };
 
@@ -260,6 +268,7 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                 onPaneClick={onPaneClick}
                 onNodeClick={handleNodeClick}
                 onNodeMouseEnter={handleNodeMouseEnter}
+                onNodeContextMenu={handleNodeContextMenu}
                 proOptions={{ hideAttribution: true }}
                 className={`${isDrawTool ? 'cursor-pen' : ''} ${activeTool === 'eraser' ? 'cursor-eraser' : ''} ${activeTool === 'pan' ? 'cursor-grab active:cursor-grabbing' : ''}`}
             >
