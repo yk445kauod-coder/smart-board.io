@@ -181,9 +181,9 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Use gemini-1.5-flash for stable tool support on v1beta
+      // Switch to gemini-2.0-flash-exp as requested to fix 404 errors
       const chat = ai.chats.create({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash-exp",
         config: {
             systemInstruction: getSystemInstruction(language),
             tools: [{ functionDeclarations }, { googleSearch: {} }],
