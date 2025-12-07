@@ -1,6 +1,6 @@
-
 import React, { memo, useState } from 'react';
-import { Handle, Position, type NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
+import type { NodeProps } from 'reactflow';
 import { ElementData } from '../types';
 
 const getFontClass = (text: string) => {

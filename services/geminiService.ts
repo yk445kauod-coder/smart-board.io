@@ -1,8 +1,8 @@
-
 import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai";
 
 // --- API CONFIGURATION ---
-// We access the key from process.env which is injected by Vite during build
+// Strictly use process.env.API_KEY injected by Vite. 
+// Do not add fallback strings that look like keys to avoid secrets scanning errors.
 const API_KEY = process.env.API_KEY || ""; 
 
 // --- Types ---

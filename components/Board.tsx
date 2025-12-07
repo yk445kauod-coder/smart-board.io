@@ -1,15 +1,13 @@
-
 import React, { useRef, useState, useMemo, useCallback } from 'react';
 import ReactFlow, { 
     Background, 
     Controls, 
     MiniMap, 
     ConnectionMode,
-    type Node,
-    type Edge,
     Panel,
     useReactFlow
 } from 'reactflow';
+import type { Node, Edge } from 'reactflow';
 import { getStroke } from 'perfect-freehand';
 import { ToolType, ElementData } from '../types';
 import { 

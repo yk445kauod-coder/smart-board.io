@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import SmartBoard from './components/Board';
 import Chat from './components/Chat';
@@ -15,12 +14,10 @@ import {
     useNodesState, 
     useEdgesState, 
     addEdge, 
-    type Connection, 
-    type Edge, 
-    type Node,
     useReactFlow,
     ReactFlowProvider
 } from 'reactflow';
+import type { Connection, Edge, Node } from 'reactflow';
 
 const AppContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
