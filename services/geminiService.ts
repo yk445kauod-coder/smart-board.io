@@ -181,8 +181,8 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Switched to gemini-1.5-flash for stable tool support and higher free tier quotas.
-      // This resolves Error 400 (Tool Unsupported) and Error 429 (Quota Exceeded).
+      // Switched back to gemini-1.5-flash for higher rate limits (Free Tier)
+      // The experimental 2.0 model has very low quotas leading to 429 errors.
       const chat = ai.chats.create({ 
         model: "gemini-1.5-flash",
         config: {
