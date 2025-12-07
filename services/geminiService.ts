@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai";
 
 // --- API CONFIGURATION ---
-// Strictly use process.env.API_KEY injected by Vite. 
-const API_KEY = process.env.API_KEY || ""; 
+const API_KEY = process.env.API_KEY || "";
 
 // --- Types ---
 export interface ToolCall {
@@ -11,7 +10,6 @@ export interface ToolCall {
 }
 
 // --- Enhanced Request Queue System ---
-// This ensures requests are processed one by one (FIFO) to prevent race conditions and 429s
 interface QueueItem {
   task: () => Promise<any>;
   resolve: (value: any) => void;
@@ -32,18 +30,16 @@ const processQueue = async () => {
       item.resolve(result);
     } catch (e: any) {
       console.error("Queue task failed:", e);
-      // If we hit a rate limit, wait longer before processing the next item
       if (e.status === 429 || (e.message && e.message.includes('429'))) {
-          console.warn("Rate limit hit in queue, pausing for 10 seconds...");
-          await new Promise(r => setTimeout(r, 10000));
+        console.warn("Rate limit hit in queue, pausing for 10 seconds...");
+        await new Promise(r => setTimeout(r, 10000));
       }
       item.reject(e);
     } finally {
-      // Add a small buffer delay between requests to be safe
       setTimeout(() => {
         isProcessing = false;
         processQueue();
-      }, 1000); 
+      }, 1000);
     }
   } else {
     isProcessing = false;
@@ -58,7 +54,6 @@ const addToQueue = <T>(task: () => Promise<T>): Promise<T> => {
 };
 
 // --- Tool Definitions ---
-
 const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "addNote",
@@ -66,7 +61,7 @@ const functionDeclarations: FunctionDeclaration[] = [
     parameters: {
       type: Type.OBJECT,
       properties: {
-        content: { type: Type.STRING, description: "The text content of the note" },
+        content: { type: Type.STRING },
         style: { type: Type.STRING, enum: ["normal", "bold", "highlight"] },
         color: { type: Type.STRING },
         x: { type: Type.NUMBER },
@@ -168,11 +163,11 @@ Current Language: ${lang === 'ar' ? 'Arabic' : 'English'}.
 Guidelines:
 1. Explain the concept briefly in text.
 2. IMMEDIATELY use tools to visualize it.
-3. If asking for a layout, organize elements logically.
-4. When using coordinates (x,y), assume the center is (800, 450). Range: x[0-1600], y[0-900].
-5. Spread elements out so they don't overlap.
-6. When using addImage, provide a highly detailed visual description for the prompt.
-7. Use Google Search to verify information when needed.
+3. Organize elements logically.
+4. Center is (800,450). Range: x[0-1600], y[0-900].
+5. Spread elements so they don't overlap.
+6. addImage: provide detailed visual description.
+7. Use Google Search to verify info when needed.
 `;
 
 export const sendMessageToGemini = async (
@@ -182,171 +177,95 @@ export const sendMessageToGemini = async (
   onToolCall: (name: string, args: any) => Promise<any>
 ) => {
   return addToQueue(async () => {
-    try {
-      if (!API_KEY) {
-         return language === 'ar' ? "يرجى ضبط مفتاح API في إعدادات النشر." : "Please configure your API Key in deployment settings.";
-      }
+    if (!API_KEY) return language === 'ar' ? "يرجى ضبط مفتاح API." : "Please configure your API Key.";
 
+    try {
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Switched to gemini-1.5-flash for stable High Quota (Free Tier) access
-      // gemini-2.0-pro-exp has extremely low limits causing 429 errors.
+
       const chat = ai.chats.create({ 
         model: "gemini-2.5-flash",
         config: {
-            systemInstruction: getSystemInstruction(language),
-            tools: [{ functionDeclarations }, { googleSearch: {} }],
+          systemInstruction: getSystemInstruction(language),
+          tools: [{ functionDeclarations }, { googleSearch: {} }],
         },
         history: history.map(h => ({
-            role: h.role,
-            parts: h.parts.map(p => ({ text: p.text })) 
+          role: h.role,
+          parts: h.parts.map(p => ({ text: p.text }))
         }))
       });
 
       const response = await chat.sendMessage({ message });
       const fullText = response.text;
       const functionCalls = response.functionCalls;
-      
+
       if (functionCalls && functionCalls.length > 0) {
         for (const call of functionCalls) {
-            console.log("AI Tool Call:", call.name, call.args);
-            await onToolCall(call.name, call.args);
+          console.log("AI Tool Call:", call.name, call.args);
+          await onToolCall(call.name, call.args);
         }
       }
 
-      if (!fullText && functionCalls && functionCalls.length > 0) {
-          return language === 'ar' ? "تمت إضافة العناصر إلى اللوحة." : "Elements added to the board.";
-      }
-
+      if (!fullText && functionCalls?.length) return language === 'ar' ? "تمت إضافة العناصر." : "Elements added.";
       return fullText || (language === 'ar' ? "تم تحديث اللوحة." : "Board updated.");
 
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      
-      if (error.status === 429 || (error.message && error.message.includes('429'))) {
-           return language === 'ar'
-            ? "عذراً، الخادم مشغول حالياً (تم تجاوز الحد المسموح). يرجى الانتظار قليلاً والمحاولة مرة أخرى."
-            : "Sorry, the server is busy (Rate limit exceeded). Please wait a moment and try again.";
-      }
-
+      if (error.status === 429 || (error.message && error.message.includes('429')))
+        return language === 'ar'
+          ? "عذراً، تم تجاوز الحد المسموح. انتظر قليلاً."
+          : "Rate limit exceeded. Please wait.";
       return language === 'ar' 
-        ? `عذراً، حدث خطأ في الاتصال. (${error.message || 'Error'})` 
-        : `Sorry, connection error. (${error.message || 'Error'})`;
+        ? `حدث خطأ في الاتصال. (${error.message || 'Error'})`
+        : `Connection error. (${error.message || 'Error'})`;
     }
   });
 };
 
-// --- Audio Helper: Wrap raw PCM in WAV header ---
+// --- Audio Helper ---
 function pcmToWav(samples: Uint8Array, sampleRate: number = 24000, numChannels: number = 1) {
-    const buffer = new ArrayBuffer(44 + samples.length);
-    const view = new DataView(buffer);
-  
-    // RIFF identifier
-    writeString(view, 0, 'RIFF');
-    // file length
-    view.setUint32(4, 36 + samples.length, true);
-    // RIFF type
-    writeString(view, 8, 'WAVE');
-    // format chunk identifier
-    writeString(view, 12, 'fmt ');
-    // format chunk length
-    view.setUint32(16, 16, true);
-    // sample format (raw)
-    view.setUint16(20, 1, true);
-    // channel count
-    view.setUint16(22, numChannels, true);
-    // sample rate
-    view.setUint32(24, sampleRate, true);
-    // byte rate (sample rate * block align)
-    view.setUint32(28, sampleRate * numChannels * 2, true);
-    // block align (channel count * bytes per sample)
-    view.setUint16(32, numChannels * 2, true);
-    // bits per sample
-    view.setUint16(34, 16, true);
-    // data chunk identifier
-    writeString(view, 36, 'data');
-    // data chunk length
-    view.setUint32(40, samples.length, true);
-  
-    // write the PCM samples
-    new Uint8Array(buffer, 44).set(samples);
-  
-    return buffer;
-}
-  
-function writeString(view: DataView, offset: number, string: string) {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
+  const buffer = new ArrayBuffer(44 + samples.length);
+  const view = new DataView(buffer);
+  const writeString = (v: DataView, o: number, s: string) => { for (let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+
+  writeString(view,0,'RIFF'); view.setUint32(4,36+samples.length,true); writeString(view,8,'WAVE');
+  writeString(view,12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+  view.setUint16(22,numChannels,true); view.setUint32(24,sampleRate,true);
+  view.setUint32(28,sampleRate*numChannels*2,true); view.setUint16(32,numChannels*2,true);
+  view.setUint16(34,16,true); writeString(view,36,'data'); view.setUint32(40,samples.length,true);
+  new Uint8Array(buffer,44).set(samples);
+  return buffer;
 }
 
 // --- Gemini TTS ---
 export const generateSpeechWithGemini = async (text: string, language: 'ar' | 'en') => {
-  try {
-    if (!API_KEY) {
-        throw new Error("API Key missing");
-    }
-
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-    
-    // Using gemini-2.5-flash-preview-tts for high quality audio
-    // Note: If this hits rate limits, the outer try/catch in tts.ts handles fallback
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts", 
-      contents: [
-        {
-          parts: [{ text: text }]
-        }
-      ],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: language === 'ar' ? 'Zephyr' : 'Puck'
-            }
-          }
-        }
+  if (!API_KEY) throw new Error("API Key missing");
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text }] }],
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: language === 'ar' ? 'Zephyr' : 'Puck' } }
       }
-    });
-
-    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    
-    if (!audioData) {
-        throw new Error("No audio data in response");
     }
+  });
 
-    // Decode Base64 to Raw Bytes
-    const binaryString = atob(audioData);
-    const len = binaryString.length;
-    const rawBytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        rawBytes[i] = binaryString.charCodeAt(i);
-    }
+  const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  if (!audioData) throw new Error("No audio data");
 
-    // Convert Raw PCM to WAV
-    // Gemini 2.5 TTS typically returns 24kHz mono PCM
-    const wavBuffer = pcmToWav(rawBytes, 24000, 1);
+  const binaryString = atob(audioData);
+  const rawBytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) rawBytes[i] = binaryString.charCodeAt(i);
 
-    // Play Audio
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioContext = new AudioContextClass();
-    
-    try {
-        const audioBuffer = await audioContext.decodeAudioData(wavBuffer);
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
-        source.start(0);
-        return true;
-    } catch (decodeError) {
-        // Silently fail decoding to allow fallback
-        console.warn("Audio decode failed, triggering fallback.");
-        return false;
-    }
+  const wavBuffer = pcmToWav(rawBytes, 24000, 1);
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  const audioContext = new AudioContextClass();
 
-  } catch (error) {
-    // Silently fail API errors to allow fallback
-    console.warn("Gemini TTS API failed, triggering fallback.");
-    throw error;
-  }
+  const audioBuffer = await audioContext.decodeAudioData(wavBuffer);
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioContext.destination);
+  source.start(0);
+  return true;
 };
