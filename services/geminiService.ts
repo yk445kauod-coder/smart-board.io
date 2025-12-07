@@ -181,8 +181,9 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
+      // Switched to gemini-1.5-flash for stable tool support (2.5-flash caused API 400 errors with tools)
       const chat = ai.chats.create({ 
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         config: {
             systemInstruction: getSystemInstruction(language),
             tools: [{ functionDeclarations }, { googleSearch: {} }],
@@ -272,7 +273,8 @@ export const generateSpeechWithGemini = async (text: string, language: 'ar' | 'e
 
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     
-    // Using gemini-2.5-flash-preview-tts
+    // Using gemini-2.5-flash-preview-tts for high quality audio
+    // If this fails due to key restrictions, the outer try/catch in tts.ts will handle the fallback
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts", 
       contents: [
