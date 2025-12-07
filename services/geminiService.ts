@@ -181,9 +181,10 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Switch to gemini-2.0-flash-exp as requested to fix 404 errors
+      // Switched back to gemini-1.5-flash for higher rate limits (Free Tier)
+      // The experimental 2.0 model has very low quotas leading to 429 errors.
       const chat = ai.chats.create({ 
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-1.5-flash",
         config: {
             systemInstruction: getSystemInstruction(language),
             tools: [{ functionDeclarations }, { googleSearch: {} }],
@@ -213,6 +214,13 @@ export const sendMessageToGemini = async (
 
     } catch (error: any) {
       console.error("Gemini API Error:", error);
+      
+      if (error.status === 429 || (error.message && error.message.includes('429'))) {
+           return language === 'ar'
+            ? "عذراً، الخادم مشغول حالياً (تم تجاوز الحد المسموح). يرجى الانتظار قليلاً والمحاولة مرة أخرى."
+            : "Sorry, the server is busy (Rate limit exceeded). Please wait a moment and try again.";
+      }
+
       return language === 'ar' 
         ? `عذراً، حدث خطأ في الاتصال. (${error.message || 'Error'})` 
         : `Sorry, connection error. (${error.message || 'Error'})`;
@@ -274,7 +282,7 @@ export const generateSpeechWithGemini = async (text: string, language: 'ar' | 'e
     const ai = new GoogleGenAI({ apiKey: API_KEY });
     
     // Using gemini-2.5-flash-preview-tts for high quality audio
-    // If this fails due to key restrictions, the outer try/catch in tts.ts will handle the fallback
+    // Note: If this hits rate limits, the outer try/catch in tts.ts handles fallback
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts", 
       contents: [
