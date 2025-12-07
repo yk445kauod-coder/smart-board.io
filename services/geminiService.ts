@@ -34,16 +34,16 @@ const processQueue = async () => {
       console.error("Queue task failed:", e);
       // If we hit a rate limit, wait longer before processing the next item
       if (e.status === 429 || (e.message && e.message.includes('429'))) {
-          console.warn("Rate limit hit in queue, pausing for 5 seconds...");
-          await new Promise(r => setTimeout(r, 5000));
+          console.warn("Rate limit hit in queue, pausing for 10 seconds...");
+          await new Promise(r => setTimeout(r, 10000));
       }
       item.reject(e);
     } finally {
-      // Add a buffer delay between requests for the Pro model
+      // Add a small buffer delay between requests to be safe
       setTimeout(() => {
         isProcessing = false;
         processQueue();
-      }, 2000); // 2 second buffer between Pro model calls
+      }, 1000); 
     }
   } else {
     isProcessing = false;
@@ -188,9 +188,10 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Using gemini-2.0-pro-exp (Gemini Pro 2 Experimental)
+      // Switched to gemini-1.5-flash for stable High Quota (Free Tier) access
+      // gemini-2.0-pro-exp has extremely low limits causing 429 errors.
       const chat = ai.chats.create({ 
-        model: "gemini-2.0-pro-exp",
+        model: "gemini-2.5-flash",
         config: {
             systemInstruction: getSystemInstruction(language),
             tools: [{ functionDeclarations }, { googleSearch: {} }],
