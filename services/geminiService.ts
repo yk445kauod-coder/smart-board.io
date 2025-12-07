@@ -181,10 +181,9 @@ export const sendMessageToGemini = async (
       }
 
       const ai = new GoogleGenAI({ apiKey: API_KEY });
-      // Switched back to gemini-1.5-flash for higher rate limits (Free Tier)
-      // The experimental 2.0 model has very low quotas leading to 429 errors.
+      // Updated model to gemini-2.5-flash as requested
       const chat = ai.chats.create({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         config: {
             systemInstruction: getSystemInstruction(language),
             tools: [{ functionDeclarations }, { googleSearch: {} }],
