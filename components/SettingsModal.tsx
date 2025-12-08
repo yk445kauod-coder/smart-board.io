@@ -36,22 +36,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
 
           <div className="space-y-2">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-language"></i> Language / اللغة
+              <i className="fa-solid fa-language"></i> AI Language / لغة الذكاء الاصطناعي
             </label>
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setLocalSettings({...localSettings, language: 'ar'})}
-                className={`flex-1 p-3 rounded-xl border-2 font-bold transition-all ${localSettings.language === 'ar' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}
-              >
-                العربية
-              </button>
-              <button 
-                onClick={() => setLocalSettings({...localSettings, language: 'en'})}
-                className={`flex-1 p-3 rounded-xl border-2 font-bold transition-all ${localSettings.language === 'en' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}
-              >
-                English
-              </button>
-            </div>
+            <input 
+              type="text" 
+              value={localSettings.language}
+              onChange={e => setLocalSettings({...localSettings, language: e.target.value})}
+              className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none font-medium"
+              placeholder="e.g., Arabic, English, French"
+            />
+            <p className="text-xs text-gray-400 mt-1">Note: TTS voice defaults to English for non-Arabic languages.</p>
           </div>
 
           <div className="space-y-2">

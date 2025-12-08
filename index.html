@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Playpen+Sans+Arabic:wght@100..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.10.4/dist/style.css" />
+    
     <script>
       tailwind.config = {
         theme: {
@@ -24,16 +25,18 @@
               toolbar: '#2d3436',
               accent: '#6c5ce7',
             },
-            boxShadow: {
-              'board': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            },
             animation: {
               'fade-in-down': 'fade-in-down 0.3s ease-out both',
+              'fade-in': 'fade-in 0.3s ease-out both',
             },
             keyframes: {
               'fade-in-down': {
                 '0%': { opacity: '0', transform: 'translateY(-10px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              'fade-in': {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
               },
             },
           }
@@ -43,10 +46,9 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f0f2f5; /* Changed background for contrast */
+        background-color: #f0f2f5;
         color: #2d3436;
         overflow: hidden;
-        /* Disable text selection globally for a better tool experience */
         user-select: none;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -57,7 +59,6 @@
         height: 100vh;
       }
 
-      /* Allow text selection in specific editable elements */
       textarea, input, [contenteditable="true"] {
         user-select: text;
         -webkit-user-select: text;
@@ -65,31 +66,14 @@
         -ms-user-select: text;
       }
       
-      #root {
-        width: 100%;
-        height: 100%;
-      }
-      
+      #root { width: 100%; height: 100%; }
       .font-ar { font-family: 'Playpen Sans Arabic', cursive; }
       .font-en { font-family: 'Kalam', cursive; }
+      .react-flow__node { border: none !important; background: transparent !important; width: auto !important; }
+      .react-flow__handle { width: 8px; height: 8px; background: #6c5ce7; }
       
-      .react-flow__node {
-        border: none !important;
-        background: transparent !important;
-        width: auto !important;
-      }
-      .react-flow__handle {
-        width: 8px;
-        height: 8px;
-        background: #6c5ce7;
-      }
-      
-      .cursor-pen {
-        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.5 8.6L13 18l5-5"/></svg>') 0 24, crosshair !important;
-      }
-      .cursor-eraser {
-        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>') 12 12, crosshair !important;
-      }
+      .cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.5 8.6L13 18l5-5"/></svg>') 0 24, crosshair !important; }
+      .cursor-eraser { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>') 12 12, crosshair !important; }
     </style>
 <script type="importmap">
 {

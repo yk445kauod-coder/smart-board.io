@@ -1,4 +1,4 @@
-export type Language = 'ar' | 'en';
+export type Language = string;
 export type LayoutMode = 'freestyle' | 'diagram' | 'timeline';
 export type ToolType = 
   | 'pointer' 
@@ -11,6 +11,9 @@ export type ToolType =
   | 'add-text'
   | 'add-image'
   | 'add-shape';
+
+export type LessonDetail = 'brief' | 'detailed';
+export type ToolbarPosition = 'top' | 'left';
 
 export interface TeacherPersona {
   name: string;

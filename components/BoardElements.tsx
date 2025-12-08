@@ -28,26 +28,28 @@ const DeleteHandle = ({ id, onDelete }: { id: string, onDelete?: (id: string) =>
 
 export const NoteNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   const fontClass = getFontClass(data.content || "");
-  const rotation = data.rotation || 0;
+  const rotation = data.rotation || (Math.random() - 0.5) * 4; // Add slight random rotation
   
   return (
     <div className="relative group">
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
       <div 
-        className={`p-6 w-56 min-h-[140px] shadow-lg flex flex-col justify-center items-center text-center relative transition-shadow duration-200
+        className={`p-6 w-56 min-h-[140px] shadow-lg flex flex-col justify-center items-center text-center relative transition-all duration-200 overflow-hidden
           ${data.style === 'bold' ? 'font-bold' : ''}
-          ${data.style === 'highlight' ? 'border-4 border-yellow-600/20' : ''}
-          ${selected ? 'ring-2 ring-indigo-500 shadow-2xl' : ''}
+          ${selected ? 'ring-2 ring-offset-2 ring-indigo-500 shadow-2xl' : ''}
         `}
         style={{ 
           backgroundColor: data.color || '#fff740',
           transform: `rotate(${rotation}deg)`,
-          boxShadow: '2px 4px 12px rgba(0,0,0,0.15)',
-          borderRadius: '2px 2px 25px 2px'
+          boxShadow: '3px 5px 15px rgba(0,0,0,0.15)',
+          borderRadius: '4px'
         }}
       >
-        <div className="absolute top-0 left-0 w-full h-8 bg-black/5 pointer-events-none"></div>
+        {/* Dog-ear effect */}
+        <div className="absolute top-0 right-0 w-8 h-8 bg-black/10" style={{
+            clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
+        }}></div>
         <p className={`text-xl break-words w-full text-gray-800 ${fontClass}`} dir="auto">
           {data.content}
         </p>
@@ -65,21 +67,19 @@ export const ListNode = memo(({ data, selected }: NodeProps<ElementData>) => {
        <Handle type="target" position={Position.Top} className="opacity-0" />
        <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
       <div 
-        className={`p-5 w-64 bg-white shadow-xl rounded-lg border border-gray-100 transition-all
-            ${selected ? 'ring-2 ring-indigo-500' : ''}`}
+        className={`p-5 pl-10 w-64 bg-white shadow-xl rounded-lg border border-gray-200 transition-all relative
+            ${selected ? 'ring-2 ring-offset-2 ring-indigo-500' : ''}`}
         style={{ 
             backgroundColor: data.color || '#ffffff',
-            backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px)',
-            backgroundSize: '100% 2rem',
-            lineHeight: '2rem'
         }}
       >
-        {data.title && <div className={`font-bold text-xl text-center mb-2 text-indigo-600 ${fontClass}`}>{data.title}</div>}
-        <ul className="space-y-0">
+        {/* Legal pad red line */}
+        <div className="absolute top-0 left-6 w-0.5 h-full bg-red-400/70"></div>
+        {data.title && <div className={`font-bold text-2xl text-center mb-4 text-gray-800 ${fontClass}`}>{data.title}</div>}
+        <ul className="space-y-2 list-disc list-inside">
           {data.items?.map((item, idx) => (
-            <li key={idx} className={`flex items-center gap-3 text-lg text-gray-800 ${fontClass}`} dir="auto">
-              <div className="w-4 h-4 border-2 border-gray-400 rounded-sm flex-shrink-0"></div>
-              <span>{item}</span>
+            <li key={idx} className={`text-lg text-gray-700 ${fontClass}`} dir="auto">
+              {item}
             </li>
           ))}
         </ul>
