@@ -123,6 +123,7 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
              </div>
            )}
         </div>
+        {/* Description is hidden as requested */}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -197,6 +198,7 @@ export const CodeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   );
 });
 
+// --- Sketch Node (For Drawings) ---
 export const SketchNode = memo(({ data, selected }: NodeProps<ElementData>) => {
     return (
         <div className="relative group" style={{ width: data.width, height: data.height, pointerEvents: 'none' }}>

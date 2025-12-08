@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import { sendMessageToGemini } from '../services/geminiService';
 
 interface ChatProps {
   onToolCall: (name: string, args: any) => Promise<any>;
-  projectorMode: boolean;
+  projectorMode?: boolean;
 }
 
 const Chat: React.FC<ChatProps> = ({ onToolCall, projectorMode }) => {
@@ -13,7 +12,7 @@ const Chat: React.FC<ChatProps> = ({ onToolCall, projectorMode }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: 'مرحباً! أنا مدرسك الذكي. كيف يمكنني مساعدتك في شرح درس اليوم؟', timestamp: Date.now() }
+    { role: 'model', text: 'مرحباً! أنا مدرسك الذكي. كيف يمكنني مساعدتك اليوم؟', timestamp: Date.now() }
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -56,40 +55,35 @@ const Chat: React.FC<ChatProps> = ({ onToolCall, projectorMode }) => {
     }
   };
 
-  // Minimized State
   if (!isOpen) {
       return (
           <button 
             onClick={() => setIsOpen(true)}
-            className={`absolute bottom-6 right-6 z-[100] bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all animate-bounce duration-300
-                ${projectorMode ? 'scale-150 bottom-10 right-10' : ''}`}
+            className={`absolute bottom-6 right-6 z-[100] bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all
+            ${projectorMode ? 'scale-125' : 'scale-100'}`}
           >
               <i className="fa-solid fa-message text-2xl"></i>
           </button>
       );
   }
 
-  // Expanded State
   return (
     <div 
-        className={`absolute bottom-6 right-6 z-[100] w-96 h-[600px] flex flex-col bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden font-ar transition-all duration-300 origin-bottom-right
-        ${projectorMode ? 'scale-125 bottom-12 right-12' : ''}`}
-        dir="rtl"
+      className={`absolute bottom-6 right-6 z-[100] w-96 h-[600px] flex flex-col bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden font-ar transition-transform duration-300
+      ${projectorMode ? 'scale-110 origin-bottom-right' : 'scale-100'}`} 
+      dir="rtl"
     >
-      
-      {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex justify-between items-center cursor-move">
+      <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <i className="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+          <i className="fa-solid fa-robot w-5 h-5"></i>
           <h2 className="font-bold text-lg">Smart AI Tutor</h2>
         </div>
-        <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded-lg">
+        <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-2 rounded-lg">
             <i className="fa-solid fa-minus"></i>
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
@@ -122,7 +116,6 @@ const Chat: React.FC<ChatProps> = ({ onToolCall, projectorMode }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="p-3 bg-white border-t border-gray-200">
         <div className="relative flex items-end gap-2">
           <textarea
@@ -138,7 +131,7 @@ const Chat: React.FC<ChatProps> = ({ onToolCall, projectorMode }) => {
             disabled={loading || !input.trim()}
             className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all mb-0.5"
           >
-             <i className="fa-solid fa-paper-plane"></i>
+            <i className="fa-solid fa-paper-plane"></i>
           </button>
         </div>
       </div>

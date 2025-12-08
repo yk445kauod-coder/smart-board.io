@@ -1,15 +1,11 @@
-import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // --- API CONFIGURATION ---
-const API_KEY = process.env.API_KEY || "";
+// Strictly use process.env.API_KEY injected by Vite. 
+const API_KEY = process.env.API_KEY || ""; 
 
-// --- Types ---
-export interface ToolCall {
-  name: string;
-  args: any;
-}
-
-// --- Enhanced Request Queue System ---
+// --- Request Queue System ---
+// This ensures requests are processed one by one (FIFO) to prevent race conditions and 429s
 interface QueueItem {
   task: () => Promise<any>;
   resolve: (value: any) => void;
@@ -30,16 +26,18 @@ const processQueue = async () => {
       item.resolve(result);
     } catch (e: any) {
       console.error("Queue task failed:", e);
+      // If rate limited (429), pause before processing next item
       if (e.status === 429 || (e.message && e.message.includes('429'))) {
-        console.warn("Rate limit hit in queue, pausing for 10 seconds...");
-        await new Promise(r => setTimeout(r, 10000));
+          console.warn("Rate limit hit in queue, pausing for 5 seconds...");
+          await new Promise(r => setTimeout(r, 5000));
       }
       item.reject(e);
     } finally {
+      // Buffer delay between requests
       setTimeout(() => {
         isProcessing = false;
         processQueue();
-      }, 1000);
+      }, 1000); 
     }
   } else {
     isProcessing = false;
@@ -53,121 +51,58 @@ const addToQueue = <T>(task: () => Promise<T>): Promise<T> => {
   });
 };
 
-// --- Tool Definitions ---
-const functionDeclarations: FunctionDeclaration[] = [
-  {
-    name: "addNote",
-    description: "Add a sticky note to the board.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        content: { type: Type.STRING },
-        style: { type: Type.STRING, enum: ["normal", "bold", "highlight"] },
-        color: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["content"]
-    }
-  },
-  {
-    name: "addList",
-    description: "Add a structured list to the board.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING },
-        items: { type: Type.ARRAY, items: { type: Type.STRING } },
-        color: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["items"]
-    }
-  },
-  {
-    name: "addImage",
-    description: "Generate an image from a description.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        description: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["description"]
-    }
-  },
-  {
-    name: "addWordArt",
-    description: "Add a large decorative title.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        text: { type: Type.STRING },
-        color: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["text"]
-    }
-  },
-  {
-    name: "addShape",
-    description: "Add a geometric shape.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        shapeType: { type: Type.STRING, enum: ["rectangle", "circle", "triangle"] },
-        color: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["shapeType"]
-    }
-  },
-  {
-    name: "addCode",
-    description: "Add a code snippet.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        code: { type: Type.STRING },
-        language: { type: Type.STRING },
-        x: { type: Type.NUMBER },
-        y: { type: Type.NUMBER },
-      },
-      required: ["code", "language"]
-    }
-  },
-  {
-    name: "connectElements",
-    description: "Connect two elements visually.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        fromId: { type: Type.STRING },
-        toId: { type: Type.STRING },
-      },
-      required: ["fromId", "toId"]
-    }
-  }
-];
+// --- JSON Command Parsing Logic ---
 
-// --- Gemini Text Gen ---
+// Helper to sanitize JSON string (remove markdown code blocks)
+const cleanJsonString = (str: string) => {
+    return str.replace(/```json/g, '').replace(/```/g, '').trim();
+};
+
+// --- Gemini Text Gen (JSON Mode) ---
 const getSystemInstruction = (lang: string) => `
-You are an advanced AI Tutor powering a "SmartBoard AI".
-Your role is to explain concepts visually on a digital whiteboard (Resolution: 1600x900).
-Current Language: ${lang === 'ar' ? 'Arabic' : 'English'}.
+You are SmartBoard AI, an advanced visual tutor.
+Your goal is to explain concepts by creating visual elements on a 1600x900 whiteboard.
 
-Guidelines:
-1. Explain the concept briefly in text.
-2. IMMEDIATELY use tools to visualize it.
-3. Organize elements logically.
-4. Center is (800,450). Range: x[0-1600], y[0-900].
-5. Spread elements so they don't overlap.
-6. addImage: provide detailed visual description.
-7. Use Google Search to verify info when needed.
+**CRITICAL INSTRUCTION:**
+You must output your response strictly as a JSON array of commands. 
+Do not write conversational text outside the JSON. 
+If you need to speak to the user, add an "addNote" or "addWordArt" command with the text.
+
+**Available Commands (JSON Objects):**
+
+1. **addNote**: Creates a sticky note.
+   - params: { "action": "addNote", "content": "Text", "x": number, "y": number, "color": "hex", "style": "normal"|"bold" }
+   
+2. **addList**: Creates a list.
+   - params: { "action": "addList", "title": "Title", "items": ["Item 1", "Item 2"], "x": number, "y": number, "color": "hex" }
+
+3. **addImage**: Generates an image.
+   - params: { "action": "addImage", "description": "Visual description", "x": number, "y": number }
+
+4. **addWordArt**: Creates large text.
+   - params: { "action": "addWordArt", "text": "Title", "x": number, "y": number, "color": "hex" }
+
+5. **addShape**: Creates a shape.
+   - params: { "action": "addShape", "shapeType": "rectangle"|"circle"|"triangle", "x": number, "y": number, "color": "hex" }
+
+6. **addCode**: Creates a code block.
+   - params: { "action": "addCode", "code": "code string", "language": "javascript"|"python"|etc, "x": number, "y": number }
+
+7. **connectElements**: (Optional) Connects items implies flow.
+   - params: { "action": "connectElements", "fromId": "id1", "toId": "id2" } (Note: IDs are managed by the frontend, usually strictly for sequential flow if supported).
+
+**Guidelines:**
+- Canvas size: 1600x900. Center is (800, 450).
+- Spread elements out visually.
+- Use bright, educational colors.
+- Current Language: ${lang === 'ar' ? 'Arabic' : 'English'}.
+
+**Example Output:**
+[
+  { "action": "addWordArt", "text": "Solar System", "x": 600, "y": 50, "color": "#ff9900" },
+  { "action": "addImage", "description": "Realistic sun in space", "x": 600, "y": 200 },
+  { "action": "addNote", "content": "The Sun is a star at the center...", "x": 600, "y": 500, "color": "#fff740" }
+]
 `;
 
 export const sendMessageToGemini = async (
@@ -177,95 +112,149 @@ export const sendMessageToGemini = async (
   onToolCall: (name: string, args: any) => Promise<any>
 ) => {
   return addToQueue(async () => {
-    if (!API_KEY) return language === 'ar' ? "يرجى ضبط مفتاح API." : "Please configure your API Key.";
-
     try {
-      const ai = new GoogleGenAI({ apiKey: API_KEY });
+      if (!API_KEY) {
+         return language === 'ar' ? "يرجى ضبط مفتاح API." : "Please configure API Key.";
+      }
 
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
+      // Use gemini-2.5-flash as requested (free tier friendly with this JSON approach)
       const chat = ai.chats.create({ 
         model: "gemini-2.5-flash",
         config: {
-          systemInstruction: getSystemInstruction(language),
-          tools: [{ functionDeclarations }, { googleSearch: {} }],
+            systemInstruction: getSystemInstruction(language),
+            // No tools config needed - we simulate it via JSON parsing
         },
         history: history.map(h => ({
-          role: h.role,
-          parts: h.parts.map(p => ({ text: p.text }))
+            role: h.role,
+            parts: h.parts.map(p => ({ text: p.text })) 
         }))
       });
 
       const response = await chat.sendMessage({ message });
-      const fullText = response.text;
-      const functionCalls = response.functionCalls;
+      const rawText = response.text || "";
+      
+      let processed = false;
+      let replyText = "";
 
-      if (functionCalls && functionCalls.length > 0) {
-        for (const call of functionCalls) {
-          console.log("AI Tool Call:", call.name, call.args);
-          await onToolCall(call.name, call.args);
-        }
+      // Attempt to parse JSON commands
+      try {
+          const cleanedText = cleanJsonString(rawText);
+          // Find first '[' and last ']' to extract JSON array if embedded in text
+          const jsonStart = cleanedText.indexOf('[');
+          const jsonEnd = cleanedText.lastIndexOf(']');
+          
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+              const jsonStr = cleanedText.substring(jsonStart, jsonEnd + 1);
+              const commands = JSON.parse(jsonStr);
+              
+              if (Array.isArray(commands)) {
+                  processed = true;
+                  for (const cmd of commands) {
+                      if (cmd.action) {
+                          // Map JSON keys to expected tool args
+                          console.log("Executing Command:", cmd.action, cmd);
+                          await onToolCall(cmd.action, cmd);
+                      }
+                  }
+                  replyText = language === 'ar' ? "تم إنشاء الدرس على السبورة." : "Lesson created on the board.";
+              }
+          }
+      } catch (e) {
+          console.warn("Failed to parse JSON commands:", e);
       }
 
-      if (!fullText && functionCalls?.length) return language === 'ar' ? "تمت إضافة العناصر." : "Elements added.";
-      return fullText || (language === 'ar' ? "تم تحديث اللوحة." : "Board updated.");
+      if (!processed) {
+          // If no JSON found, return raw text (fallback conversation)
+          replyText = rawText;
+      }
+
+      return replyText;
 
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      if (error.status === 429 || (error.message && error.message.includes('429')))
-        return language === 'ar'
-          ? "عذراً، تم تجاوز الحد المسموح. انتظر قليلاً."
-          : "Rate limit exceeded. Please wait.";
       return language === 'ar' 
-        ? `حدث خطأ في الاتصال. (${error.message || 'Error'})`
-        : `Connection error. (${error.message || 'Error'})`;
+        ? `عذراً، حدث خطأ. (${error.message || 'Error'})` 
+        : `Sorry, error occurred. (${error.message || 'Error'})`;
     }
   });
 };
 
-// --- Audio Helper ---
+// --- Audio Helper: Wrap raw PCM in WAV header ---
 function pcmToWav(samples: Uint8Array, sampleRate: number = 24000, numChannels: number = 1) {
-  const buffer = new ArrayBuffer(44 + samples.length);
-  const view = new DataView(buffer);
-  const writeString = (v: DataView, o: number, s: string) => { for (let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
-
-  writeString(view,0,'RIFF'); view.setUint32(4,36+samples.length,true); writeString(view,8,'WAVE');
-  writeString(view,12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
-  view.setUint16(22,numChannels,true); view.setUint32(24,sampleRate,true);
-  view.setUint32(28,sampleRate*numChannels*2,true); view.setUint16(32,numChannels*2,true);
-  view.setUint16(34,16,true); writeString(view,36,'data'); view.setUint32(40,samples.length,true);
-  new Uint8Array(buffer,44).set(samples);
-  return buffer;
+    const buffer = new ArrayBuffer(44 + samples.length);
+    const view = new DataView(buffer);
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * 2, true);
+    view.setUint16(32, numChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length, true);
+    new Uint8Array(buffer, 44).set(samples);
+    return buffer;
+}
+  
+function writeString(view: DataView, offset: number, string: string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
 }
 
 // --- Gemini TTS ---
 export const generateSpeechWithGemini = async (text: string, language: 'ar' | 'en') => {
-  if (!API_KEY) throw new Error("API Key missing");
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: { prebuiltVoiceConfig: { voiceName: language === 'ar' ? 'Zephyr' : 'Puck' } }
+  try {
+    if (!API_KEY) throw new Error("API Key missing");
+
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts", 
+      contents: [{ parts: [{ text: text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: language === 'ar' ? 'Zephyr' : 'Puck'
+            }
+          }
+        }
       }
+    });
+
+    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!audioData) throw new Error("No audio data");
+
+    const binaryString = atob(audioData);
+    const len = binaryString.length;
+    const rawBytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        rawBytes[i] = binaryString.charCodeAt(i);
     }
-  });
 
-  const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!audioData) throw new Error("No audio data");
-
-  const binaryString = atob(audioData);
-  const rawBytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) rawBytes[i] = binaryString.charCodeAt(i);
-
-  const wavBuffer = pcmToWav(rawBytes, 24000, 1);
-  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-  const audioContext = new AudioContextClass();
-
-  const audioBuffer = await audioContext.decodeAudioData(wavBuffer);
-  const source = audioContext.createBufferSource();
-  source.buffer = audioBuffer;
-  source.connect(audioContext.destination);
-  source.start(0);
-  return true;
+    const wavBuffer = pcmToWav(rawBytes, 24000, 1);
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const audioContext = new AudioContextClass();
+    
+    try {
+        const audioBuffer = await audioContext.decodeAudioData(wavBuffer);
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+        return true;
+    } catch (decodeError) {
+        console.warn("Audio decode failed, triggering fallback.");
+        return false;
+    }
+  } catch (error) {
+    console.warn("Gemini TTS API failed, triggering fallback.");
+    return false;
+  }
 };

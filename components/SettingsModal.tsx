@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TeacherPersona } from '../types';
 
@@ -16,27 +15,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border-4 border-gray-100">
         <div className="bg-indigo-600 p-6 flex justify-between items-center text-white">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <i className="fa-solid fa-user"></i> إعدادات المدرس (Teacher Settings)
+            <i className="fa-solid fa-user-gear"></i> إعدادات المدرس (Teacher Settings)
           </h2>
           <button onClick={onClose} className="hover:bg-indigo-700 p-2 rounded-full transition"><i className="fa-solid fa-xmark"></i></button>
         </div>
         
         <div className="p-8 space-y-6">
-          {/* Name */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-wand-magic-sparkles"></i> Persona Name
+              <i className="fa-solid fa-user-astronaut"></i> Persona Name
             </label>
             <input 
               type="text" 
               value={localSettings.name}
               onChange={e => setLocalSettings({...localSettings, name: e.target.value})}
               className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none font-medium"
-              placeholder="e.g. Mr. Einstein"
+              placeholder="e.g. Smart Tutor"
             />
           </div>
 
-          {/* Language */}
           <div className="space-y-2">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
               <i className="fa-solid fa-language"></i> Language / اللغة
@@ -57,27 +54,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
             </div>
           </div>
 
-          {/* Voice */}
           <div className="space-y-2">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-microphone"></i> Voice Preference
+              <i className="fa-solid fa-microphone-lines"></i> Voice Preference
             </label>
             <div className="flex gap-4">
               <button 
                 onClick={() => setLocalSettings({...localSettings, voice: 'female'})}
                 className={`flex-1 p-3 rounded-xl border-2 font-medium transition-all ${localSettings.voice === 'female' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-500'}`}
               >
-                Female (Zeina/Salli)
+                Female
               </button>
               <button 
                 onClick={() => setLocalSettings({...localSettings, voice: 'male'})}
                 className={`flex-1 p-3 rounded-xl border-2 font-medium transition-all ${localSettings.voice === 'male' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500'}`}
               >
-                Male (Brian)
+                Male
               </button>
             </div>
           </div>
-
         </div>
 
         <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">

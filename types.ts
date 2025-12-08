@@ -1,4 +1,3 @@
-
 export type Language = 'ar' | 'en';
 export type LayoutMode = 'freestyle' | 'diagram' | 'timeline';
 export type ToolType = 

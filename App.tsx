@@ -133,13 +133,14 @@ const AppContent: React.FC = () => {
       fileInputRef.current?.click();
   };
 
+  // --- Main AI Command Handler ---
+  // This processes the "fake" tool calls coming from the JSON parser
   const handleToolCall = useCallback(async (name: string, args: any) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const count = getNodes().length;
-    const angle = count * 0.5;
-    const radius = 100 + (count * 20);
-    const defaultX = args.x ?? (Math.cos(angle) * radius + 400); 
-    const defaultY = args.y ?? (Math.sin(angle) * radius + 300);
+    const id = `ai-${Date.now()}-${Math.random()}`;
+    
+    // Default positioning logic for the 1600x900 board
+    const defaultX = args.x ?? 800 + (Math.random() - 0.5) * 400; 
+    const defaultY = args.y ?? 450 + (Math.random() - 0.5) * 200;
 
     let newNode: Node | null = null;
     let textToSpeak = "";
@@ -148,52 +149,44 @@ const AppContent: React.FC = () => {
       case 'addNote':
         newNode = {
             id, type: 'note', position: { x: defaultX, y: defaultY },
-            data: { id, type: 'note', content: args.content, style: args.style, color: args.color }
+            data: { id, type: 'note', content: args.content, style: args.style || 'normal', color: args.color || '#fff740' }
         };
         textToSpeak = args.content;
         break;
       case 'addList':
         newNode = {
             id, type: 'list', position: { x: defaultX, y: defaultY },
-            data: { id, type: 'list', items: args.items, title: args.title, color: args.color }
+            data: { id, type: 'list', items: args.items, title: args.title, color: args.color || '#ffffff' }
         };
         textToSpeak = args.title || "Here is a list.";
         break;
       case 'addImage':
         const encodedDesc = encodeURIComponent(args.description);
         const seed = Math.floor(Math.random() * 100000);
-        
-        // Improve Pollinations with randomized style models for variety
-        const styles = ['flux', 'flux-realism', 'flux-anime', 'flux-3d', 'any-dark'];
-        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedDesc}?width=512&height=512&nologo=true&seed=${seed}`;
         
         newNode = {
             id, type: 'image', position: { x: defaultX, y: defaultY },
-            data: { 
-                id, type: 'image', description: args.description, 
-                url: `https://image.pollinations.ai/prompt/${encodedDesc}?width=512&height=512&nologo=true&seed=${seed}&model=${randomStyle}`
-            }
+            data: { id, type: 'image', description: args.description, url: imageUrl }
         };
-        // DISABLE TTS for image descriptions as requested
-        textToSpeak = ""; 
         break;
       case 'addShape':
         newNode = {
             id, type: 'shape', position: { x: defaultX, y: defaultY },
-            data: { id, type: 'shape', shapeType: args.shapeType, color: args.color }
+            data: { id, type: 'shape', shapeType: args.shapeType, color: args.color || '#a8e6cf' }
         };
         break;
       case 'addWordArt':
         newNode = {
             id, type: 'wordArt', position: { x: defaultX, y: defaultY },
-            data: { id, type: 'wordArt', text: args.text, color: args.color }
+            data: { id, type: 'wordArt', text: args.text, color: args.color || '#000' }
         };
         textToSpeak = args.text;
         break;
       case 'addCode':
         newNode = {
             id, type: 'code', position: { x: defaultX, y: defaultY },
-            data: { id, type: 'code', code: args.code, language: args.language }
+            data: { id, type: 'code', code: args.code, language: args.language || 'javascript' }
         };
         break;
       case 'connectElements':
@@ -223,7 +216,7 @@ const AppContent: React.FC = () => {
       return (
           <div className="w-full h-screen bg-[#fdfbf7] flex flex-col items-center justify-center font-sans relative overflow-hidden text-center p-4">
               <h1 className="text-6xl font-bold mb-4 text-gray-800">SmartBoard AI</h1>
-              <p className="text-xl mb-8 text-gray-600">The Intelligent Infinite Canvas for Teaching</p>
+              <p className="text-xl mb-8 text-gray-600">The Intelligent Whiteboard for Modern Teaching</p>
               <button 
                   onClick={() => setView('board')}
                   className="px-8 py-3 bg-indigo-600 text-white rounded-full text-xl shadow-lg hover:bg-indigo-700 transition"
@@ -268,7 +261,7 @@ const AppContent: React.FC = () => {
             onChange={handleImageUpload} 
         />
 
-        {/* Floating Toolbar */}
+        {/* Floating Toolbar - High Z-index to be on top of the drawing overlay */}
         <div className="flex flex-col items-center absolute top-4 left-1/2 -translate-x-1/2 z-[100]">
             <div 
                 className={`bg-white/90 backdrop-blur shadow-xl rounded-2xl flex items-center gap-1 border border-gray-200 transition-all duration-300
@@ -317,7 +310,6 @@ const AppContent: React.FC = () => {
             {/* Sub-Toolbar for Drawing Options */}
             {(activeTool === 'pen' || activeTool === 'highlighter') && (
                  <div className="mt-2 bg-white/95 backdrop-blur shadow-lg rounded-xl p-2 flex items-center gap-3 border border-gray-200 animate-fade-in-down">
-                    {/* Color Picker */}
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                         {colors.map(c => (
                             <button
@@ -329,7 +321,6 @@ const AppContent: React.FC = () => {
                         ))}
                     </div>
                     <div className="w-px h-4 bg-gray-300"></div>
-                    {/* Size Slider */}
                     <div className="flex items-center gap-2">
                         <i className="fa-solid fa-circle text-[8px] text-gray-400"></i>
                         <input 

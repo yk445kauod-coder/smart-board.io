@@ -26,7 +26,16 @@
             },
             boxShadow: {
               'board': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            }
+            },
+            animation: {
+              'fade-in-down': 'fade-in-down 0.3s ease-out both',
+            },
+            keyframes: {
+              'fade-in-down': {
+                '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+            },
           }
         }
       }
@@ -34,15 +43,26 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #fdfbf7;
+        background-color: #f0f2f5; /* Changed background for contrast */
         color: #2d3436;
         overflow: hidden;
+        /* Disable text selection globally for a better tool experience */
         user-select: none;
         -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
         margin: 0;
         padding: 0;
         width: 100vw;
         height: 100vh;
+      }
+
+      /* Allow text selection in specific editable elements */
+      textarea, input, [contenteditable="true"] {
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
       }
       
       #root {
@@ -53,7 +73,6 @@
       .font-ar { font-family: 'Playpen Sans Arabic', cursive; }
       .font-en { font-family: 'Kalam', cursive; }
       
-      /* React Flow Customization */
       .react-flow__node {
         border: none !important;
         background: transparent !important;
@@ -65,12 +84,11 @@
         background: #6c5ce7;
       }
       
-      /* Drawing Cursor */
       .cursor-pen {
         cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.5 8.6L13 18l5-5"/></svg>') 0 24, crosshair !important;
       }
       .cursor-eraser {
-        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>') 12 12, crosshair !important;
+        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>') 12 12, crosshair !important;
       }
     </style>
 <script type="importmap">
@@ -81,9 +99,7 @@
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
     "reactflow": "https://aistudiocdn.com/reactflow@^11.11.4",
-    "perfect-freehand": "https://aistudiocdn.com/perfect-freehand@^1.2.2",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
+    "perfect-freehand": "https://aistudiocdn.com/perfect-freehand@^1.2.2"
   }
 }
 </script>

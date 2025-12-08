@@ -1,11 +1,14 @@
-import React, { useRef, useState, useMemo, useCallback } from 'react';
-import ReactFlow, { 
+import React, { useRef, useState, useMemo } from 'react';
+// FIX: Added `ReactFlowProvider` to the import from 'reactflow' to resolve the 'Cannot find name' error.
+import { 
+    ReactFlow, 
     Background, 
     Controls, 
     MiniMap, 
     ConnectionMode,
     Panel,
-    useReactFlow
+    useReactFlow,
+    ReactFlowProvider
 } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import { getStroke } from 'perfect-freehand';
@@ -49,6 +52,7 @@ interface SmartBoardProps {
 const BOARD_WIDTH = 1600;
 const BOARD_HEIGHT = 900;
 
+// Helper: Convert stroke points to SVG path
 const getSvgPathFromStroke = (stroke: any[]) => {
   if (!stroke.length) return "";
   const d = stroke.reduce(
@@ -85,6 +89,7 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
 
   const isDrawTool = activeTool === 'pen' || activeTool === 'highlighter';
 
+  // --- Eraser Logic ---
   const handleNodeClick = (event: React.MouseEvent, node: Node) => {
       if (activeTool === 'eraser' && onDeleteNode) {
           onDeleteNode(node.id);
@@ -98,11 +103,13 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   };
   
   const handleNodeContextMenu = (event: React.MouseEvent, node: Node) => {
-      event.preventDefault(); 
+      event.preventDefault();
       if (onNodeContextMenu) {
           onNodeContextMenu(event, node);
       }
   };
+
+  // --- Drawing Logic ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
       if (!isDrawTool) return;
@@ -127,12 +134,10 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       
       const bbox = svgRef.current?.getBoundingClientRect();
       if(bbox) {
-          const nativeEvent = e.nativeEvent;
-          const events = (nativeEvent as any).getCoalescedEvents 
-              ? (nativeEvent as any).getCoalescedEvents() 
-              : [nativeEvent];
+          const nativeEvent = e.nativeEvent as PointerEvent;
+          const events = nativeEvent.getCoalescedEvents ? nativeEvent.getCoalescedEvents() : [nativeEvent];
           
-          const newPoints = events.map((evt: any) => {
+          const newPoints = events.map((evt: PointerEvent) => {
               const x = evt.clientX - bbox.left;
               const y = evt.clientY - bbox.top;
               const pressure = evt.pressure !== undefined && evt.pressure !== 0 ? evt.pressure : 0.5;
@@ -149,12 +154,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       setIsDrawing(false);
 
       if (points.length > 1) {
-          const bbox = svgRef.current?.getBoundingClientRect();
-          if (!bbox) {
-            setPoints([]);
-            return;
-          }
-
           const { x: vpX, y: vpY, zoom } = getViewport();
           const isStylus = e.pointerType === 'pen';
           const hasPressureData = isStylus || points.some(p => Math.abs(p[2] - 0.5) > 0.05);
@@ -199,7 +198,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                   type: 'sketch',
                   svgPath: pathData,
                   strokeColor: activeTool === 'highlighter' ? 'rgba(255, 235, 59, 0.5)' : penColor,
-                  strokeWidth: 0,
                   width: width,
                   height: height,
                   isHighlighter: activeTool === 'highlighter',
@@ -299,4 +297,10 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   );
 };
 
-export default SmartBoardInner;
+const SmartBoardWrapper = (props: any) => (
+    <ReactFlowProvider>
+        <SmartBoardInner {...props} />
+    </ReactFlowProvider>
+);
+
+export default SmartBoardWrapper;
