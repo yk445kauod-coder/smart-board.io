@@ -1,5 +1,5 @@
-import React, { memo, useState } from 'react';
-import { Handle, Position } from 'reactflow';
+import React, { memo, useState, useEffect } from 'react';
+import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { ElementData } from '../types';
 
@@ -26,37 +26,48 @@ const DeleteHandle = ({ id, onDelete }: { id: string, onDelete?: (id: string) =>
     );
 };
 
-export const NoteNode = memo(({ data, selected }: NodeProps<ElementData>) => {
-  const fontClass = getFontClass(data.content || "");
-  const rotation = data.rotation || (Math.random() - 0.5) * 4; // Add slight random rotation
-  
-  return (
-    <div className="relative group">
-      <Handle type="target" position={Position.Top} className="opacity-0" />
-      <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
-      <div 
-        className={`p-6 w-56 min-h-[140px] shadow-lg flex flex-col justify-center items-center text-center relative transition-all duration-200 overflow-hidden
-          ${data.style === 'bold' ? 'font-bold' : ''}
-          ${selected ? 'ring-2 ring-offset-2 ring-indigo-500 shadow-2xl' : ''}
-        `}
-        style={{ 
-          backgroundColor: data.color || '#fff740',
-          transform: `rotate(${rotation}deg)`,
-          boxShadow: '3px 5px 15px rgba(0,0,0,0.15)',
-          borderRadius: '4px'
-        }}
-      >
-        {/* Dog-ear effect */}
-        <div className="absolute top-0 right-0 w-8 h-8 bg-black/10" style={{
-            clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
-        }}></div>
-        <p className={`text-xl break-words w-full text-gray-800 ${fontClass}`} dir="auto">
-          {data.content}
-        </p>
-      </div>
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
-    </div>
-  );
+export const NoteNode = memo(({ id, data, selected }: NodeProps<ElementData>) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [content, setContent] = useState(data.content || '');
+    const fontClass = getFontClass(content);
+    const rotation = data.rotation || (Math.random() - 0.5) * 4;
+
+    useEffect(() => { setContent(data.content || ''); }, [data.content]);
+
+    const handleDoubleClick = () => {
+        if ((window as any).isPointerTool?.()) setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        if ((window as any).updateNodeData) (window as any).updateNodeData(id, { content });
+    };
+
+    const handleInput = (e: React.FormEvent<HTMLParagraphElement>) => setContent(e.currentTarget.textContent || '');
+    
+    return (
+        <div className="relative group" onDoubleClick={handleDoubleClick}>
+            <Handle type="target" position={Position.Top} className="opacity-0" />
+            <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+            <div 
+                className={`p-6 w-56 min-h-[140px] shadow-lg flex flex-col justify-center items-center text-center relative transition-all duration-200 overflow-hidden ${selected ? 'ring-2 ring-offset-2 ring-indigo-500 shadow-2xl' : ''}`}
+                style={{ backgroundColor: data.color || '#fff740', transform: `rotate(${rotation}deg)`, boxShadow: '3px 5px 15px rgba(0,0,0,0.15)', borderRadius: '4px' }}
+            >
+                <div className="absolute top-0 right-0 w-8 h-8 bg-black/10" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}></div>
+                <p 
+                    contentEditable={isEditing}
+                    suppressContentEditableWarning
+                    onInput={handleInput}
+                    onBlur={handleBlur}
+                    className={`text-xl break-words w-full text-gray-800 ${fontClass} outline-none ${isEditing ? 'ring-2 ring-indigo-400 rounded p-1 bg-white/50 cursor-text' : 'cursor-pointer'}`}
+                    dir="auto"
+                    // Use dangerouslySetInnerHTML to ensure React updates the content
+                    dangerouslySetInnerHTML={{ __html: isEditing ? content : content.replace(/\n/g, '<br />') }}
+                />
+            </div>
+            <Handle type="source" position={Position.Bottom} className="opacity-0" />
+        </div>
+    );
 });
 
 export const ListNode = memo(({ data, selected }: NodeProps<ElementData>) => {
@@ -130,25 +141,88 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   );
 });
 
-export const WordArtNode = memo(({ data, selected }: NodeProps<ElementData>) => {
-  const fontClass = getFontClass(data.text || "");
-  
-  return (
-    <div className="relative group">
-        <Handle type="target" position={Position.Left} className="opacity-0" />
-        <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
-      <h1 
-        className={`text-6xl font-bold select-none ${fontClass} ${selected ? 'drop-shadow-2xl' : ''}`}
-        style={{ 
-          color: data.color || '#e17055',
-          textShadow: '3px 3px 0px rgba(0,0,0,0.1)',
-        }}
-      >
-        {data.text}
-      </h1>
-      <Handle type="source" position={Position.Right} className="opacity-0" />
-    </div>
-  );
+export const WordArtNode = memo(({ id, data, selected }: NodeProps<ElementData>) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [text, setText] = useState(data.text || '');
+    const fontClass = getFontClass(text);
+
+    useEffect(() => { setText(data.text || ''); }, [data.text]);
+
+    const handleDoubleClick = () => {
+        if ((window as any).isPointerTool?.()) setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        if ((window as any).updateNodeData) (window as any).updateNodeData(id, { text });
+    };
+
+    const handleInput = (e: React.FormEvent<HTMLHeadingElement>) => setText(e.currentTarget.textContent || '');
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            (e.target as HTMLElement).blur();
+        }
+    };
+
+    return (
+        <div className="relative group" onDoubleClick={handleDoubleClick}>
+            <Handle type="target" position={Position.Left} className="opacity-0" />
+            <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+            <h1
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onInput={handleInput}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                className={`text-6xl font-bold select-none whitespace-nowrap outline-none ${fontClass} ${selected ? 'drop-shadow-2xl' : ''} ${isEditing ? 'ring-2 ring-indigo-400 rounded px-2 cursor-text' : 'cursor-pointer'}`}
+                style={{ color: data.color || '#e17055', textShadow: '3px 3px 0px rgba(0,0,0,0.1)' }}
+            >
+                {text}
+            </h1>
+            <Handle type="source" position={Position.Right} className="opacity-0" />
+        </div>
+    );
+});
+
+export const TextNode = memo(({ id, data, selected }: NodeProps<ElementData>) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [text, setText] = useState(data.text || 'Type something...');
+    const fontClass = getFontClass(text);
+
+    useEffect(() => { setText(data.text || 'Type something...'); }, [data.text]);
+
+    const handleDoubleClick = () => {
+        if ((window as any).isPointerTool?.()) setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        if ((window as any).updateNodeData) (window as any).updateNodeData(id, { text });
+    };
+
+    const handleInput = (e: React.FormEvent<HTMLDivElement>) => setText(e.currentTarget.textContent || '');
+
+    return (
+        <div className="relative group" onDoubleClick={handleDoubleClick} style={{ width: data.width || 250, height: data.height || 'auto' }}>
+            <NodeResizer minWidth={100} minHeight={40} isVisible={selected} handleClassName="bg-indigo-500 w-2 h-2 rounded-full border-2 border-white shadow-lg" />
+            <Handle type="target" position={Position.Top} className="opacity-0" />
+            <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+            <div
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onInput={handleInput}
+                onBlur={handleBlur}
+                className={`p-2 text-xl break-words w-full h-full outline-none focus:ring-2 focus:ring-indigo-400 rounded-md transition-shadow text-gray-800 ${fontClass} ${isEditing ? 'cursor-text' : 'cursor-pointer'}`}
+                style={{ minHeight: '40px' }}
+                dir="auto"
+            >
+                {text}
+            </div>
+            <Handle type="source" position={Position.Bottom} className="opacity-0" />
+        </div>
+    );
 });
 
 export const ShapeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
@@ -197,6 +271,44 @@ export const CodeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
     </div>
   );
 });
+
+export const ComparisonNode = memo(({ data, selected }: NodeProps<ElementData>) => {
+  const fontClass = getFontClass(data.title || "");
+  const numColumns = data.columns?.length || 1;
+
+  return (
+    <div className="relative group">
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+      <div className={`bg-white shadow-xl rounded-lg border border-gray-200 transition-all w-auto min-w-[30rem] max-w-[50rem] ${selected ? 'ring-2 ring-offset-2 ring-indigo-500' : ''}`}>
+        {data.title && (
+          <div className={`font-bold text-2xl text-center p-4 text-gray-800 border-b-2 border-gray-100 ${fontClass}`}>
+            {data.title}
+          </div>
+        )}
+        <div className="flex divide-x divide-gray-100">
+          {data.columns?.map((col, colIdx) => (
+            <div key={colIdx} className="flex-1 flex flex-col" style={{ flexBasis: `${100 / numColumns}%` }}>
+              <div className={`font-bold text-lg p-3 bg-gray-50 text-center text-gray-700 ${fontClass}`}>
+                {col.title}
+              </div>
+              <ul className="p-4 space-y-3">
+                {col.items?.map((item, itemIdx) => (
+                  <li key={itemIdx} className={`text-base text-gray-600 flex items-start gap-3 ${fontClass}`} dir="auto">
+                    <i className="fa-solid fa-check text-green-500 mt-1"></i>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+});
+
 
 // --- Sketch Node (For Drawings) ---
 export const SketchNode = memo(({ data, selected }: NodeProps<ElementData>) => {

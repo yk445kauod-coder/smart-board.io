@@ -20,7 +20,9 @@ import {
   WordArtNode, 
   ShapeNode, 
   CodeNode, 
-  SketchNode
+  SketchNode,
+  ComparisonNode,
+  TextNode
 } from './BoardElements';
 
 const nodeTypes = {
@@ -30,7 +32,9 @@ const nodeTypes = {
   wordArt: WordArtNode,
   shape: ShapeNode,
   code: CodeNode,
-  sketch: SketchNode
+  sketch: SketchNode,
+  comparison: ComparisonNode,
+  text: TextNode
 };
 
 interface SmartBoardProps {
@@ -46,7 +50,6 @@ interface SmartBoardProps {
   penColor?: string;
   penSize?: number;
   onDeleteNode?: (id: string) => void;
-  onNodeContextMenu?: (event: React.MouseEvent, node: Node) => void;
 }
 
 const BOARD_WIDTH = 1600;
@@ -79,7 +82,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   penColor = '#000000',
   penSize = 6,
   onDeleteNode,
-  onNodeContextMenu
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [points, setPoints] = useState<number[][]>([]);
@@ -102,12 +104,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
       }
   };
   
-  const handleNodeContextMenu = (event: React.MouseEvent, node: Node) => {
-      event.preventDefault();
-      if (onNodeContextMenu) {
-          onNodeContextMenu(event, node);
-      }
-  };
 
   // --- Drawing Logic ---
 
@@ -256,7 +252,6 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
                 onPaneClick={onPaneClick}
                 onNodeClick={handleNodeClick}
                 onNodeMouseEnter={handleNodeMouseEnter}
-                onNodeContextMenu={handleNodeContextMenu}
                 proOptions={{ hideAttribution: true }}
                 className={`${isDrawTool ? 'cursor-pen' : ''} ${activeTool === 'eraser' ? 'cursor-eraser' : ''} ${activeTool === 'pan' ? 'cursor-grab active:cursor-grabbing' : ''}`}
             >

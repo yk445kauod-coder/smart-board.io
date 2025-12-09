@@ -10,6 +10,20 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
   const [localSettings, setLocalSettings] = React.useState(settings);
 
+  const handleApiKeySelection = async () => {
+    try {
+        if ((window as any).aistudio?.openSelectKey) {
+            await (window as any).aistudio.openSelectKey();
+            // Force reload or just let the env var update take effect on next call
+            alert("API Key updated. Please try your request again.");
+        } else {
+            alert("API Key selection is not available in this environment.");
+        }
+    } catch (e) {
+        console.error("Failed to select API key", e);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border-4 border-gray-100">
@@ -66,6 +80,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
                 Male
               </button>
             </div>
+          </div>
+
+          <div className="space-y-2 pt-4 border-t border-gray-100">
+             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+              <i className="fa-solid fa-key"></i> API Access
+            </label>
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={handleApiKeySelection}
+                    className="flex-1 py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors flex justify-center items-center gap-2"
+                >
+                    <i className="fa-brands fa-google"></i> Select Project / API Key
+                </button>
+            </div>
+             <p className="text-xs text-gray-400 mt-1">Select a Google Cloud Project with a billing account if you are experiencing quota limits.</p>
           </div>
         </div>
 

@@ -29,7 +29,9 @@ export type ElementType =
   | 'wordArt' 
   | 'shape' 
   | 'sketch' 
-  | 'code';
+  | 'code'
+  | 'comparison'
+  | 'text';
 
 // React Flow Data Interface
 export interface ElementData {
@@ -57,6 +59,9 @@ export interface ElementData {
   isHighlighter?: boolean;
   svgPath?: string;
   isFilled?: boolean;
+
+  // For comparison tables
+  columns?: { title: string; items: string[] }[];
 }
 
 export interface ChatMessage {

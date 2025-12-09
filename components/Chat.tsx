@@ -1,52 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, LessonDetail } from '../types';
-import { sendMessageToGemini } from '../services/geminiService';
+import { ChatMessage } from '../types';
 
 interface ChatProps {
-  onToolCall: (name: string, args: any) => Promise<any>;
+  messages: ChatMessage[];
+  onSendMessage: (message: string) => void;
+  isLoading: boolean;
   projectorMode?: boolean;
-  lessonDetail: LessonDetail;
-  language: string;
 }
 
 const Chat: React.FC<ChatProps> = ({ 
-  onToolCall, 
-  projectorMode, 
-  lessonDetail,
-  language,
+  messages,
+  onSendMessage,
+  isLoading,
+  projectorMode,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: 'أهلاً بك! أنا مساعدك البصري. عن ماذا تريد أن نتعلم اليوم؟', timestamp: Date.now() }
-  ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isOpen]);
-
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
-
-    const userMsg: ChatMessage = { role: 'user', text: input, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setLoading(true);
-
-    try {
-      const responseText = await sendMessageToGemini(userMsg.text, language, lessonDetail, onToolCall);
-      if(responseText){
-        const aiMsg: ChatMessage = { role: 'model', text: responseText, timestamp: Date.now() };
-        setMessages(prev => [...prev, aiMsg]);
-      }
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'model', text: "حدث خطأ. حاول مرة أخرى.", timestamp: Date.now() }]);
-    } finally {
-      setLoading(false);
+  useEffect(() => { 
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
+  }, [messages, isOpen]);
+
+  const handleSend = () => {
+    if (!input.trim() || isLoading) return;
+    onSendMessage(input);
+    setInput('');
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }};
+  const handleKeyDown = (e: React.KeyboardEvent) => { 
+    if (e.key === 'Enter' && !e.shiftKey) { 
+      e.preventDefault(); 
+      handleSend(); 
+    }
+  };
 
   if (!isOpen) {
       return (
@@ -69,14 +58,14 @@ const Chat: React.FC<ChatProps> = ({
             <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm text-base ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-900 rounded-br-none' : 'bg-white text-gray-800 border rounded-bl-none'}`}>{msg.text}</div>
           </div>
         ))}
-        {loading && <div className="text-center text-xs text-gray-400">AI is thinking...</div>}
+        {isLoading && <div className="text-center text-xs text-gray-400">AI is thinking...</div>}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="p-3 bg-white border-t border-gray-200">
         <div className="relative flex items-end gap-2">
           <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="اكتب طلبك..." className="flex-1 p-3 rounded-xl border-2 bg-gray-50 max-h-32 text-sm" rows={1}/>
-          <button onClick={handleSend} disabled={loading || !input.trim()} className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all mb-0.5"><i className="fa-solid fa-paper-plane"></i></button>
+          <button onClick={handleSend} disabled={isLoading || !input.trim()} className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all mb-0.5"><i className="fa-solid fa-paper-plane"></i></button>
         </div>
       </div>
     </div>
