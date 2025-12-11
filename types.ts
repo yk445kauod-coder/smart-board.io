@@ -10,7 +10,8 @@ export type ToolType =
   | 'add-note'
   | 'add-text'
   | 'add-image'
-  | 'add-shape';
+  | 'add-shape'
+  | 'add-ruler';
 
 export type LessonDetail = 'brief' | 'detailed';
 export type ToolbarPosition = 'top' | 'left';
@@ -18,6 +19,7 @@ export type ToolbarPosition = 'top' | 'left';
 export interface TeacherPersona {
   name: string;
   language: Language;
+  subject: string; // Added subject field
   personality: string;
   voice: 'male' | 'female';
 }
@@ -31,7 +33,8 @@ export type ElementType =
   | 'sketch' 
   | 'code'
   | 'comparison'
-  | 'text';
+  | 'text'
+  | 'ruler';
 
 // React Flow Data Interface
 export interface ElementData {

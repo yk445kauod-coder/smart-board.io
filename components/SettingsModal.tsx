@@ -29,7 +29,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border-4 border-gray-100">
         <div className="bg-indigo-600 p-6 flex justify-between items-center text-white">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <i className="fa-solid fa-user-gear"></i> إعدادات المدرس (Teacher Settings)
+            <i className="fa-solid fa-sliders"></i> Session Preferences
           </h2>
           <button onClick={onClose} className="hover:bg-indigo-700 p-2 rounded-full transition"><i className="fa-solid fa-xmark"></i></button>
         </div>
@@ -37,7 +37,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
         <div className="p-8 space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-user-astronaut"></i> Persona Name
+              <i className="fa-solid fa-robot"></i> Assistant Identity
             </label>
             <input 
               type="text" 
@@ -50,7 +50,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
 
           <div className="space-y-2">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-language"></i> AI Language / لغة الذكاء الاصطناعي
+              <i className="fa-solid fa-language"></i> Response Language / لغة الرد
             </label>
             <input 
               type="text" 
@@ -59,12 +59,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
               className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none font-medium"
               placeholder="e.g., Arabic, English, French"
             />
-            <p className="text-xs text-gray-400 mt-1">Note: TTS voice defaults to English for non-Arabic languages.</p>
+            <p className="text-xs text-gray-400 mt-1">Note: Voice matches language automatically where possible.</p>
           </div>
 
           <div className="space-y-2">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-microphone-lines"></i> Voice Preference
+              <i className="fa-solid fa-wave-square"></i> Vocal Style
             </label>
             <div className="flex gap-4">
               <button 
@@ -84,17 +84,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
 
           <div className="space-y-2 pt-4 border-t border-gray-100">
              <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-key"></i> API Access
+              <i className="fa-solid fa-link"></i> Connection & Billing
             </label>
             <div className="flex items-center gap-3">
                 <button 
                     onClick={handleApiKeySelection}
                     className="flex-1 py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors flex justify-center items-center gap-2"
                 >
-                    <i className="fa-brands fa-google"></i> Select Project / API Key
+                    <i className="fa-brands fa-google"></i> Connect Google Cloud Project
                 </button>
             </div>
-             <p className="text-xs text-gray-400 mt-1">Select a Google Cloud Project with a billing account if you are experiencing quota limits.</p>
+             <p className="text-xs text-gray-400 mt-1">Required for high-quota API access.</p>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
             onClick={() => { onSave(localSettings); onClose(); }}
             className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all"
           >
-            Save Changes / حفظ
+            Apply Configuration / تطبيق
           </button>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import React, { useRef, useState, useMemo } from 'react';
-// FIX: Added `ReactFlowProvider` to the import from 'reactflow' to resolve the 'Cannot find name' error.
 import { 
     ReactFlow, 
     Background, 
@@ -22,7 +21,8 @@ import {
   CodeNode, 
   SketchNode,
   ComparisonNode,
-  TextNode
+  TextNode,
+  RulerNode
 } from './BoardElements';
 
 const nodeTypes = {
@@ -34,7 +34,8 @@ const nodeTypes = {
   code: CodeNode,
   sketch: SketchNode,
   comparison: ComparisonNode,
-  text: TextNode
+  text: TextNode,
+  ruler: RulerNode
 };
 
 interface SmartBoardProps {
@@ -70,7 +71,7 @@ const getSvgPathFromStroke = (stroke: any[]) => {
   return d.join(" ");
 };
 
-const SmartBoardInner: React.FC<SmartBoardProps> = ({ 
+const SmartBoard: React.FC<SmartBoardProps> = ({ 
   nodes, 
   edges, 
   onNodesChange, 
@@ -265,7 +266,8 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
 
             {isDrawTool && (
                 <div 
-                    className="absolute inset-0 z-50 touch-none cursor-crosshair"
+                    className="absolute inset-0 z-50 touch-none"
+                    style={{ pointerEvents: isDrawing ? 'auto' : 'none' }}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
@@ -292,10 +294,4 @@ const SmartBoardInner: React.FC<SmartBoardProps> = ({
   );
 };
 
-const SmartBoardWrapper = (props: any) => (
-    <ReactFlowProvider>
-        <SmartBoardInner {...props} />
-    </ReactFlowProvider>
-);
-
-export default SmartBoardWrapper;
+export default SmartBoard;

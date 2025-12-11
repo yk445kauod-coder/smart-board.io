@@ -37,6 +37,14 @@ const Chat: React.FC<ChatProps> = ({
     }
   };
 
+  const formatMessage = (text: string) => {
+    // Basic Markdown to HTML conversion
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Bold **text**
+        .replace(/\*(.*?)\*/g, '<i>$1</i>')     // Italic *text*
+        .replace(/\n/g, '<br />');              // Newlines
+  };
+
   if (!isOpen) {
       return (
           <button onClick={() => setIsOpen(true)} className={`absolute bottom-6 right-6 z-[100] bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all ${projectorMode ? 'scale-125' : 'scale-100'}`}>
@@ -55,7 +63,16 @@ const Chat: React.FC<ChatProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm text-base ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-900 rounded-br-none' : 'bg-white text-gray-800 border rounded-bl-none'}`}>{msg.text}</div>
+            <div 
+                className={`max-w-[85%] rounded-2xl p-3 shadow-sm text-base ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-900 rounded-br-none' : 'bg-white text-gray-800 border rounded-bl-none'}`}
+                dir="auto"
+            >
+                {msg.role === 'model' ? (
+                     <div dangerouslySetInnerHTML={{ __html: formatMessage(msg.text) }} />
+                ) : (
+                    msg.text
+                )}
+            </div>
           </div>
         ))}
         {isLoading && <div className="text-center text-xs text-gray-400">AI is thinking...</div>}
