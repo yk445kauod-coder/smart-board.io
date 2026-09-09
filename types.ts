@@ -1,5 +1,6 @@
 export type Language = string;
 export type LayoutMode = 'freestyle' | 'diagram' | 'timeline';
+export type TeachingMode = 'classroom' | 'online' | 'self-study';
 export type ToolType =
   | 'pointer'
   | 'pan'
@@ -47,6 +48,35 @@ export interface TeacherPersona {
   subject: string;
   personality: string;
   voice: 'male' | 'female';
+  mode?: TeachingMode;
+  topic?: string;
+}
+
+export type KnowledgeKind = 'pdf' | 'text' | 'notes';
+
+export interface KnowledgeDoc {
+  id: string;
+  name: string;
+  kind: KnowledgeKind;
+  text: string;
+  pages?: number;
+  addedAt: number;
+}
+
+export interface PDFPageAnnotation {
+  id: string;
+  kind: 'pen' | 'note';
+  points?: { x: number; y: number }[];
+  color?: string;
+  text?: string;
+  x?: number;
+  y?: number;
+}
+
+export interface PDFAnnotation {
+  id: string;
+  page: number;
+  items: PDFPageAnnotation[];
 }
 
 export type ElementType =
@@ -118,7 +148,7 @@ export interface ElementData {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'assistant';
   text: string;
   timestamp: number;
 }

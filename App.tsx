@@ -3,9 +3,10 @@ import SmartBoard from './components/Board';
 import Chat from './components/Chat';
 import SettingsModal from './components/SettingsModal';
 import VisualizeTextModal from './components/VisualizeTextModal';
-import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage } from './types';
+import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode } from './types';
 import { speakText, cancelSpeech } from './services/tts';
-import { generateImageWithPollinations, sendMessageToGemini } from './services/geminiService';
+import { generateImageWithPollinations } from './services/geminiService';
+import { generateLesson } from './services/ai/assistant';
 import { useNodesState, useEdgesState, addEdge, useReactFlow, ReactFlowProvider } from 'reactflow';
 import type { Connection, Edge, Node } from 'reactflow';
 
@@ -28,6 +29,9 @@ const AppContent: React.FC = () => {
 
   // AI & Chat State
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [lessonMode, setLessonMode] = useState<LessonMode>('full-lesson');
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDoc[]>([]);
+  const [chatPrefill, setChatPrefill] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'model', text: 'أهلاً بك! أنا مساعدك البصري. عن ماذا تريد أن نتعلم اليوم؟', timestamp: Date.now() }
   ]);
@@ -239,31 +243,99 @@ const AppContent: React.FC = () => {
       }
   }, [setNodes, setEdges, getNodes, settings, isMuted]);
 
-  const submitPromptToAI = useCallback(async (prompt: string) => {
-      cancelSpeech(); // Stop any previous speech
-      const userMsg: ChatMessage = { role: 'user', text: prompt, timestamp: Date.now() };
-      setChatMessages(prev => [...prev, userMsg]);
-      setIsAiLoading(true);
+  const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) => {
+    const nextMode = mode || lessonMode;
+    cancelSpeech(); // Stop any previous speech
+    const userMsg: ChatMessage = { role: 'user', text: prompt, timestamp: Date.now() };
+    setChatMessages(prev => [...prev, userMsg]);
+    setIsAiLoading(true);
 
-      try {
-        const responseText = await sendMessageToGemini(prompt, settings.language, settings.subject, lessonDetail, handleToolCall);
-        if(responseText){
-          const aiMsg: ChatMessage = { role: 'model', text: responseText, timestamp: Date.now() };
-          setChatMessages(prev => [...prev, aiMsg]);
-        }
-      } catch (err: any) {
-        const errorMsg: ChatMessage = { role: 'model', text: `An error occurred: ${err.message || 'Please try again.'}`, timestamp: Date.now() };
-        setChatMessages(prev => [...prev, errorMsg]);
-      } finally {
-        setIsAiLoading(false);
+    try {
+      // Gather context from the current board
+      const selected = nodes.filter((n: Node) => (n as any).selected).map((n: Node) => ({
+        id: n.id,
+        type: String((n.data as any)?.type || 'note'),
+        text: (n.data as any)?.text as string | undefined,
+        title: (n.data as any)?.title as string | undefined,
+        items: (n.data as any)?.items as string[] | undefined,
+        content: (n.data as any)?.content as string | undefined,
+      }));
+
+      const allNodes = nodes.map((n: Node) => (n.data as any)?.text || (n.data as any)?.title || (n.data as any)?.content || '' ).filter(Boolean);
+      const boardSummary = allNodes.length > 0 ? allNodes.slice(0, 6).join(' | ') : undefined;
+
+      const pdfText = (window as any).__smartboardPdfText as string | undefined;
+      const pdfPages = (window as any).__smartboardPdfPages as number[] | undefined;
+
+      const responseText = await generateLesson({
+        mode: nextMode,
+        prompt,
+        settings,
+        detail: lessonDetail,
+        knowledgeDocs,
+        boardSummary,
+        selectedElements: selected.length > 0 ? selected : undefined,
+        pdfText,
+        pdfPages,
+      }, handleToolCall, (speech: string) => speakText(speech, settings.language, isMuted));
+
+      if (responseText) {
+        const aiMsg: ChatMessage = { role: 'model', text: responseText, timestamp: Date.now() };
+        setChatMessages(prev => [...prev, aiMsg]);
+      } else {
+        const aiMsg: ChatMessage = { role: 'model', text: settings.language.toLowerCase().startsWith('ar') ? 'تم.' : 'Done.', timestamp: Date.now() };
+        setChatMessages(prev => [...prev, aiMsg]);
       }
-  }, [settings.language, settings.subject, lessonDetail, handleToolCall]);
+    } catch (err: any) {
+      const errorMsg: ChatMessage = { role: 'model', text: `An error occurred: ${err.message || 'Please try again.'}`, timestamp: Date.now() };
+      setChatMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  }, [lessonMode, settings, lessonDetail, knowledgeDocs, nodes, handleToolCall]);
+
+  const handleModeSelect = useCallback((mode: LessonMode) => {
+    setLessonMode(mode);
+    const isAr = settings.language.toLowerCase().startsWith('ar');
+    const presets: Record<LessonMode, string> = isAr ? {
+      'full-lesson': 'حضّر درسًا كاملًا عن:',
+      'full-board': 'ابنِ لوحة كاملة حول:',
+      'revision': 'راجع ولخّص:',
+      'activities': 'أنشئ أنشطة وتمارين حول:',
+      'explain': 'اشرح:',
+      'simplify': 'بسّط:',
+      'expand': 'وسّع شرح:',
+      'summarize': 'لخّص:',
+      'questions': 'وجّه أسئلة حول:',
+      'translate': 'ترجم:',
+      'solve': 'حل:',
+      'visualize': 'صوّر على السبورة:',
+      'arrange': 'أعد ترتيب المحدد:',
+      'pdf-to-board': 'انقل صفحة PDF إلى السبورة:',
+    } : {
+      'full-lesson': 'Prepare a complete lesson on:',
+      'full-board': 'Build a full board about:',
+      'revision': 'Revise and summarize:',
+      'activities': 'Create practice activities on:',
+      'explain': 'Explain:',
+      'simplify': 'Simplify:',
+      'expand': 'Expand on:',
+      'summarize': 'Summarize:',
+      'questions': 'Ask questions about:',
+      'translate': 'Translate:',
+      'solve': 'Solve:',
+      'visualize': 'Visualize on the board:',
+      'arrange': 'Rearrange the selection:',
+      'pdf-to-board': 'Place this PDF page on the board:',
+    };
+    setChatPrefill(presets[mode] || '');
+  }, [settings.language]);
 
   const handleVisualizeText = useCallback((textToVisualize: string) => {
     setIsVisualizeModalOpen(false);
-    const prompt = `Please summarize and create a rich visual representation of the following text on the board. Use a combination of mind maps, notes, lists, and diagrams to explain the key concepts clearly. Here is the text: "${textToVisualize}"`;
-    submitPromptToAI(prompt);
+    submitPromptToAI(`Visualize this content on the board: ${textToVisualize}`, 'visualize');
   }, [submitPromptToAI]);
+
 
   // --- RENDER LOGIC ---
   if (view === 'home') {
@@ -485,6 +557,12 @@ const AppContent: React.FC = () => {
         messages={chatMessages}
         onSendMessage={submitPromptToAI}
         isLoading={isAiLoading}
+        prefill={chatPrefill}
+        onPrefillConsumed={() => setChatPrefill('')}
+        onModeSelect={handleModeSelect}
+        mode={lessonMode}
+        language={settings.language}
+        isMuted={isMuted}
       />
       
       {isSettingsOpen && (
