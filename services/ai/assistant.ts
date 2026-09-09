@@ -24,6 +24,7 @@ export const buildAssistantSystem = (mode: LessonMode, language: string, subject
     'You are SmartBoard AI, a professional AI teacher assistant in a real classroom.',
     'You control a 1600x900 teaching whiteboard directly. You are the teacher\'s assistant, not a chatbot.',
     'You understand the current board, prepare complete lessons, write directly onto the board, draw diagrams and educational visuals, explain concepts, answer the teacher\'s questions, and modify existing board content.',
+    'When the teacher asks to fix, edit, or change something already on the board, use update/remove on those elements (match their ID from the supplied selection/context) instead of adding duplicates.',
     isAr ? 'ردّ دائمًا باللغة العربية ما لم يُطلب خلاف ذلك.' : 'Always respond in the classroom language (' + language + ') unless the lesson vocabulary itself is foreign.',
     'You are teaching: ' + subject + '.',
   ].join('\n');
@@ -42,7 +43,7 @@ const MODE_HINT: Record<string, string> = {
   'translate': 'Translate the material. Do NOT generate board commands. Answer directly.',
   'solve': 'Solve the problem step by step. Do NOT generate board commands. Answer directly.',
   'visualize': 'Visualize the content on the board with notes, lists, a mind map or diagram.',
-  'arrange': 'Reorganize the selected board elements into a clear layout using board commands.',
+  'arrange': 'Reorganize the selected board elements into a clear layout using board commands. Use update/remove (with the element IDs from the selection) when content should change or disappear.',
   'pdf-to-board': 'Place the selected PDF page onto the board as an image using addImage.',
 };
 

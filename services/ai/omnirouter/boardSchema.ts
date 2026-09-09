@@ -23,6 +23,8 @@ const est = (cmd: BoardAction): number => {
     case 'addArrow': return 180;
     case 'addLine': return 160;
     case 'connect': return 10;
+    case 'update': return 0;
+    case 'remove': return 0;
     default: return 300;
   }
 };
@@ -49,6 +51,8 @@ export const describeCommand = (cmd: BoardAction): string => {
     case 'addCode': return 'code';
     case 'addComparison': return 'comparison: ' + (cmd.title || '');
     case 'connect': return 'connection';
+    case 'update': return 'update: ' + String((cmd as any).text || (cmd as any).content || (cmd as any).title || '');
+    case 'remove': return 'remove: ' + String((cmd as any).id || '');
     default: return (cmd as BoardAction).action;
   }
 };
@@ -95,6 +99,7 @@ export const layoutCommands = (commands: BoardAction[]): BoardAction[] => {
     return pos;
   };
   return actions.map(cmd => {
+    if (cmd.action === 'update' || cmd.action === 'remove') return cmd;
     const pos = place(cmd);
     return {
       ...cmd,
@@ -132,6 +137,8 @@ parts.push('- addShape { shapeType: \"rectangle\"|\"circle\"|\"triangle\"|\"diam
   parts.push("- addLine { x1,,y1,,x2,,y2,,color?, x?, y? }");
   parts.push("- addCode { code,, language?, x?, y? }");
   parts.push("- connect { from,,to,, label? }");
+  parts.push("- update { id,, text? / content? / title?, color?, items? } — edit an existing element (use the ID from Selection/context);");
+  parts.push("- remove { id } — delete an existing element (use the ID from Selection/context);");
   parts.push("");
   parts.push("Layout rules:");
   parts.push("- The FIRST command should be addWordArt (the lesson title) unless generating an arrangement/summary for a selection.");

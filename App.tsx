@@ -211,6 +211,24 @@ const AppContent: React.FC = () => {
             textToSpeak = args.text;
             setNodes(nds => [...nds, { id, type: 'text', position: { x: args.x || defaultPos.x, y: args.y || defaultPos.y }, data: { ...args, type: 'text' } }]);
             break;
+        case 'update': {
+            const patch: Record<string, unknown> = {};
+            if (args.text != null) patch.text = args.text;
+            if (args.content != null) patch.content = args.content;
+            if (args.title != null) patch.title = args.title;
+            if (args.color != null) patch.color = args.color;
+            if (Array.isArray(args.items)) patch.items = args.items;
+            textToSpeak = String(patch.text || patch.content || patch.title || 'Updated');
+            setNodes(nds => nds.map(n =>
+                n.id === args.id ? { ...n, data: { ...(n.data as any), ...patch } } : n
+            ));
+            break;
+        }
+        case 'remove':
+            textToSpeak = 'Removed'.split(' ')[0];
+            setNodes(nds => nds.filter(n => n.id !== args.id));
+            setEdges(eds => eds.filter(e => e.source !== args.id && e.target !== args.id));
+            break;
         case 'addImage':
             const imageUrl = generateImageWithPollinations(args.description);
             const imageNode: Node<ElementData> = {
@@ -452,7 +470,7 @@ if (view === 'language-select') {
     const colors = ['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7'];
 
     const ToolBtn = ({ id, icon, label, onClick }: any) => (
-        <button onClick={onClick || (() => setActiveTool(id))} className={`p-3 rounded-xl ${activeTool === id ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`} title={label}>
+        <button aria-label={label} onClick={onClick || (() => setActiveTool(id))} className={`p-3 rounded-xl ${activeTool === id ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`} title={label}>
             <i className={`fa-solid ${icon} text-lg`}></i>
         </button>
     );

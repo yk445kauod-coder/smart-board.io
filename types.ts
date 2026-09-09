@@ -172,7 +172,9 @@ export type BoardAction =
   | { action: 'addDiagram'; title: string; items: { label: string; type?: 'node' | 'leaf'; color?: string }[]; x?: number; y?: number }
   | { action: 'addSticky'; content: string; x?: number; y?: number; color?: string }
   | { action: 'addCode'; code: string; language?: string; x?: number; y?: number }
-  | { action: 'connect'; from: string; to: string; label?: string };
+  | { action: 'connect'; from: string; to: string; label?: string }
+  | { action: 'update'; id: string; text?: string; content?: string; title?: string; color?: string; items?: string[] }
+  | { action: 'remove'; id: string };
 
 export interface BoardCommand {
   action: string;
