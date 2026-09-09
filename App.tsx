@@ -3,7 +3,9 @@ import SmartBoard from './components/Board';
 import Chat from './components/Chat';
 import SettingsModal from './components/SettingsModal';
 import VisualizeTextModal from './components/VisualizeTextModal';
-import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode } from './types';
+import PdfWorkspace from './components/PdfWorkspace';
+import Onboarding from './components/Onboarding';
+import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode } from './types';
 import { speakText, cancelSpeech } from './services/tts';
 import { generateImageWithPollinations } from './services/geminiService';
 import { generateLesson } from './services/ai/assistant';
@@ -22,7 +24,8 @@ const AppContent: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
-  
+  const [isPdfOpen, setIsPdfOpen] = useState(false);
+
   // Setup Screen State
   const [customSubjects, setCustomSubjects] = useState<string[]>(['Mathematics', 'Physics', 'History', 'Biology', 'Literature', 'Programming']);
   const [newSubjectInput, setNewSubjectInput] = useState('');
@@ -243,7 +246,24 @@ const AppContent: React.FC = () => {
       }
   }, [setNodes, setEdges, getNodes, settings, isMuted]);
 
-  const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) => {
+  const handlePdfDocAdded = useCallback((doc: KnowledgeDoc) => {
+    setKnowledgeDocs(prev => [...prev.filter(d => d.id !== doc.id), doc]);
+    (window as any).__smartboardPdfText = doc.text;
+    (window as any).__smartboardPdfPages = Array.from({ length: doc.pages || 0 }, (_, i) => i + 1);
+  }, []);
+
+  const handlePdfSendPage = useCallback((url: string, title: string, x?: number, y?: number) => {
+    const id = 'pdf-' + Date.now();
+    setNodes(nds => [...nds, {
+      id,
+      type: 'image',
+      position: { x: x || 200, y: y || 150 },
+      data: { id, type: 'image', imageUrl: url, title, width: 540, height: 380 },
+    }]);
+    setIsPdfOpen(false);
+  }, [setNodes]);
+
+const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) => {
     const nextMode = mode || lessonMode;
     cancelSpeech(); // Stop any previous speech
     const userMsg: ChatMessage = { role: 'user', text: prompt, timestamp: Date.now() };
@@ -293,6 +313,11 @@ const AppContent: React.FC = () => {
       setIsAiLoading(false);
     }
   }, [lessonMode, settings, lessonDetail, knowledgeDocs, nodes, handleToolCall]);
+
+  const handlePdfAsk = useCallback((prompt: string, mode?: string) => {
+    setIsPdfOpen(false);
+    submitPromptToAI(prompt, (mode as LessonMode) || 'explain');
+  }, [submitPromptToAI]);
 
   const handleModeSelect = useCallback((mode: LessonMode) => {
     setLessonMode(mode);
@@ -397,86 +422,28 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (view === 'language-select') {
-    const languages = ['Arabic', 'English', 'French', 'Italian'];
+if (view === 'language-select') {
     return (
-        <div className="w-full h-screen bg-[#fdfbf7] flex flex-col items-center justify-center text-center p-4 animate-fade-in overflow-y-auto">
-            <button onClick={() => setView('home')} className="absolute top-6 left-6 text-gray-500 hover:text-indigo-600">
-                <i className="fa-solid fa-arrow-left mr-2"></i> Go Back
-            </button>
-            
-            <div className="max-w-4xl w-full bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-                <h2 className="text-4xl font-bold mb-6 text-gray-800"><i className="fa-solid fa-school text-indigo-500"></i> Setup Class</h2>
-                
-                {/* 1. Language Selection */}
-                <div className="mb-8">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-600 text-left">1. Choose Language</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {languages.map(lang => (
-                            <button 
-                                key={lang}
-                                onClick={() => setSettings(s => ({...s, language: lang}))}
-                                className={`px-4 py-3 rounded-xl border-2 text-lg font-medium transition-all ${settings.language === lang ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-indigo-400'}`}
-                            >
-                                {lang}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 2. Subject Selection */}
-                <div className="mb-10">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-600 text-left">2. Choose Subject</h3>
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        {customSubjects.map(subj => (
-                            <button 
-                                key={subj}
-                                onClick={() => setSettings(s => ({...s, subject: subj}))}
-                                className={`px-5 py-2 rounded-full border transition-all shadow-sm ${settings.subject === subj ? 'bg-indigo-100 border-indigo-500 text-indigo-800 font-bold' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-                            >
-                                {subj}
-                            </button>
-                        ))}
-                    </div>
-                    
-                    {/* Add New Subject */}
-                    <div className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
-                        <i className="fa-solid fa-plus text-gray-400 ml-2"></i>
-                        <input 
-                            type="text" 
-                            value={newSubjectInput}
-                            onChange={(e) => setNewSubjectInput(e.target.value)}
-                            placeholder={settings.language.startsWith('ar') ? "أضف مادة جديدة..." : "Add new subject..."}
-                            className="flex-1 bg-transparent outline-none text-gray-700"
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddSubject()}
-                        />
-                        <button 
-                            onClick={handleAddSubject}
-                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50"
-                            disabled={!newSubjectInput.trim()}
-                        >
-                            Save & Add
-                        </button>
-                    </div>
-                </div>
-
-                <div className="border-t pt-8">
-                     <button 
-                        onClick={() => setView('board')} 
-                        className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl text-2xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all flex items-center justify-center gap-3"
-                    >
-                        <i className="fa-solid fa-rocket"></i>
-                        {settings.language.startsWith('ar') ? 'ابدأ الجلسة النشطة' : 'Start Active Session'}
-                    </button>
-                    <p className="text-center text-gray-400 mt-4 text-sm">
-                        Teacher Mode: <b>{settings.subject}</b> | Language: <b>{settings.language}</b>
-                    </p>
-                </div>
-            </div>
-        </div>
+        <Onboarding
+            language={settings.language}
+            subject={settings.subject}
+            customSubjects={customSubjects}
+            newSubjectInput={newSubjectInput}
+            onSubjectChange={(s) => setSettings(prev => ({ ...prev, subject: s }))}
+            onLanguageChange={(lang) => setSettings(prev => ({ ...prev, language: lang }))}
+            onNewSubjectInput={setNewSubjectInput}
+            onAddSubject={handleAddSubject}
+            onStart={(data) => {
+                if (data.file) handlePdfDocAdded(data.file);
+                setSettings(prev => ({ ...prev, name: data.name.trim() || prev.name, mode: data.mode, topic: data.topic.trim() || prev.topic }));
+                setChatPrefill(data.topic.trim()
+                    ? (settings.language.startsWith('ar') ? `حضّر درسًا كاملًا عن: ${data.topic.trim()}` : `Prepare a complete lesson on: ${data.topic.trim()}`)
+                    : (settings.language.startsWith('ar') ? 'حضّر درسًا كاملًا' : 'Prepare a complete lesson'));
+                setView('board');
+            }}
+        />
     );
   }
-
   const Toolbar = () => {
     const isTop = toolbarPosition === 'top';
     const baseClasses = "bg-white/90 backdrop-blur shadow-xl rounded-2xl border border-gray-200 transition-all duration-300";
@@ -505,6 +472,7 @@ const AppContent: React.FC = () => {
                 <ToolBtn id="add-ruler" icon="fa-ruler-horizontal" label="Ruler" />
                 <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
                 <ToolBtn id="visualize-data" icon="fa-file-import" label="Visualize Data" onClick={() => setIsVisualizeModalOpen(true)} />
+                <ToolBtn id="pdf" icon="fa-file-pdf" label="PDF Workspace" onClick={() => setIsPdfOpen(true)} />
                 <ToolBtn id="clear-board" icon="fa-trash-can" label="Clear Board" onClick={handleClearBoard} />
                 <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
                 <button onClick={() => setLessonDetail(d => d === 'brief' ? 'detailed' : 'brief')} className={`p-3 rounded-xl ${lessonDetail === 'detailed' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500'}`} title={lessonDetail === 'brief' ? 'Switch to Detailed' : 'Switch to Brief'}>
@@ -580,6 +548,16 @@ const AppContent: React.FC = () => {
             onVisualize={handleVisualizeText}
         />
       )}
+      
+      <PdfWorkspace
+        isOpen={isPdfOpen}
+        onClose={() => setIsPdfOpen(false)}
+        language={settings.language}
+        docs={knowledgeDocs}
+        onDocAdded={handlePdfDocAdded}
+        onAsk={handlePdfAsk}
+        onSendPage={handlePdfSendPage}
+      />
     </div>
   );
 };
