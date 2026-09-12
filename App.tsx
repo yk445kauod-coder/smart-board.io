@@ -1,10 +1,14 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import SmartBoard from './components/Board';
 import Chat from './components/Chat';
 import SettingsModal from './components/SettingsModal';
 import VisualizeTextModal from './components/VisualizeTextModal';
 import PdfWorkspace from './components/PdfWorkspace';
 import Onboarding from './components/Onboarding';
+import SmartOnboarding from './components/SmartOnboarding';
+import HomeScreen from './components/HomeScreen';
+import BottomToolbar from './components/BottomToolbar';
+import AISheet from './components/AISheet';
 import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode } from './types';
 import { speakText, cancelSpeech } from './services/tts';
 import { generateImageWithPollinations } from './services/geminiService';
@@ -25,6 +29,8 @@ const AppContent: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
   const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
 
   // Setup Screen State
   const [customSubjects, setCustomSubjects] = useState<string[]>(['Mathematics', 'Physics', 'History', 'Biology', 'Literature', 'Programming']);
@@ -47,6 +53,54 @@ const AppContent: React.FC = () => {
   // Pen Options
   const [penColor, setPenColor] = useState('#000000');
   const [penSize, setPenSize] = useState(6);
+
+  // Undo/Redo stacks
+  const [history, setHistory] = useState<Array<{ nodes: Node<ElementData>[]; edges: Edge[] }>>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const historyLock = useRef(false);
+  const lastNodes = useRef<Node<ElementData>[]>([]);
+  const lastEdges = useRef<Edge[]>([]);
+
+  // Snapshot board state for undo/redo
+  useEffect(() => {
+    if (historyLock.current) return;
+    // Skip the very first run and no-change updates
+    if (lastNodes.current.length === 0 && lastEdges.current.length === 0) {
+      lastNodes.current = nodes;
+      lastEdges.current = edges;
+      return;
+    }
+    const same = JSON.stringify(lastNodes.current) === JSON.stringify(nodes) && JSON.stringify(lastEdges.current) === JSON.stringify(edges);
+    if (same) return;
+    lastNodes.current = nodes;
+    lastEdges.current = edges;
+    setHistory((prev) => {
+      const next = [...prev.slice(0, historyIndex + 1), { nodes, edges }];
+      return next.slice(-50);
+    });
+    setHistoryIndex((i) => Math.min(i + 1, 49));
+  }, [nodes, edges, historyIndex]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex < 0) return;
+    historyLock.current = true;
+    const target = history[historyIndex];
+    setNodes(target.nodes);
+    setEdges(target.edges);
+    setHistoryIndex((i) => i - 1);
+    setTimeout(() => { historyLock.current = false; }, 0);
+  }, [historyIndex, history, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    const next = historyIndex + 1;
+    if (next >= history.length) return;
+    historyLock.current = true;
+    const target = history[next];
+    setNodes(target.nodes);
+    setEdges(target.edges);
+    setHistoryIndex(next);
+    setTimeout(() => { historyLock.current = false; }, 0);
+  }, [historyIndex, history, setNodes, setEdges]);
   
   // Set language and direction on root element
   useEffect(() => {
@@ -245,10 +299,39 @@ const AppContent: React.FC = () => {
                  'addWordArt': 'wordArt',
                  'addShape': 'shape',
                  'addCode': 'code',
+                 'addEquation': 'equation',
+                 'addTable': 'table',
+                 'addSticky': 'sticky',
+                 'addArrow': 'arrow',
+                 'addLine': 'line',
+                 'addDiagram': 'diagram',
+                 'addFlowchart': 'flowchart',
+                 'addTimeline': 'timeline',
              };
              const nodeType = typeMap[name];
              if(nodeType) {
-                setNodes(nds => [...nds, { id, type: nodeType, position: { x: args.x || defaultPos.x, y: args.y || defaultPos.y }, data: { ...args, type: nodeType } }]);
+                const data: Record<string, unknown> = { ...args, type: nodeType };
+                // Normalize graph-based nodes into the data shape the renderers expect.
+                if ((name === 'addFlowchart' || name === 'addDiagram') && Array.isArray(args.nodes)) {
+                  data.graphNodes = args.nodes;
+                }
+                if (name === 'addFlowchart' && Array.isArray(args.edges)) {
+                  data.graphEdges = args.edges;
+                }
+                if (name === 'addTimeline') {
+                  data.graphNodes = Array.isArray(args.events) ? args.events : args.graphNodes;
+                }
+                if (name === 'addArrow') {
+                  data.points = [
+                    { x: args.x1 ?? 0, y: args.y1 ?? 0 },
+                    { x: args.x2 ?? 120, y: args.y2 ?? 0 },
+                  ];
+                }
+                if (name === 'addLine') {
+                  data.x1 = args.x1 ?? 0; data.y1 = args.y1 ?? 0;
+                  data.x2 = args.x2 ?? 120; data.y2 = args.y2 ?? 0;
+                }
+                setNodes(nds => [...nds, { id, type: nodeType, position: { x: args.x || defaultPos.x, y: args.y || defaultPos.y }, data }]);
                 if (args.content) textToSpeak = args.content;
                 if (args.text) textToSpeak = args.text;
                 if (args.title) textToSpeak = args.title;
@@ -381,176 +464,176 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
 
 
   // --- RENDER LOGIC ---
+
+  // Clean up when leaving board
+  useEffect(() => {
+    if (view !== 'board') {
+      setIsChatOpen(false);
+      setIsRunning(false);
+      setIsPdfOpen(false);
+    }
+  }, [view]);
+
   if (view === 'home') {
-    return (
-        <div className="w-full h-screen relative overflow-hidden bg-gray-50 flex items-center justify-center">
-            {/* Animated Background Blobs */}
-            <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-            <div className="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-            
-            {/* Floating Educational Icons */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <i className="fa-solid fa-calculator text-4xl text-blue-400 absolute top-[15%] left-[10%] animate-float opacity-40"></i>
-                <i className="fa-solid fa-flask text-4xl text-green-400 absolute top-[25%] right-[15%] animate-float-delayed opacity-40"></i>
-                <i className="fa-solid fa-palette text-5xl text-purple-400 absolute bottom-[20%] left-[20%] animate-float opacity-40"></i>
-                <i className="fa-solid fa-atom text-5xl text-indigo-400 absolute bottom-[15%] right-[10%] animate-float-fast opacity-40"></i>
-                <i className="fa-solid fa-shapes text-3xl text-orange-400 absolute top-[40%] left-[5%] animate-float opacity-30"></i>
-                <i className="fa-solid fa-globe text-6xl text-teal-400 absolute top-[10%] left-[45%] animate-float-delayed opacity-20"></i>
-                <i className="fa-solid fa-dna text-3xl text-red-400 absolute bottom-[40%] right-[5%] animate-float opacity-30"></i>
-            </div>
+    return <HomeScreen language={settings.language} onStart={() => setView('language-select')} />;
+  }
 
-            {/* Glassmorphic Central Content */}
-            <div className="relative z-10 p-12 bg-white/30 backdrop-blur-lg rounded-3xl border border-white/50 shadow-2xl flex flex-col items-center text-center max-w-2xl mx-4">
-                <div className="mb-6 bg-white/80 p-6 rounded-full shadow-lg animate-float-fast">
-                     <i className="fa-solid fa-wand-magic-sparkles text-6xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600"></i>
-                </div>
-                
-                <h1 className="text-6xl md:text-7xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 drop-shadow-sm">
-                    SmartBoard AI
-                </h1>
-                
-                <p className="text-xl md:text-2xl text-gray-700 mb-10 font-light max-w-lg leading-relaxed">
-                    Transforming ideas into <span className="font-semibold text-indigo-600">Visual Knowledge</span>. 
-                    <br/>The intelligent canvas for modern education.
-                </p>
-                
-                <button 
-                    onClick={() => setView('language-select')} 
-                    className="group relative px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full text-2xl font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-                >
-                    <span className="relative z-10 flex items-center gap-3">
-                         {settings.language.startsWith('ar') ? 'ابدأ الرحلة' : 'Enter Workspace'} 
-                         <i className="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-                    </span>
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                </button>
-                
-                <footer className="mt-8 text-gray-500 text-sm font-medium opacity-80">
-                    <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                    AI Systems Operational
-                </footer>
-            </div>
-            
-            {/* Creator Tag */}
-            <div className="absolute bottom-6 font-mono text-gray-400 text-xs">
-                 Crafted by Yousef Khamis
-            </div>
-        </div>
+  if (view === 'language-select') {
+    return (
+      <SmartOnboarding
+        language={settings.language}
+        subject={settings.subject}
+        customSubjects={customSubjects}
+        newSubjectInput={newSubjectInput}
+        onSubjectChange={(s) => setSettings(prev => ({ ...prev, subject: s }))}
+        onLanguageChange={(lang) => setSettings(prev => ({ ...prev, language: lang }))}
+        onNewSubjectInput={setNewSubjectInput}
+        onAddSubject={handleAddSubject}
+        onStart={(data) => {
+          if (data.file) handlePdfDocAdded(data.file);
+          setSettings(prev => ({ ...prev, name: data.name.trim() || prev.name, mode: data.mode, topic: data.topic.trim() || prev.topic }));
+          setChatPrefill(data.topic.trim()
+            ? (settings.language.toLowerCase().startsWith('ar') ? `حضّر درسًا كاملًا عن: ${data.topic.trim()}` : `Prepare a complete lesson on: ${data.topic.trim()}`)
+            : (settings.language.toLowerCase().startsWith('ar') ? 'حضّر درسًا كاملًا' : 'Prepare a complete lesson'));
+          setView('board');
+        }}
+      />
     );
   }
 
-if (view === 'language-select') {
-    return (
-        <Onboarding
-            language={settings.language}
-            subject={settings.subject}
-            customSubjects={customSubjects}
-            newSubjectInput={newSubjectInput}
-            onSubjectChange={(s) => setSettings(prev => ({ ...prev, subject: s }))}
-            onLanguageChange={(lang) => setSettings(prev => ({ ...prev, language: lang }))}
-            onNewSubjectInput={setNewSubjectInput}
-            onAddSubject={handleAddSubject}
-            onStart={(data) => {
-                if (data.file) handlePdfDocAdded(data.file);
-                setSettings(prev => ({ ...prev, name: data.name.trim() || prev.name, mode: data.mode, topic: data.topic.trim() || prev.topic }));
-                setChatPrefill(data.topic.trim()
-                    ? (settings.language.startsWith('ar') ? `حضّر درسًا كاملًا عن: ${data.topic.trim()}` : `Prepare a complete lesson on: ${data.topic.trim()}`)
-                    : (settings.language.startsWith('ar') ? 'حضّر درسًا كاملًا' : 'Prepare a complete lesson'));
-                setView('board');
-            }}
-        />
-    );
-  }
-  const Toolbar = () => {
-    const isTop = toolbarPosition === 'top';
-    const baseClasses = "bg-white/90 backdrop-blur shadow-xl rounded-2xl border border-gray-200 transition-all duration-300";
-    const layoutClasses = isTop ? "flex flex-wrap items-center gap-1 p-2" : "flex flex-col items-center gap-2 p-3";
-    const transformClass = isToolbarHidden ? (isTop ? "-translate-y-24 opacity-0" : "-translate-x-24 opacity-0") : (isTop ? "translate-y-0 opacity-100" : "translate-x-0 opacity-100");
-    const colors = ['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7'];
-
-    const ToolBtn = ({ id, icon, label, onClick }: any) => (
-        <button aria-label={label} onClick={onClick || (() => setActiveTool(id))} className={`p-3 rounded-xl ${activeTool === id ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`} title={label}>
-            <i className={`fa-solid ${icon} text-lg`}></i>
-        </button>
-    );
-
-    return (
-        <div className="flex flex-col items-center gap-2">
-            <div className={`${baseClasses} ${layoutClasses} ${transformClass}`}>
-                <ToolBtn id="pointer" icon="fa-arrow-pointer" label="Select" />
-                <ToolBtn id="pan" icon="fa-hand" label="Pan" />
-                <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
-                <ToolBtn id="pen" icon="fa-pen" label="Pen" />
-                <ToolBtn id="eraser" icon="fa-eraser" label="Eraser" />
-                <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
-                <ToolBtn id="add-note" icon="fa-note-sticky" label="Note" />
-                <ToolBtn id="add-text" icon="fa-font" label="Text" />
-                <ToolBtn id="add-shape" icon="fa-shapes" label="Shape" />
-                <ToolBtn id="add-ruler" icon="fa-ruler-horizontal" label="Ruler" />
-                <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
-                <ToolBtn id="visualize-data" icon="fa-file-import" label="Visualize Data" onClick={() => setIsVisualizeModalOpen(true)} />
-                <ToolBtn id="pdf" icon="fa-file-pdf" label="PDF Workspace" onClick={() => setIsPdfOpen(true)} />
-                <ToolBtn id="clear-board" icon="fa-trash-can" label="Clear Board" onClick={handleClearBoard} />
-                <div className={isTop ? "w-px h-6 bg-gray-300 mx-2" : "h-px w-8 bg-gray-300 my-2"}></div>
-                <button onClick={() => setLessonDetail(d => d === 'brief' ? 'detailed' : 'brief')} className={`p-3 rounded-xl ${lessonDetail === 'detailed' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500'}`} title={lessonDetail === 'brief' ? 'Switch to Detailed' : 'Switch to Brief'}>
-                    <i className={`fa-solid ${lessonDetail === 'brief' ? 'fa-align-left' : 'fa-align-justify'}`}></i>
-                </button>
-                <button onClick={() => setToolbarPosition(p => p === 'top' ? 'left' : 'top')} className="p-3 text-gray-500 rounded-xl" title="Move Toolbar"><i className={`fa-solid ${toolbarPosition === 'top' ? 'fa-arrow-down-to-line' : 'fa-arrow-right-to-line'}`}></i></button>
-                <button onClick={() => setIsToolbarHidden(true)} className="p-3 text-gray-500 rounded-xl" title="Hide Toolbar"><i className="fa-solid fa-eye-slash"></i></button>
-                <button onClick={() => setIsSettingsOpen(true)} className="p-3 text-gray-500 rounded-xl hover:bg-gray-100" title="Settings"><i className="fa-solid fa-gear"></i></button>
-            </div>
-            {(activeTool === 'pen' || activeTool === 'highlighter') && !isToolbarHidden && (
-                 <div className="bg-white/95 backdrop-blur shadow-lg rounded-xl p-2 flex items-center gap-3 border border-gray-200 animate-fade-in-down">
-                    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-                        {colors.map(c => <button key={c} onClick={() => setPenColor(c)} className={`w-6 h-6 rounded-md border-2 ${penColor === c ? 'ring-2 ring-indigo-500' : 'border-gray-200'}`} style={{ backgroundColor: c }} />)}
-                    </div>
-                    <input type="range" min="2" max="24" value={penSize} onChange={(e) => setPenSize(parseInt(e.target.value, 10))} className="w-24" />
-                </div>
-            )}
-        </div>
-    );
-  };
+  const isAr = settings.language.toLowerCase().startsWith('ar');
 
   return (
     <div className="w-screen h-screen bg-board overflow-hidden flex flex-col">
-      <div className={`absolute z-50 transition-all duration-300 ${toolbarPosition === 'top' ? 'top-4 left-1/2 -translate-x-1/2' : 'left-4 top-1/2 -translate-y-1/2'}`}>
-          <Toolbar />
+      {/* Board canvas — always fills the screen */}
+      <div className={`flex-1 min-h-0 relative ${isRunning ? '' : 'p-2'} ${isRunning ? '' : 'pt-3'}`}>
+        <SmartBoard
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          activeTool={activeTool}
+          onAddSketch={onAddSketch}
+          setNodes={setNodes}
+          onPaneClick={handlePaneClick}
+          penColor={penColor}
+          penSize={penSize}
+          onDeleteNode={handleDeleteNode}
+        />
       </div>
 
-      {isToolbarHidden && (
-          <button onClick={() => setIsToolbarHidden(false)} className="absolute top-4 left-4 z-50 bg-white/80 p-3 rounded-xl shadow-lg" title="Show Toolbar">
-              <i className="fa-solid fa-eye"></i>
-          </button>
+      {/* Top status chip (compact, Material) */}
+      {!isRunning && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+          <div className="bg-white/80 backdrop-blur rounded-full shadow-elev-1 border border-black/5 px-4 py-1.5 flex items-center gap-2 text-xs text-on-surface/70">
+            <span className="material-symbols-rounded text-sm text-primary ms-fill">cast_for_education</span>
+            <span className="font-medium">{settings.subject || 'General'}</span>
+            {settings.topic && <span className="hidden sm:inline text-on-surface/40">·</span>}
+            {settings.topic && <span className="hidden sm:inline max-w-[16rem] truncate">{settings.topic}</span>}
+          </div>
+        </div>
       )}
 
-      <SmartBoard
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        activeTool={activeTool}
-        onAddSketch={onAddSketch}
-        setNodes={setNodes}
-        onPaneClick={handlePaneClick}
-        penColor={penColor}
-        penSize={penSize}
-        onDeleteNode={handleDeleteNode}
-      />
-      
-      <Chat
-        messages={chatMessages}
-        onSendMessage={submitPromptToAI}
-        isLoading={isAiLoading}
-        prefill={chatPrefill}
-        onPrefillConsumed={() => setChatPrefill('')}
-        onModeSelect={handleModeSelect}
-        mode={lessonMode}
-        language={settings.language}
-        isMuted={isMuted}
-      />
-      
+      {/* Bottom toolbar — main control center */}
+      {!isRunning && (
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-3 px-2 flex justify-center">
+          <BottomToolbar
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            isRunning={false}
+            onToggleRun={() => setIsRunning(true)}
+            onToggleChat={() => setIsChatOpen(v => !v)}
+            onTogglePdf={() => setIsPdfOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onClearBoard={handleClearBoard}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={historyIndex >= 0}
+            canRedo={historyIndex + 1 < history.length}
+            language={settings.language}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(m => !m)}
+            onAddNote={() => setActiveTool('add-note')}
+            onAddText={() => setActiveTool('add-text')}
+          />
+        </div>
+      )}
+
+      {/* Run Board overlay controls */}
+      {isRunning && (
+        <>
+          <div className="absolute top-4 left-4 z-50">
+            <div className="bg-white/90 backdrop-blur rounded-full shadow-elev-2 border border-black/5 px-4 py-2 flex items-center gap-3">
+              <span className="material-symbols-rounded text-red-500 ms-fill">radio_button_checked</span>
+              <span className="text-sm font-semibold text-on-surface">{settings.topic || settings.subject || 'Board'}</span>
+            </div>
+          </div>
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3">
+            <button
+              onClick={() => setIsRunning(false)}
+              className="mat-btn bg-white/90 backdrop-blur border border-black/10 rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium text-on-surface shadow-elev-2 hover:bg-white"
+            >
+              <span className="material-symbols-rounded">fullscreen_exit</span>
+              {isAr ? 'إنهاء العرض' : 'Exit run'}
+            </button>
+            <button
+              onClick={() => setIsChatOpen(v => !v)}
+              className="mat-btn bg-primary text-white rounded-full px-5 py-2 flex items-center gap-2 text-sm font-semibold shadow-elev-2"
+            >
+              <span className="material-symbols-rounded ms-fill">smart_toy</span>
+              {isAr ? 'المعلم الذكي' : 'AI Teacher'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* AI Teacher bottom sheet (temporary overlay, not permanent) */}
+      {isChatOpen && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/20 animate-fade-in" onClick={() => setIsChatOpen(false)}>
+          <div className="w-full max-w-2xl mx-auto px-4 pb-4 animate-fade-in-down" onClick={(e) => e.stopPropagation()}>
+            <AISheet
+              messages={chatMessages}
+              onSendMessage={submitPromptToAI}
+              isLoading={isAiLoading}
+              prefill={chatPrefill}
+              onPrefillConsumed={() => setChatPrefill('')}
+              onModeSelect={handleModeSelect}
+              mode={lessonMode}
+              language={settings.language}
+              isMuted={isMuted}
+              docs={knowledgeDocs}
+              onOpenPdf={() => setIsPdfOpen(true)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Pen options (color + size) — compact Material popover above toolbar */}
+      {!isRunning && (activeTool === 'pen' || activeTool === 'highlighter') && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40">
+          <div className="bg-white/95 backdrop-blur shadow-elev-2 rounded-2xl px-4 py-2.5 flex items-center gap-3 border border-black/5 animate-fade-in">
+            <div className="flex gap-1.5">
+              {['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setPenColor(c)}
+                  className={`w-7 h-7 rounded-full border-2 transition-transform ${penColor === c ? 'ring-2 ring-primary scale-110' : 'border-black/10 hover:scale-110'}`}
+                  style={{ backgroundColor: c }}
+                  aria-label={`Color ${c}`}
+                />
+              ))}
+            </div>
+            <div className="w-px h-6 bg-black/10" />
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-rounded text-sm text-on-surface/50">line_weight</span>
+              <input type="range" min="2" max="24" value={penSize} onChange={(e) => setPenSize(parseInt(e.target.value, 10))} className="w-24 accent-primary" />
+              <span className="text-xs font-mono text-on-surface/50 w-5 text-right">{penSize}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isSettingsOpen && (
         <SettingsModal
           settings={settings}
@@ -558,15 +641,15 @@ if (view === 'language-select') {
           onSave={(newSettings) => setSettings(newSettings)}
         />
       )}
-      
+
       {isVisualizeModalOpen && (
-        <VisualizeTextModal 
-            isOpen={isVisualizeModalOpen}
-            onClose={() => setIsVisualizeModalOpen(false)}
-            onVisualize={handleVisualizeText}
+        <VisualizeTextModal
+          isOpen={isVisualizeModalOpen}
+          onClose={() => setIsVisualizeModalOpen(false)}
+          onVisualize={handleVisualizeText}
         />
       )}
-      
+
       <PdfWorkspace
         isOpen={isPdfOpen}
         onClose={() => setIsPdfOpen(false)}

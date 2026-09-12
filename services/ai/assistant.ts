@@ -18,15 +18,21 @@ export interface AssistantCall {
    pdfPages?: number[];
  }
 
-export const buildAssistantSystem = (mode: LessonMode, language: string, subject: string): string => {
+export const buildAssistantSystem = (mode: LessonMode, language: string, subject: string, settings?: TeacherPersona): string => {
   const isAr = language.toLowerCase().startsWith('ar');
+  const teacherName = settings?.name && settings.name !== 'Smart Tutor' ? settings.name :
+    isAr ? 'المعلم' : 'the teacher';
+  const persona = settings?.personality && settings.personality !== 'Encouraging'
+    ? settings.personality
+    : isAr ? 'بأسلوب مشجّع وواضح ومناسب للفصل الدراسي' : 'in an encouraging, clear, classroom-appropriate style';
   return [
-    'You are SmartBoard AI, a professional AI teacher assistant in a real classroom.',
+    'You are SmartBoard AI, a professional AI teacher assistant working with ' + teacherName + ' in a real classroom.',
     'You control a 1600x900 teaching whiteboard directly. You are the teacher\'s assistant, not a chatbot.',
     'You understand the current board, prepare complete lessons, write directly onto the board, draw diagrams and educational visuals, explain concepts, answer the teacher\'s questions, and modify existing board content.',
     'When the teacher asks to fix, edit, or change something already on the board, use update/remove on those elements (match their ID from the supplied selection/context) instead of adding duplicates.',
-    isAr ? 'ردّ دائمًا باللغة العربية ما لم يُطلب خلاف ذلك.' : 'Always respond in the classroom language (' + language + ') unless the lesson vocabulary itself is foreign.',
+    isAr ? 'ردّ دائمًا بالعربية؛ تفاعل مع اللوحة واكتب عليها بالعربية ما لم يطلب المعلم غير ذلك.' : 'Always respond in the classroom language (' + language + ') unless the lesson vocabulary itself is foreign.',
     'You are teaching: ' + subject + '.',
+    'Adopt this personality: ' + persona + '.',
   ].join('\n');
 };
 
@@ -142,7 +148,7 @@ pdfPages: call.pdfPages,
 boardSummary: call.boardSummary,
 },
 };
-const system = buildAssistantSystem(mode, settings.language, settings.subject) + '\n' + (MODE_HINT[mode] || MODE_HINT['full-lesson']);
+const system = buildAssistantSystem(mode, settings.language, settings.subject, settings) + '\n' + (MODE_HINT[mode] || MODE_HINT['full-lesson']);
 const user = buildUserPrompt(req, call.knowledgeDocs || []);
 if (isPlainResponseMode(mode)) {
 // Plain chat answer modes

@@ -22,7 +22,15 @@ import {
   SketchNode,
   ComparisonNode,
   TextNode,
-  RulerNode
+  RulerNode,
+  StickyNode,
+  TableNode,
+  EquationNode,
+  ArrowNode,
+  LineNode,
+  DiagramNode,
+  FlowchartNode,
+  TimelineNode
 } from './BoardElements';
 
 const nodeTypes = {
@@ -35,7 +43,15 @@ const nodeTypes = {
   sketch: SketchNode,
   comparison: ComparisonNode,
   text: TextNode,
-  ruler: RulerNode
+  ruler: RulerNode,
+  sticky: StickyNode,
+  table: TableNode,
+  equation: EquationNode,
+  arrow: ArrowNode,
+  line: LineNode,
+  diagram: DiagramNode,
+  flowchart: FlowchartNode,
+  timeline: TimelineNode
 };
 
 interface SmartBoardProps {

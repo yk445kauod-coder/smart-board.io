@@ -145,6 +145,9 @@ export interface ElementData {
 
   // For mind map
   centerLabel?: string;
+
+  // For arrow/labeled nodes
+  label?: string;
 }
 
 export interface ChatMessage {

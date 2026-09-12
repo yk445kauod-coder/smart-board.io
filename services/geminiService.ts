@@ -90,7 +90,7 @@ export const generateImageWithPollinations = (description: string): string => {
     const encodedDescription = encodeURIComponent(enhancedDescription);
     // Add a random seed to avoid caching and get different images for similar prompts.
     const seed = Math.floor(Math.random() * 100000);
-    return `https://pollinations.ai/p/${encodedDescription}?width=512&height=512&seed=${seed}&nofeed=true`;
+    return `https://image.pollinations.ai/prompt/${encodedDescription}?width=512&height=512&seed=${seed}&nofeed=true`;
 };
 
 

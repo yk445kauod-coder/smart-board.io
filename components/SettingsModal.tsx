@@ -1,5 +1,6 @@
 import React from 'react';
 import { TeacherPersona } from '../types';
+import { Sheet, MButton } from './ui';
 
 interface SettingsModalProps {
   settings: TeacherPersona;
@@ -7,107 +8,88 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
-  const [localSettings, setLocalSettings] = React.useState(settings);
+const LANGUAGES = ['Arabic', 'English', 'French', 'Italian'];
 
-  const handleApiKeySelection = async () => {
-    try {
-        if ((window as any).aistudio?.openSelectKey) {
-            await (window as any).aistudio.openSelectKey();
-            // Force reload or just let the env var update take effect on next call
-            alert("API Key updated. Please try your request again.");
-        } else {
-            alert("API Key selection is not available in this environment.");
-        }
-    } catch (e) {
-        console.error("Failed to select API key", e);
-    }
+const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
+  const [local, setLocal] = React.useState(settings);
+  const isAr = local.language.toLowerCase().startsWith('ar');
+  const t = (ar: string, en: string) => (isAr ? ar : en);
+
+  const handleSave = () => {
+    onSave(local);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border-4 border-gray-100">
-        <div className="bg-indigo-600 p-6 flex justify-between items-center text-white">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <i className="fa-solid fa-sliders"></i> Session Preferences
-          </h2>
-          <button onClick={onClose} className="hover:bg-indigo-700 p-2 rounded-full transition"><i className="fa-solid fa-xmark"></i></button>
+    <Sheet open onClose={onClose} title={<span className="inline-flex items-center gap-2"><span className="material-symbols-rounded text-primary">settings</span> {t('الإعدادات', 'Settings')}</span>} maxW="max-w-lg">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">smart_toy</span> {t('اسم المساعد', 'Assistant name')}
+          </label>
+          <input
+            type="text"
+            value={local.name}
+            onChange={(e) => setLocal({ ...local, name: e.target.value })}
+            className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-surface-variant/40 focus:bg-white focus:border-primary focus:outline-none text-sm"
+          />
         </div>
-        
-        <div className="p-8 space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-robot"></i> Assistant Identity
-            </label>
-            <input 
-              type="text" 
-              value={localSettings.name}
-              onChange={e => setLocalSettings({...localSettings, name: e.target.value})}
-              className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none font-medium"
-              placeholder="e.g. Smart Tutor"
-            />
-          </div>
 
-          <div className="space-y-2">
-             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-language"></i> Response Language / لغة الرد
-            </label>
-            <input 
-              type="text" 
-              value={localSettings.language}
-              onChange={e => setLocalSettings({...localSettings, language: e.target.value})}
-              className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none font-medium"
-              placeholder="e.g., Arabic, English, French"
-            />
-            <p className="text-xs text-gray-400 mt-1">Note: Voice matches language automatically where possible.</p>
-          </div>
-
-          <div className="space-y-2">
-             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-wave-square"></i> Vocal Style
-            </label>
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setLocalSettings({...localSettings, voice: 'female'})}
-                className={`flex-1 p-3 rounded-xl border-2 font-medium transition-all ${localSettings.voice === 'female' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-500'}`}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">language</span> {t('لغة الرد', 'Response language')}
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l}
+                onClick={() => setLocal({ ...local, language: l })}
+                className={`mat-btn px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${local.language === l ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}
               >
-                Female
+                {l}
               </button>
-              <button 
-                onClick={() => setLocalSettings({...localSettings, voice: 'male'})}
-                className={`flex-1 p-3 rounded-xl border-2 font-medium transition-all ${localSettings.voice === 'male' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500'}`}
-              >
-                Male
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-4 border-t border-gray-100">
-             <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-              <i className="fa-solid fa-link"></i> Connection & Billing
-            </label>
-            <div className="flex items-center gap-3">
-                <button 
-                    onClick={handleApiKeySelection}
-                    className="flex-1 py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors flex justify-center items-center gap-2"
-                >
-                    <i className="fa-brands fa-google"></i> Connect Google Cloud Project
-                </button>
-            </div>
-             <p className="text-xs text-gray-400 mt-1">Required for high-quota API access.</p>
+            ))}
           </div>
         </div>
 
-        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-          <button 
-            onClick={() => { onSave(localSettings); onClose(); }}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all"
-          >
-            Apply Configuration / تطبيق
-          </button>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">record_voice_over</span> {t('الصوت', 'Vocal style')}
+          </label>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setLocal({ ...local, voice: 'female' })}
+              className={`mat-btn flex-1 px-4 py-3 rounded-2xl border-2 text-sm font-medium transition-all ${local.voice === 'female' ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}
+            >
+              {t('أنثى', 'Female')}
+            </button>
+            <button
+              onClick={() => setLocal({ ...local, voice: 'male' })}
+              className={`mat-btn flex-1 px-4 py-3 rounded-2xl border-2 text-sm font-medium transition-all ${local.voice === 'male' ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}
+            >
+              {t('ذكر', 'Male')}
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">personality</span> {t('شخصية المساعد', 'Personality')}
+          </label>
+          <input
+            type="text"
+            value={local.personality}
+            onChange={(e) => setLocal({ ...local, personality: e.target.value })}
+            className="w-full px-4 py-3 rounded-2xl border border-black/10 bg-surface-variant/40 focus:bg-white focus:border-primary focus:outline-none text-sm"
+          />
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end gap-3">
+        <MButton variant="text" onClick={onClose}>{t('إلغاء', 'Cancel')}</MButton>
+        <MButton onClick={handleSave}>{t('حفظ', 'Save')}</MButton>
+      </div>
+    </Sheet>
   );
 };
 
