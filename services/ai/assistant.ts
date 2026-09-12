@@ -101,6 +101,27 @@ await onToolCall('connect', { ...cmd, from: src, to: dst }, originalMessage);
 }
 }
 
+async function askApiChat(req: LessonRequest, system: string, user: string): Promise<{ text: string; provider?: string; model?: string } | null> {
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ req, system, user }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('[api/chat]', res.status, (errData as any)?.error || '');
+      return null;
+    }
+    const data = await res.json() as { text?: string; provider?: string; model?: string };
+    if (!data?.text || !data.text.trim()) return null;
+    return { text: data.text, provider: data.provider, model: data.model };
+  } catch (e) {
+    console.warn('[api/chat] fetch failed:', (e as Error).message);
+    return null;
+  }
+}
+
 export const generateLesson = async (
   call: AssistantCall,
   onToolCall: (name: string, args: Record<string, unknown>, originalMessage: string) => Promise<void>,
@@ -126,51 +147,47 @@ const user = buildUserPrompt(req, call.knowledgeDocs || []);
 if (isPlainResponseMode(mode)) {
 // Plain chat answer modes
 let lastErr: string | null = null;
-for (const p of PROVIDERS) {
 try {
-const res = await p.complete(req, system, user);
-if (res) {
-const clean = neutralizeDocText(res.text);
+const viaApi = await askApiChat(req, system, user);
+if (viaApi) {
+const clean = neutralizeDocText(viaApi.text);
 onSpeak(truncateForPrompt(clean, 400));
 return clean;
 }
 } catch (e) {
 lastErr = (e as Error).message;
 }
-}
 return isAr ? 'لم أتمكن من الوصول إلى نموذج اللغة حاليًا. حاول مرة أخرى.' : 'I could not reach the language model right now. Please try again.' + (lastErr ? ' (' + lastErr + ')' : '');
 }
 // Board command modes
 let lastErr2: string | null = null;
-for (const p of PROVIDERS) {
 try {
-const res = await p.complete(req, system, user);
-if (!res) continue;
-const commands = textToBoardCommands(res.text);
-if (commands.length === 0) {
-lastErr2 = 'Provider returned no board commands';
-continue;
-}
-const withLayout = layoutCommands(commands);
-await applyBoardCommands(withLayout, onToolCall, prompt);
-const reply = pickReply(withLayout, isAr);
-onSpeak(reply);
-return reply;
+  const viaApi = await askApiChat(req, system, user);
+  if (viaApi) {
+    const commands = textToBoardCommands(viaApi.text);
+    if (commands.length === 0) {
+      lastErr2 = 'Assistant returned no board commands';
+    } else {
+      const withLayout = layoutCommands(commands);
+      await applyBoardCommands(withLayout, onToolCall, prompt);
+      const reply = pickReply(withLayout, isAr);
+      onSpeak(reply);
+      return reply;
+    }
+  }
 } catch (e) {
-lastErr2 = (e as Error).message;
+  lastErr2 = (e as Error).message;
 }
-}
-// Offline deterministic fallback
 // Offline deterministic fallback
 const offline = PROVIDERS[PROVIDERS.length - 1];
 const res = await offline.complete(req, system, user);
 if (res) {
-const commands = textToBoardCommands(res.text);
-const withLayout = layoutCommands(commands);
-await applyBoardCommands(withLayout, onToolCall, prompt);
-const reply = pickReply(withLayout, isAr);
-onSpeak(reply);
-return reply;
+  const commands = textToBoardCommands(res.text);
+  const withLayout = layoutCommands(commands);
+  await applyBoardCommands(withLayout, onToolCall, prompt);
+  const reply = pickReply(withLayout, isAr);
+  onSpeak(reply);
+  return reply;
 }
 return (isAr ? 'تعذر إنشاء الدرس. حاول مرة أخرى.' : 'Could not build the lesson. Please try again.') + (lastErr2 ? ' (' + lastErr2 + ')' : '');
 };

@@ -154,5 +154,4 @@ export function buildKnowledgeContext(query: string, docs: KnowledgeDoc[]): stri
   const body = hits.map(h => `[${h.docName}]\n${h.text}`).join('\n\n');
   return '=== Educational material (teacher-provided; use as primary lesson context) ===\n'
     + neutralizeDocText(body.substring(0, MAX_CTX)) + '\n=== End of material ===';
-2    + neutralizeDocText(body.substring(0, MAX_CTX)) + '\n=== End of material ===';
 }

@@ -24,6 +24,28 @@ const env = (name: string): string => {
   }
 };
 
+type CfMsg = { content?: unknown; reasoning?: unknown; reasoning_content?: unknown };
+
+// GLM-family models can return the answer in content, reasoning, or reasoning_content.
+// Prefer a real answer over raw reasoning text.
+const readCfMessage = (msg: CfMsg): string => {
+  if (!msg || typeof msg !== 'object') return '';
+  const content = typeof msg.content === 'string' ? msg.content.trim() : '';
+  if (content) return content;
+  const reasoning =
+    (typeof msg.reasoning === 'string' ? msg.reasoning : '') ||
+    (typeof msg.reasoning_content === 'string' ? msg.reasoning_content : '');
+  if (!reasoning.trim()) return '';
+  const bullet = '[\\u2022\\u2013\\u2014\\-]';
+  return reasoning
+    .replace(/^\\s*\\d+[\\.\\)]\\s*.*(?:Analyze|Analyse|Evaluate|Assess|Reason|Think|Reflect|Check|Verify|Plan|Approach|Request|Input|Instruction|User|System).*/gim, '')
+    .replace(/^\\s*\\*?[A-Z][^:]{2,40}:.*$/gim, '')
+    .replace(new RegExp('^\\\\s*' + bullet + '\\\\s*.*$', 'gm'), '')
+    .replace(new RegExp('^[\\\\s\\\\d\\\\.\\)' + bullet + '*]*$', 'g'), '')
+    .replace(/\\s{2,}/g, ' ')
+    .trim();
+};
+
 // ---------------------------------------------------------- Cloudflare Workers AI (primary)
 export const cloudflareProvider: TextProvider = {
   id: 'cloudflare',
@@ -41,6 +63,7 @@ export const cloudflareProvider: TextProvider = {
       ],
       temperature: 0.5,
       max_tokens: 4096,
+      response_format: { type: 'json_object' },
       reasoning: { enabled: false },
     };
 
@@ -52,7 +75,8 @@ export const cloudflareProvider: TextProvider = {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.errors?.[0]?.message || `Cloudflare HTTP ${res.status}`);
-      const text = data?.result?.choices?.[0]?.message?.content;
+      const msg: CfMsg = data?.result?.choices?.[0]?.message;
+      const text = readCfMessage(msg);
       if (!text) throw new Error('Cloudflare returned empty content');
       return { text, model: data?.result?.model || body.model, provider: 'cloudflare' };
     } catch (e) {
