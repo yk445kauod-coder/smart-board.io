@@ -1,6 +1,6 @@
 import type { BoardAction, LessonRequest } from '../../../types';
 import { buildOfflineLesson } from './offlineLesson';
-import { cleanupJsonMarkers, extractJsonArray } from './validate';
+import { cleanupJsonMarkers, extractJsonArray, isPlainResponseMode } from './validate';
 
 export interface ProviderResult {
   text: string;
@@ -55,10 +55,19 @@ export const cloudflareProvider: TextProvider = {
     const apiToken = env('CLOUDFLARE_API_TOKEN');
     if (!accountId || !apiToken) return null;
 
+    // Llama is more reliable than GLM for board-building JSON. GLM remains
+    // useful for natural-language explanations, where its safety layer is
+    // less likely to replace the requested answer with a safety status.
+    const model = isPlainResponseMode(req.mode)
+      ? '@cf/zai-org/glm-4.7-flash'
+      : '@cf/meta/llama-3.1-8b-instruct';
+    const boardInstruction = isPlainResponseMode(req.mode)
+      ? ''
+      : '\nReturn a JSON object with exactly one key, "commands", whose value is the executable array. Never return a safety status, prose, markdown, or an empty response.';
     const body = {
-      model: '@cf/zai-org/glm-4.7-flash',
+      model,
       messages: [
-        { role: 'system', content: system },
+        { role: 'system', content: system + boardInstruction },
         { role: 'user', content: user },
       ],
       temperature: 0.5,
