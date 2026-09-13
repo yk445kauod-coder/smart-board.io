@@ -175,6 +175,22 @@ Set the environment variables above (`CLOUDFLARE_ACCOUNT_ID`,
 `CLOUDFLARE_API_TOKEN`, `OPENROUTER_API_KEY`, `POLLINATIONS_API_KEY`,
 `GEMINI_API_KEY`) as Pages/Workers secrets or in the dashboard.
 
+The project is prepared for Cloudflare Pages full-stack deployment. The React
+frontend is emitted to `dist/`, while `functions/api/chat.ts` and
+`functions/api/tts.ts` are deployed as Pages Functions automatically. After
+authenticating Wrangler with `npx wrangler login`, use:
+
+```bash
+npm run deploy:dry   # build and validate the deployment command
+npm run deploy       # publish frontend + Pages Functions
+```
+
+In the Cloudflare Pages project settings, add `OPENROUTER_API_KEY`,
+`POLLINATIONS_API_KEY`, and `GEMINI_API_KEY` as encrypted runtime variables.
+The AI routes retain an offline deterministic fallback when provider secrets
+are unavailable. The Atlas uses local TopoJSON country data with
+`react-simple-maps`, so map rendering does not depend on a paid tiles API.
+
 ### Tests (logic-level, no network)
 
 The repository includes lightweight `tsx`-based test suites that exercise the
