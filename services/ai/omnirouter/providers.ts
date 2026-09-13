@@ -237,6 +237,7 @@ export const normalizeBoardCommand = (raw: unknown): BoardAction | null => {
     add_heading: 'addWordArt',
     add_paragraph: 'addNote',
     add_bullet_points: 'addList',
+    text: 'addNote',
   };
   const canonical = aliases[type] || type;
   type = canonical;
