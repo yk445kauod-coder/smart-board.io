@@ -120,11 +120,15 @@ export const openRouterProvider: TextProvider ={
     };
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || `OpenRouter HTTP ${res.status}`);
       const content = data?.choices?.[0]?.message?.content;
@@ -182,11 +186,15 @@ export const geminiProvider: TextProvider ={
     };
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || `Gemini HTTP ${res.status}`);
       const text = data?.choices?.[0]?.message?.content;
