@@ -62,6 +62,9 @@ export const onRequest = async (context) => {
     const needsBoardCommands = !isPlainResponseMode(req.mode);
     for (const p of PROVIDERS) {
       if (p.id === 'offline') continue;
+      // Board-writing modes must use a structured board-capable provider only.
+      // Text fallbacks can return safety prose or wait on long public endpoints.
+      if (needsBoardCommands && p.id !== 'cloudflare') continue;
       try {
         const res = await withTimeout(p.complete(req, system, user), 15000, `${p.id} timed out`);
         if (res && res.text && res.text.trim().length > 0) {
