@@ -49,6 +49,7 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
   const [noteText, setNoteText] = useState('');
   const [drawing, setDrawing] = useState<PDFPageAnnotation | null>(null);
   const [noteDraft, setNoteDraft] = useState<{ x: number; y: number } | null>(null);
+  const [showKnowledge, setShowKnowledge] = useState(true);
 
   const currentAnnotations = useCallback(
     (page: number): PDFPageAnnotation[] =>
@@ -345,40 +346,30 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-3 border-b border-black/5 flex items-center justify-between gap-4 bg-surface-variant/30">
-          <h3 className="font-semibold text-on-surface flex items-center gap-2">
-            <span className="material-symbols-rounded text-red-500">picture_as_pdf</span>
-            {t('مساحة عمل PDF', 'PDF Workspace')}
+        <div className="px-4 py-2.5 border-b border-black/5 flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-on-surface flex items-center gap-2 text-[15px]">
+            <span className={`material-symbols-rounded text-red-500 ${isAr ? 'ms-0' : ''}`}>picture_as_pdf</span>
+            {pdfName ? pdfName : t('مساحة عمل PDF', 'PDF Workspace')}
           </h3>
-          <div className="flex items-center gap-2">
-            <label className="mat-btn px-3 py-2 rounded-xl bg-primary text-white text-sm cursor-pointer hover:shadow-elev-1 transition-all inline-flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <label className="mat-btn px-3 py-1.5 rounded-lg bg-primary text-white text-sm cursor-pointer hover:shadow-elev-1 transition-all inline-flex items-center gap-1.5">
               <span className="material-symbols-rounded text-lg">add</span>
               {t('فتح PDF', 'Open PDF')}
               <input type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
             </label>
-            {!isFullscreen ? (
-              <button
-                onClick={toggleFullscreen}
-                className="mat-btn p-2 rounded-xl text-on-surface/70 hover:bg-surface-variant/70"
-                title={t('ملء الشاشة', 'Fullscreen')}
-              >
-                <span className="material-symbols-rounded">fullscreen</span>
-              </button>
-            ) : (
-              <button
-                onClick={toggleFullscreen}
-                className="mat-btn p-2 rounded-xl text-on-surface/70 hover:bg-surface-variant/70"
-                title={t('العودة للوحة', 'Exit fullscreen')}
-              >
-                <span className="material-symbols-rounded">fullscreen_exit</span>
-              </button>
-            )}
+            <button
+              onClick={toggleFullscreen}
+              className="mat-btn p-1.5 rounded-lg text-on-surface/70 hover:bg-surface-variant/70"
+              title={t('ملء الشاشة', isFullscreen ? 'Exit fullscreen' : 'Fullscreen')}
+            >
+              <span className="material-symbols-rounded text-[20px]">{isFullscreen ? 'fullscreen_exit' : 'fullscreen'}</span>
+            </button>
             <button
               onClick={onClose}
-              className="mat-btn p-2 rounded-xl text-on-surface/70 hover:bg-surface-variant/70"
+              className="mat-btn p-1.5 rounded-lg text-on-surface/70 hover:bg-surface-variant/70"
               title={t('إغلاق', 'Close')}
             >
-              <span className="material-symbols-rounded">close</span>
+              <span className="material-symbols-rounded text-[20px]">close</span>
             </button>
           </div>
         </div>
@@ -401,37 +392,40 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
                 )}
 
                 {/* Toolbar: tools + colors */}
-                <div className="bg-white rounded-2xl shadow-elev-2 px-3 py-2 flex items-center gap-2 flex-wrap justify-center">
+                <div className="bg-white rounded-full shadow-elev-2 px-3 py-1.5 flex items-center gap-1.5 flex-wrap justify-center">
                   {toolBtn('pan', 'pan_tool_alt', t('تحريك', 'Pan'))}
                   {toolBtn('pen', 'draw', t('قلم', 'Pen'))}
                   {toolBtn('eraser', 'ink_eraser', t('ممحاة', 'Eraser'))}
                   {toolBtn('note', 'sticky_note_2', t('ملاحظة', 'Note'))}
-                  <div className="w-px h-6 bg-black/10 mx-1" />
-                  {tool === 'pen' && PEN_COLORS.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setPenColor(c)}
-                      aria-label={t('لون', 'Color')}
-                      className={`w-6 h-6 rounded-full border-2 transition-all ${penColor === c ? 'scale-125 border-primary' : 'border-transparent'}`}
-                      style={{ background: c }}
-                    />
-                  ))}
-                  {tool === 'pen' && PEN_WIDTHS.map(w => (
-                    <button
-                      key={w}
-                      onClick={() => setPenWidth(w)}
-                      aria-label={t('سمك', 'Width')}
-                      className={`mat-btn p-1.5 rounded-lg flex items-center justify-center ${penWidth === w ? 'bg-tonal' : 'hover:bg-surface-variant/70'}`}
-                    >
-                      <span className="bg-on-surface rounded-full" style={{ width: w + 2, height: w + 2 }} />
-                    </button>
-                  ))}
-                  <div className="w-px h-6 bg-black/10 mx-1" />
+                  {tool === 'pen' && (
+                    <>
+                      <div className="w-px h-5 bg-black/10 mx-0.5" />
+                      {PEN_COLORS.map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setPenColor(c)}
+                          aria-label={t('لون', 'Color')}
+                          className={`w-5 h-5 rounded-full border-2 transition-all ${penColor === c ? 'scale-110 border-primary' : 'border-transparent'}`}
+                          style={{ background: c }}
+                        />
+                      ))}
+                      {PEN_WIDTHS.map(w => (
+                        <button
+                          key={w}
+                          onClick={() => setPenWidth(w)}
+                          aria-label={t('سمك', 'Width')}
+                          className={`mat-btn p-1 rounded-lg flex items-center justify-center ${penWidth === w ? 'bg-tonal' : 'hover:bg-surface-variant/70'}`}
+                        >
+                          <span className="bg-on-surface rounded-full" style={{ width: w + 1, height: w + 1 }} />
+                        </button>
+                      ))}
+                    </>
+                  )}
                   <button
                     onClick={undoLast}
                     disabled={currentAnnotations(currentPage).length === 0}
                     title={t('تراجع', 'Undo')}
-                    className="mat-btn p-2 rounded-xl text-on-surface/70 hover:bg-surface-variant/70 disabled:opacity-40"
+                    className="mat-btn p-1.5 rounded-lg text-on-surface/70 hover:bg-surface-variant/70 disabled:opacity-40"
                   >
                     <span className="material-symbols-rounded text-xl">undo</span>
                   </button>
@@ -439,7 +433,7 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
                     onClick={clearAnnotations}
                     disabled={currentAnnotations(currentPage).length === 0}
                     title={t('مسح التعليقات', 'Clear annotations')}
-                    className="mat-btn p-2 rounded-xl text-on-surface/70 hover:bg-surface-variant/70 disabled:opacity-40"
+                    className="mat-btn p-1.5 rounded-lg text-on-surface/70 hover:bg-surface-variant/70 disabled:opacity-40"
                   >
                     <span className="material-symbols-rounded text-xl">ink_eraser</span>
                   </button>
@@ -524,41 +518,49 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
           </div>
 
           {/* Knowledge panel */}
-          <div className="w-72 border-l border-black/5 flex flex-col bg-white">
-            <div className="px-4 py-3 border-b border-black/5 font-medium text-on-surface/80 text-sm">
-              <span className="material-symbols-rounded align-middle text-lg text-primary me-1">database</span>
-              {t('مصادر المعرفة', 'Knowledge sources')}
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm scroll-thin">
-              {docs.length === 0 && (
-                <p className="text-on-surface/40 text-xs">{t('لم تُضف مصادر بعد. افتح ملف PDF وسيُضاف تلقائيًا.', 'No sources yet. Open a PDF and it will be added automatically.')}</p>
-              )}
-              {docs.map((doc) => (
-                <div key={doc.id} className="p-2 rounded-xl bg-surface-variant/40 border border-black/5">
-                  <p className="font-medium text-on-surface truncate flex items-center gap-1.5">
-                    <span className="material-symbols-rounded text-red-400 text-base">picture_as_pdf</span>
-                    {doc.name}
-                  </p>
-                  <p className="text-xs text-on-surface/40 mt-1">{doc.pages ?? 0} {t('صفحة', 'pages')} · {doc.text.length} {t('حرف', 'chars')}</p>
+          <div className={`${showKnowledge ? 'w-72' : 'w-10'} border-l border-black/5 flex flex-col bg-white transition-all`}>
+            <button
+              onClick={() => setShowKnowledge(v => !v)}
+              className="px-3 py-2.5 border-b border-black/5 flex items-center gap-2 text-on-surface/80 hover:bg-surface-variant/40 text-sm font-medium"
+              title={t('مصادر المعرفة', 'Knowledge sources')}
+            >
+              <span className="material-symbols-rounded text-primary">{showKnowledge ? 'chevron_right' : 'menu_book'}</span>
+              {showKnowledge && t('مصادر المعرفة', 'Knowledge sources')}
+            </button>
+            {showKnowledge && (
+              <>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm scroll-thin">
+                  {docs.length === 0 && (
+                    <p className="text-on-surface/40 text-xs">{t('لم تُضف مصادر بعد. افتح ملف PDF وسيُضاف تلقائيًا.', 'No sources yet. Open a PDF and it will be added automatically.')}</p>
+                  )}
+                  {docs.map((doc) => (
+                    <div key={doc.id} className="p-2 rounded-xl bg-surface-variant/40 border border-black/5">
+                      <p className="font-medium text-on-surface truncate flex items-center gap-1.5">
+                        <span className="material-symbols-rounded text-red-400 text-base">picture_as_pdf</span>
+                        {doc.name}
+                      </p>
+                      <p className="text-xs text-on-surface/40 mt-1">{doc.pages ?? 0} {t('صفحة', 'pages')} · {doc.text.length} {t('حرف', 'chars')}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="p-3 border-t border-black/5 space-y-2">
-              <button
-                onClick={() => onAsk(buildKnowledgeContext('', docs) + '\n' + t('لخّص المستند', 'Summarize the document'), 'summarize')}
-                disabled={docs.length === 0}
-                className="w-full px-3 py-2 rounded-xl bg-surface-variant/50 text-on-surface/80 text-sm hover:bg-tonal disabled:opacity-40 inline-flex items-center gap-2 transition-all"
-              >
-                <span className="material-symbols-rounded text-lg">summarize</span>{t('لخّص المستند', 'Summarize')}
-              </button>
-              <button
-                onClick={() => onAsk(buildKnowledgeContext('', docs) + '\n' + t('اشرح هذا المستند للطلاب', 'Explain this document to students'), 'explain')}
-                disabled={docs.length === 0}
-                className="w-full px-3 py-2 rounded-xl bg-surface-variant/50 text-on-surface/80 text-sm hover:bg-tonal disabled:opacity-40 inline-flex items-center gap-2 transition-all"
-              >
-                <span className="material-symbols-rounded text-lg">school</span>{t('اشرح للطلاب', 'Explain to students')}
-              </button>
-            </div>
+                <div className="p-2.5 border-t border-black/5 space-y-2">
+                  <button
+                    onClick={() => onAsk(buildKnowledgeContext('', docs) + '\n' + t('لخّص المستند', 'Summarize the document'), 'summarize')}
+                    disabled={docs.length === 0}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-variant/50 text-on-surface/80 text-sm hover:bg-tonal disabled:opacity-40 inline-flex items-center gap-2 transition-all"
+                  >
+                    <span className="material-symbols-rounded text-lg">summarize</span>{t('لخّص المستند', 'Summarize')}
+                  </button>
+                  <button
+                    onClick={() => onAsk(buildKnowledgeContext('', docs) + '\n' + t('اشرح هذا المستند للطلاب', 'Explain this document to students'), 'explain')}
+                    disabled={docs.length === 0}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-variant/50 text-on-surface/80 text-sm hover:bg-tonal disabled:opacity-40 inline-flex items-center gap-2 transition-all"
+                  >
+                    <span className="material-symbols-rounded text-lg">school</span>{t('اشرح للطلاب', 'Explain to students')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

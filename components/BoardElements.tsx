@@ -1,7 +1,9 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { ElementData } from '../types';
+import { WORLD, EGYPT, WORLD_PINS, PIN_BY_ID, AtlasRegion } from '../data/atlas';
+import { ELEMENT_BY_NUMBER, CATEGORY_COLOR } from '../data/periodic';
 
 const getFontClass = (text: string) => {
     const isArabic = /[\u0600-\u06FF]/.test(text || "");
@@ -373,21 +375,58 @@ export const TextNode = memo(({ id, data, selected }: NodeProps<ElementData>) =>
 
 export const ShapeNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   const bg = data.color || '#4ECDC4';
-  
+  const w = data.width || (data.shapeType === 'circle' || data.shapeType === 'ellipse' ? 160 : 192);
+  const h = data.height || (data.shapeType === 'circle' ? 160 : data.shapeType === 'ellipse' ? 128 : 128);
+  const border = data.borderColor || 'transparent';
+
   return (
     <div className="relative group">
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
       <div className={`transition-transform duration-300 ${selected ? 'scale-105 drop-shadow-xl' : 'drop-shadow-md hover:scale-105'}`}>
       {data.shapeType === 'rectangle' && (
-        <div className="w-48 h-32 rounded-xl flex items-center justify-center backdrop-blur-sm bg-opacity-90 border-2 border-white/50" style={{ backgroundColor: bg }}></div>
+        <div className="rounded-lg flex items-center justify-center" style={{ width: w, height: h, backgroundColor: bg, border: `2px solid ${border}` }}></div>
       )}
       {data.shapeType === 'circle' && (
-        <div className="w-40 h-40 rounded-full flex items-center justify-center backdrop-blur-sm bg-opacity-90 border-2 border-white/50" style={{ backgroundColor: bg }}></div>
+        <div className="rounded-full flex items-center justify-center" style={{ width: w, height: h, backgroundColor: bg, border: `2px solid ${border}` }}></div>
+      )}
+      {data.shapeType === 'ellipse' && (
+        <div className="rounded-[50%] flex items-center justify-center" style={{ width: w, height: h, backgroundColor: bg, border: `2px solid ${border}` }}></div>
       )}
       {data.shapeType === 'triangle' && (
-         <div className="w-0 h-0 border-l-[80px] border-r-[80px] border-b-[140px] border-l-transparent border-r-transparent filter drop-shadow-sm opacity-90"
+         <div className="w-0 h-0 border-l-[80px] border-r-[80px] border-b-[140px] border-l-transparent border-r-transparent filter drop-shadow-sm"
          style={{ borderBottomColor: bg }}></div>
+      )}
+      {data.shapeType === 'diamond' && (
+         <div
+           className="filter drop-shadow-sm"
+           style={{
+             width: w,
+             height: h,
+             background: bg,
+             border: `2px solid ${border}`,
+             transform: 'rotate(45deg)',
+             borderRadius: 6,
+             marginLeft: -w / 4,
+             marginTop: -h / 4,
+           }}
+         ></div>
+      )}
+      {data.shapeType === 'hexagon' && (
+         <svg width={w} height={h} style={{ overflow: 'visible' }}>
+           <polygon
+             points={[0, 0.5, 1, 1.5, 2, 2.5].map(i => {
+               const a = (Math.PI / 3) * (i + 0.5);
+               return `${w / 2 + (w * 0.55) * Math.cos(a)},${h / 2 + (h * 0.55) * Math.sin(a)}`;
+             }).join(' ')}
+             fill={bg}
+             stroke={border}
+             strokeWidth={2}
+           />
+         </svg>
+      )}
+      {!data.shapeType && (
+        <div className="rounded-lg flex items-center justify-center" style={{ width: w, height: h, backgroundColor: bg, border: `2px solid ${border}` }}></div>
       )}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -735,6 +774,216 @@ export const TimelineNode = memo(({ data, selected }: NodeProps<ElementData>) =>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+});
+
+// --- Atlas map node ---
+const REGION_FILL: Record<string, string> = {
+  'n-america': '#ffe082',
+  's-america': '#ffe082',
+  africa: '#c8e6c9',
+  europe: '#c8e6c9',
+  asia: '#ffccbc',
+  oceania: '#ffccbc',
+  'middle-east': '#ffe0b2',
+};
+
+export const AtlasNode = memo(({ data, selected }: NodeProps<ElementData>) => {
+  const fontClass = getFontClass(data.title || '');
+  const region = data.regionId;
+  const [localStrokes, setLocalStrokes] = useState<Map<string, string[][]>>(new Map());
+  const drawingRef = useRef<string[][]>([]);
+  const drawingActive = useRef(false);
+
+  const commitStrokes = () => {
+    const current = drawingRef.current;
+    if (!current.length) return;
+    const merged = [...(data.sketches || []), ...current.map(pts => ({ color: '#e53935', width: 4, points: pts }))];
+    drawingRef.current = [];
+    setLocalStrokes(new Map());
+    (window as any).updateNodeData?.(data.id, { sketches: merged });
+  };
+
+  const onMapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if ((window as any).isPointerTool?.()) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    drawingActive.current = true;
+    const svg = e.currentTarget;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const p = pt.matrixTransform(ctm.inverse());
+    drawingRef.current = [[`${p.x},${p.y}`]];
+    setLocalStrokes(new Map(drawingRef.current.map((pts, i) => [String(i), [pts]])));
+    svg.setPointerCapture?.(e.pointerId);
+  };
+
+  const onMapPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!drawingActive.current) return;
+    const svg = e.currentTarget;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const p = pt.matrixTransform(ctm.inverse());
+    const idx = drawingRef.current.length - 1;
+    if (idx < 0) return;
+    drawingRef.current[idx].push(`${p.x},${p.y}`);
+    setLocalStrokes(new Map(drawingRef.current.map((pts, i) => [String(i), [pts]])));
+  };
+
+  const onMapPointerUp = () => {
+    if (!drawingActive.current) return;
+    drawingActive.current = false;
+    commitStrokes();
+  };
+
+  const enabled = (Array.isArray(data.sketches) ? data.sketches : []);
+  const strokes = enabled.map(s => s.points.map(pt => `${pt.x},${pt.y}`)).concat(Array.from(localStrokes.values()).map(g => g[0]));
+
+  return (
+    <div className="relative group">
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+      <div className={`bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden ${
+        selected ? 'ring-4 ring-indigo-300' : 'hover:shadow-2xl'
+      }`}>
+        {data.title && (
+          <div className={`px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg text-center ${fontClass}`}>
+            {data.title}
+          </div>
+        )}
+        <svg
+          viewBox="0 0 1000 500"
+          className="w-[560px] max-w-full h-auto"
+          style={{ background: '#eaf3ff', touchAction: 'none', cursor: (window as any).isPointerTool?.() ? 'grab' : 'crosshair' }}
+          onPointerDown={onMapPointerDown}
+          onPointerMove={onMapPointerMove}
+          onPointerUp={onMapPointerUp}
+          onPointerLeave={onMapPointerUp}
+        >
+          {region === 'egypt' ? (
+            <>
+              <polygon
+                points={EGYPT.points.map(p => `${Math.round(p[0]*1.4)},${Math.round(p[1]*1.5)}`).join(' ')}
+                fill="#c8e6c9"
+                stroke="#2e7d32"
+                strokeWidth="3"
+              />
+              {Object.entries(EGYPT.governorates).map(([k, g]) => (
+                <g key={k}>
+                  <circle cx={Math.round(g.x*1.4)} cy={Math.round(g.y*1.5)} r="5" fill="#1e88e5">
+                    <title>{g.nameAr} / {g.nameEn}</title>
+                  </circle>
+                  <text x={Math.round(g.x*1.4) + 8} y={Math.round(g.y*1.5) + 4} fontSize="13" fill="#0d47a1" className={getFontClass(g.nameAr)}>
+                    {g.nameAr}
+                  </text>
+                </g>
+              ))}
+            </>
+          ) : region === 'world' || !region ? (
+            <>
+              {WORLD.map((r) => (
+                <polygon
+                  key={r.id}
+                  points={r.points}
+                  fill={region === 'world' ? REGION_FILL[r.id] : '#dfe7f0'}
+                  stroke="#607d8b"
+                  strokeWidth={region === 'world' ? 2 : 1.2}
+                  opacity={region === 'world' ? 0.95 : 0.8}
+                >
+                  <title>{r.nameAr} / {r.nameEn}</title>
+                </polygon>
+              ))}
+              {WORLD_PINS.map((p) => (
+                <g key={p.id}>
+                  <circle cx={p.x} cy={p.y} r="4" fill="#ef5350" stroke="#fff" strokeWidth="1.5">
+                    <title>{p.nameAr}</title>
+                  </circle>
+                </g>
+              ))}
+            </>
+          ) : (
+            <>
+              {WORLD.filter((r) => r.id === region).map((r) => (
+                <polygon key={r.id} points={r.points} fill={REGION_FILL[r.id] || '#ffe082'} stroke="#e65100" strokeWidth="3" opacity="0.9">
+                  <title>{r.nameAr}</title>
+                </polygon>
+              ))}
+              {WORLD_PINS.filter((p) => p.id === region).map((p) => (
+                <g key={p.id}>
+                  <circle cx={p.x} cy={p.y} r="5" fill="#ef5350" stroke="#fff" strokeWidth="1.5" />
+                </g>
+              ))}
+            </>
+          )}
+          {/* Teacher / AI annotations drawn over the map */}
+          {strokes.map((pts, i) => (
+            <polyline
+              key={'d' + i}
+              points={pts.join(' ')}
+              fill="none"
+              stroke={data.sketches?.[i]?.color || '#e53935'}
+              strokeWidth={data.sketches?.[i]?.width || 4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.95}
+            />
+          ))}
+        </svg>
+        {data.description && (
+          <div className={`px-4 py-2 text-sm text-gray-600 border-t border-gray-100 ${getFontClass(data.description)}`}>{data.description}</div>
+        )}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+});
+
+// --- Periodic element node ---
+export const PeriodicNode = memo(({ data, selected }: NodeProps<ElementData>) => {
+  const el = data.elementNumber ? ELEMENT_BY_NUMBER[data.elementNumber] : undefined;
+  const fontClass = getFontClass(data.title || '');
+  if (!el) {
+    return (
+      <div className="relative group">
+        <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+        <div className={`bg-white rounded-2xl shadow-xl border border-gray-200 px-6 py-4 ${selected ? 'ring-4 ring-indigo-300' : ''}`}>
+          {data.title || 'Element'}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="relative group">
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
+      <div className={`bg-white rounded-2xl shadow-xl border overflow-hidden ${selected ? 'ring-4 ring-indigo-300' : 'hover:shadow-2xl'}`} style={{ borderColor: CATEGORY_COLOR[el.cat] }}>
+        <div className="w-56 px-5 py-4 text-white" style={{ backgroundColor: CATEGORY_COLOR[el.cat] }}>
+          <div className="text-[11px] opacity-90">{el.n}</div>
+          <div className="text-4xl font-bold leading-none mt-1" dir="ltr">{el.sym}</div>
+          <div className={`text-base font-medium mt-1 ${fontClass}`}>{el.ar}</div>
+        </div>
+        <div className="px-5 py-3 space-y-1 text-sm text-gray-700">
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400">{data.language?.toLowerCase().startsWith('ar') ? 'الكتلة' : 'Mass'}</span>
+            <span className="font-semibold" dir="ltr">{el.mass} u</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400">{data.language?.toLowerCase().startsWith('ar') ? 'المجموعة' : 'Group'}</span>
+            <span className="font-semibold">{data.language?.toLowerCase().startsWith('ar') ? el.ar : el.name}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-400">{data.language?.toLowerCase().startsWith('ar') ? 'الدورة' : 'Period'}</span>
+            <span className="font-semibold" dir="ltr">{el.n}</span>
+          </div>
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />

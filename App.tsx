@@ -10,15 +10,23 @@ import HomeScreen from './components/HomeScreen';
 import BottomToolbar from './components/BottomToolbar';
 import AISheet from './components/AISheet';
 import SlideRail from './components/SlideRail';
-import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode, BoardMode } from './types';
+import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode, BoardMode, BoardTheme, aiLangOf } from './types';
+import AtlasPanel from './components/AtlasPanel';
+import SmartLabPanel from './components/SmartLabPanel';
+import { PIN_BY_ID } from './data/atlas';
+import { ElementInfo, ELEMENT_BY_SYMBOL, ELEMENT_BY_NUMBER } from './data/periodic';
+import { defaultInk, THEME_LIST } from './data/themes';
 import type { SlideData } from './types';
 import { speakText, cancelSpeech } from './services/tts';
 import { generateImageWithPollinations } from './services/geminiService';
 import { generateLesson } from './services/ai/assistant';
 import { useNodesState, useEdgesState, addEdge, useReactFlow, ReactFlowProvider } from 'reactflow';
+
 import type { Connection, Edge, Node } from 'reactflow';
 
 type Slide = SlideData<Node<ElementData>, Edge>;
+
+const THEME_IDS = THEME_LIST.map(t => t.id);
 
 const AppContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -28,8 +36,10 @@ const AppContent: React.FC = () => {
   // App State
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
-  const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'Arabic', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female' });
+  const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'Arabic', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female' });
   const isAr = settings.language.toLowerCase().startsWith('ar');
+  const aiLang = aiLangOf(settings); // Language used by the AI Teacher (may differ from UI language)
+  const aiIsAr = aiLang.toLowerCase().startsWith('ar');
   const [isMuted, setIsMuted] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
@@ -58,6 +68,12 @@ const AppContent: React.FC = () => {
   // Pen Options
   const [penColor, setPenColor] = useState('#000000');
   const [penSize, setPenSize] = useState(6);
+
+  // Board theme + shape + classroom panels
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>('white');
+  const [activeShape, setActiveShape] = useState('rectangle');
+  const [isAtlasOpen, setIsAtlasOpen] = useState(false);
+  const [isLabOpen, setIsLabOpen] = useState(false);
 
   // Undo/Redo stacks
   const [history, setHistory] = useState<Array<{ nodes: Node<ElementData>[]; edges: Edge[] }>>([]);
@@ -124,6 +140,29 @@ const AppContent: React.FC = () => {
         document.documentElement.dir = 'ltr';
     }
   }, [settings.language]);
+
+  // Load board preferences (theme, shape) from LocalStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('smartboard_prefs');
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        if (THEME_IDS.includes(prefs.theme)) setBoardTheme(prefs.theme);
+        if (typeof prefs.shape === 'string') {
+          const known = ['rectangle','ellipse','circle','triangle','diamond','hexagon','line','arrow'];
+          if (known.includes(prefs.shape)) setActiveShape(prefs.shape);
+        }
+        if (typeof prefs.penColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(prefs.penColor)) setPenColor(prefs.penColor);
+        if (typeof prefs.penSize === 'number' && prefs.penSize >= 2 && prefs.penSize <= 24) setPenSize(prefs.penSize);
+      }
+    } catch (e) { console.error('Failed to load board prefs', e); }
+  }, []);
+
+  // Persist board preferences
+  useEffect(() => {
+    try { localStorage.setItem('smartboard_prefs', JSON.stringify({ theme: boardTheme, shape: activeShape, penColor, penSize })); }
+    catch (e) { /* ignore */ }
+  }, [boardTheme, activeShape, penColor, penSize]);
 
   // Load Custom Subjects from LocalStorage
   useEffect(() => {
@@ -275,16 +314,26 @@ const AppContent: React.FC = () => {
               'add-shape': 'shape',
               'add-ruler': 'ruler',
           };
+          // A drag-draw just committed inside Board (avoid double-add)
+          const lastDrag: number = (window as any).__lastShapeDragCommit || 0;
+          const isShapeDragTick = Date.now() - lastDrag < 600;
+          if (activeTool === 'add-shape' && isShapeDragTick) return;
+
           const dataMap: any = {
             'add-note': { content: 'New Note', color: '#fff740' },
             'add-text': { text: 'Type something...', color: '#333' },
-            'add-shape': { shapeType: 'rectangle', color: '#a8e6cf' },
+            'add-shape': (() => {
+              // Single click → quick default shape; line/arrow need a drag
+              if (activeShape === 'line' || activeShape === 'arrow') return null;
+              return { shapeType: activeShape, color: penColor || '#a8e6cf', width: 150, height: 110 };
+            })(),
             'add-ruler': { width: 400, height: 50, rotation: 0 },
           };
+          if (activeTool === 'add-shape' && !dataMap['add-shape']) return;
           const newNode: Node = { id, type: typeMap[activeTool], position, data: { id, type: typeMap[activeTool], ...dataMap[activeTool] }};
           setNodes((nds) => [...nds, newNode]);
       }
-  }, [activeTool, screenToFlowPosition, setNodes]);
+  }, [activeTool, activeShape, penColor, screenToFlowPosition, setNodes]);
   
   const handleToolCall = useCallback(async (name: string, args: any, originalMessage: string) => {
       const id = args.id;
@@ -411,6 +460,8 @@ const AppContent: React.FC = () => {
                  'addDiagram': 'diagram',
                  'addFlowchart': 'flowchart',
                  'addTimeline': 'timeline',
+                 'addAtlas': 'atlas',
+                 'addPeriodic': 'periodic',
              };
              const nodeType = typeMap[name];
              if(nodeType) {
@@ -435,6 +486,19 @@ const AppContent: React.FC = () => {
                   data.x1 = args.x1 ?? 0; data.y1 = args.y1 ?? 0;
                   data.x2 = args.x2 ?? 120; data.y2 = args.y2 ?? 0;
                 }
+                if (name === 'addPeriodic') {
+                  // Resolve symbol → element number so the card renders.
+                  const el = typeof args.elementNumber === 'number'
+                    ? ELEMENT_BY_NUMBER[Number(args.elementNumber)]
+                    : ELEMENT_BY_SYMBOL[String(args.symbol || '').trim().replace(/[0-9]/g, '')];
+                  data.elementNumber = el ? el.n : 1;
+                  data.title = el ? (aiIsAr ? el.ar : el.name) : args.title;
+                  data.language = aiLang;
+                }
+                if (name === 'addAtlas' && args.regionId) {
+                  data.regionId = String(args.regionId);
+                  if (!data.title) data.title = args.regionId;
+                }
                 setNodes(nds => [...nds, { id, type: nodeType, position: { x: args.x || defaultPos.x, y: args.y || defaultPos.y }, data }]);
                 if (args.content) textToSpeak = args.content;
                 if (args.text) textToSpeak = args.text;
@@ -447,9 +511,9 @@ const AppContent: React.FC = () => {
       }
 
       if (textToSpeak) {
-        speakText(textToSpeak, settings.language, isMuted);
+        speakText(textToSpeak, aiLang, isMuted);
       }
-  }, [setNodes, setEdges, getNodes, settings, isMuted]);
+  }, [setNodes, setEdges, getNodes, settings, aiLang, isMuted]);
 
   const handlePdfDocAdded = useCallback((doc: KnowledgeDoc) => {
     setKnowledgeDocs(prev => [...prev.filter(d => d.id !== doc.id), doc]);
@@ -468,6 +532,75 @@ const AppContent: React.FC = () => {
     setIsPdfOpen(false);
   }, [setNodes]);
 
+  // --- Atlas: place a region map on the board ---
+  const handleAtlasPlace = useCallback((regionId: string, title: string, opts?: { pins?: string[] }) => {
+    const id = 'atlas-' + Date.now();
+    setNodes(nds => [...nds, {
+      id,
+      type: 'atlas',
+      position: { x: 200, y: 150 },
+      data: {
+        id,
+        type: 'atlas',
+        regionId,
+        title,
+        description: opts?.pins?.length
+          ? (isAr ? 'المناطق المحددة: ' : 'Selected: ') + opts.pins.map(p => {
+              const pin = PIN_BY_ID[p];
+              return pin ? (isAr ? pin.nameAr : pin.nameEn) : p;
+            }).join('، ')
+          : undefined,
+      },
+    }]);
+    setIsAtlasOpen(false);
+  }, [setNodes, isAr]);
+
+  // --- Smart Lab: place element card ---
+  const handlePlaceElement = useCallback((el: ElementInfo) => {
+    const id = 'el-' + Date.now();
+    setNodes(nds => [...nds, {
+      id,
+      type: 'periodic',
+      position: { x: 150 + Math.random() * 60, y: 120 + Math.random() * 60 },
+      data: {
+        id,
+        type: 'periodic',
+        elementNumber: el.n,
+        language: aiLang,
+      },
+    }]);
+  }, [setNodes, aiLang]);
+
+  // --- Smart Lab: place balanced reaction (as an equation node) ---
+  const handlePlaceReaction = useCallback((title: string, lhs: string[], rhs: string[]) => {
+    const id = 'eq-' + Date.now();
+    const lhsStr = lhs.join(' + ');
+    const rhsStr = rhs.join(' + ');
+    setNodes(nds => [...nds, {
+      id,
+      type: 'equation',
+      position: { x: 180, y: 160 },
+      data: {
+        id,
+        type: 'equation',
+        latex: `${lhsStr} \\rightarrow ${rhsStr}`,
+        title,
+      },
+    }]);
+    setIsLabOpen(false);
+  }, [setNodes]);
+
+  // --- Smart Lab: place a text list (reactivity series, companion materials) ---
+  const handlePlaceLabText = useCallback((title: string, items: string[]) => {
+    const id = 'list-' + Date.now();
+    setNodes(nds => [...nds, {
+      id,
+      type: 'list',
+      position: { x: 160, y: 160 },
+      data: { id, type: 'list', title, items, color: '#EDE7F6' },
+    }]);
+  }, [setNodes]);
+
 const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) => {
     const nextMode = mode || lessonMode;
     cancelSpeech(); // Stop any previous speech
@@ -477,16 +610,27 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
 
     try {
       // Gather context from the current board
-      const selected = nodes.filter((n: Node) => (n as any).selected).map((n: Node) => ({
-        id: n.id,
-        type: String((n.data as any)?.type || 'note'),
-        text: (n.data as any)?.text as string | undefined,
-        title: (n.data as any)?.title as string | undefined,
-        items: (n.data as any)?.items as string[] | undefined,
-        content: (n.data as any)?.content as string | undefined,
-      }));
+      const selected = nodes.filter((n: Node) => (n as any).selected).map((n: Node) => {
+        const d = (n.data as any) || {};
+        return {
+          id: n.id,
+          type: String(d?.type || 'note'),
+          text: d?.text as string | undefined,
+          title: d?.title as string | undefined,
+          items: d?.items as string[] | undefined,
+          content: d?.content as string | undefined,
+          hasMapStrokes: (d?.type === 'atlas' && Array.isArray(d?.sketches) && d.sketches.length > 0) ? d.sketches.length : undefined,
+        };
+      });
 
-      const allNodes = nodes.map((n: Node) => (n.data as any)?.text || (n.data as any)?.title || (n.data as any)?.content || '' ).filter(Boolean);
+      const allNodes = nodes.map((n: Node) => {
+        const d = (n.data as any) || {};
+        let out = d.text || d.title || d.content || '';
+        if (d.type === 'atlas' && Array.isArray(d.sketches) && d.sketches.length > 0) {
+          out = `${out} (map has ${d.sketches.length} teacher annotation stroke(s) drawn on it — be aware when guiding)`;
+        }
+        return out;
+      }).filter(Boolean);
       const boardSummary = allNodes.length > 0 ? allNodes.slice(0, 6).join(' | ') : undefined;
 
       const pdfText = (window as any).__smartboardPdfText as string | undefined;
@@ -502,13 +646,13 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         selectedElements: selected.length > 0 ? selected : undefined,
         pdfText,
         pdfPages,
-      }, handleToolCall, (speech: string) => speakText(speech, settings.language, isMuted));
+      }, handleToolCall, (speech: string) => speakText(speech, aiLang, isMuted));
 
       if (responseText) {
         const aiMsg: ChatMessage = { role: 'model', text: responseText, timestamp: Date.now() };
         setChatMessages(prev => [...prev, aiMsg]);
       } else {
-        const aiMsg: ChatMessage = { role: 'model', text: settings.language.toLowerCase().startsWith('ar') ? 'تم.' : 'Done.', timestamp: Date.now() };
+        const aiMsg: ChatMessage = { role: 'model', text: aiIsAr ? 'تم.' : 'Done.', timestamp: Date.now() };
         setChatMessages(prev => [...prev, aiMsg]);
       }
     } catch (err: any) {
@@ -517,7 +661,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
     } finally {
       setIsAiLoading(false);
     }
-  }, [lessonMode, settings, lessonDetail, knowledgeDocs, nodes, handleToolCall]);
+  }, [lessonMode, settings, aiLang, aiIsAr, lessonDetail, knowledgeDocs, nodes, handleToolCall]);
 
   const handlePdfAsk = useCallback((prompt: string, mode?: string) => {
     setIsPdfOpen(false);
@@ -623,6 +767,9 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
           penSize={penSize}
           onDeleteNode={handleDeleteNode}
           mode={boardMode}
+          theme={boardTheme}
+          activeShape={activeShape}
+          smartShapes={true}
         />
       </div>
 
@@ -669,6 +816,17 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
             onToggleMute={() => setIsMuted(m => !m)}
             onAddNote={() => setActiveTool('add-note')}
             onAddText={() => setActiveTool('add-text')}
+            onOpenAtlas={() => setIsAtlasOpen(true)}
+            onOpenLab={() => setIsLabOpen(true)}
+            boardTheme={boardTheme}
+            onSelectTheme={(t) => {
+              setBoardTheme(t);
+              // Auto-switch default pen color to match board brightness
+              setPenColor(defaultInk(t));
+            }}
+            activeShape={activeShape}
+            onSelectShape={setActiveShape}
+            penColor={penColor}
           />
         </div>
       )}
@@ -794,6 +952,21 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         onDocAdded={handlePdfDocAdded}
         onAsk={handlePdfAsk}
         onSendPage={handlePdfSendPage}
+      />
+
+      <AtlasPanel
+        open={isAtlasOpen}
+        onClose={() => setIsAtlasOpen(false)}
+        language={settings.language}
+        onPlace={handleAtlasPlace}
+      />
+      <SmartLabPanel
+        open={isLabOpen}
+        onClose={() => setIsLabOpen(false)}
+        language={settings.language}
+        onPlaceElement={handlePlaceElement}
+        onPlaceReaction={handlePlaceReaction}
+        onPlaceText={handlePlaceLabText}
       />
     </div>
   );

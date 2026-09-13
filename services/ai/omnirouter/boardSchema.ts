@@ -142,6 +142,8 @@ parts.push('- addShape { shapeType: \"rectangle\"|\"circle\"|\"triangle\"|\"diam
   parts.push("- addArrow { from,,to,, label?, x?, y? }");
   parts.push("- addLine { x1,,y1,,x2,,y2,,color?, x?, y? }");
   parts.push("- addCode { code,, language?, x?, y? }");
+  parts.push("- addAtlas { regionId: \"world\"|\"egypt\"|\"africa\"|\"n-america\"|\"s-america\"|\"asia\"|\"europe\"|\"oceania\"|\"middle-east\",, x?, y? } — place an atlas/map visual");
+  parts.push('- addPeriodic { elementNumber?, symbol?, x?, y? } — place a periodic-element card (use elementNumber or symbol like "H", "O", "Fe")');
   parts.push("- connect { from,,to,, label? }");
   parts.push("- update { id,, text? / content? / title?, color?, items? } — edit an existing element (use the ID from Selection/context);");
   parts.push("- remove { id } — delete an existing element (use the ID from Selection/context);");
@@ -151,6 +153,7 @@ parts.push('- addShape { shapeType: \"rectangle\"|\"circle\"|\"triangle\"|\"diam
   parts.push("- Place content in a clear top-to-bottom,, left-to-right teaching flow;");
   parts.push("- Use addComparison for contrasts,, addMindMap/addDiagram for hierarchies,, and addTimeline for chronological sequences;");
   parts.push("- Use addImage only when a visual clearly aids understanding (at most 2 per board.;");
+  parts.push("- For geography lessons use addAtlas with the correct regionId (eg. egypt, n-america); for chemistry use addPeriodic symbol references or addEquation for balanced formulae;");
   parts.push("- Bold key terms with <b>...</b> inside addNote/addList/addComparison content;");
   parts.push("- Respond in " + req.language + " unless the lesson vocabulary itself is foreign.;");
   parts.push("");
@@ -163,7 +166,10 @@ parts.push('- addShape { shapeType: \"rectangle\"|\"circle\"|\"triangle\"|\"diam
     if (ctx.selectedElements && ctx.selectedElements.length > 0) {
       const sel = ctx.selectedElements.map(e => {
         const val = e.text || e.title || e.content || "";
-        return "  [" + e.type + "] " + val;
+        const marker = e.hasMapStrokes
+          ? " (selected map has " + e.hasMapStrokes + " teacher annotation stroke(s) drawn on it — the teacher marked this on the map; keep that in mind, you may add/place informative content next to it)"
+          : "";
+        return "  [" + e.type + "] " + val + marker;
       });
       parts.push("- Selected elements context:");
       parts.push('  ' + sel.join('\n'));

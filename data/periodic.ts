@@ -1,0 +1,173 @@
+// Periodic-table dataset: all 118 elements with grid placement, names (EN/AR), mass, category.
+// Grid: { r, c } 1-indexed display positions (lanthanides in row 9, actinides in row 10).
+
+export type ElementCategory =
+  | 'alkali' | 'alkaline' | 'transition' | 'post-transition' | 'metalloid'
+  | 'nonmetal' | 'halogen' | 'noble' | 'lanthanide' | 'actinide' | 'unknown';
+
+export const CATEGORY_COLOR: Record<ElementCategory, string> = {
+  alkali: '#ff6b6b',
+  alkaline: '#ffa94d',
+  transition: '#f7d774',
+  'post-transition': '#94d82d',
+  metalloid: '#2fb3a8',
+  nonmetal: '#4dabf7',
+  halogen: '#a9e34b',
+  noble: '#9775fa',
+  lanthanide: '#faa2c1',
+  actinide: '#da77f2',
+  unknown: '#adb5bd',
+};
+
+export interface ElementInfo {
+  n: number;          // atomic number
+  sym: string;        // symbol
+  name: string;       // English name
+  ar: string;         // Arabic name
+  mass: number;       // standard atomic weight (approx)
+  cat: ElementCategory;
+  r: number;          // display row (1..10)
+  c: number;          // display column (1..18)
+}
+
+// [n, sym, name_en, name_ar, mass, category, row, col]
+const RAW: [number, string, string, string, number, ElementCategory, number, number][] = [
+  [1, 'H', 'Hydrogen', 'هيدروجين', 1.008, 'nonmetal', 1, 1],
+  [2, 'He', 'Helium', 'هيليوم', 4.003, 'noble', 1, 18],
+  [3, 'Li', 'Lithium', 'ليثيوم', 6.94, 'alkali', 2, 1],
+  [4, 'Be', 'Beryllium', 'بيريليوم', 9.012, 'alkaline', 2, 2],
+  [5, 'B', 'Boron', 'بورون', 10.81, 'metalloid', 2, 13],
+  [6, 'C', 'Carbon', 'كربون', 12.011, 'nonmetal', 2, 14],
+  [7, 'N', 'Nitrogen', 'نيتروجين', 14.007, 'nonmetal', 2, 15],
+  [8, 'O', 'Oxygen', 'أكسجين', 15.999, 'nonmetal', 2, 16],
+  [9, 'F', 'Fluorine', 'فلور', 18.998, 'halogen', 2, 17],
+  [10, 'Ne', 'Neon', 'نيون', 20.18, 'noble', 2, 18],
+  [11, 'Na', 'Sodium', 'صوديوم', 22.99, 'alkali', 3, 1],
+  [12, 'Mg', 'Magnesium', 'مغنسيوم', 24.305, 'alkaline', 3, 2],
+  [13, 'Al', 'Aluminium', 'ألومنيوم', 26.982, 'post-transition', 3, 13],
+  [14, 'Si', 'Silicon', 'سيليكون', 28.085, 'metalloid', 3, 14],
+  [15, 'P', 'Phosphorus', 'فوسفور', 30.974, 'nonmetal', 3, 15],
+  [16, 'S', 'Sulfur', 'كبريت', 32.06, 'nonmetal', 3, 16],
+  [17, 'Cl', 'Chlorine', 'كلور', 35.45, 'halogen', 3, 17],
+  [18, 'Ar', 'Argon', 'أرغون', 39.948, 'noble', 3, 18],
+  [19, 'K', 'Potassium', 'بوتاسيوم', 39.098, 'alkali', 4, 1],
+  [20, 'Ca', 'Calcium', 'كالسيوم', 40.078, 'alkaline', 4, 2],
+  [21, 'Sc', 'Scandium', 'سكانديوم', 44.956, 'transition', 4, 3],
+  [22, 'Ti', 'Titanium', 'تيتانيوم', 47.867, 'transition', 4, 4],
+  [23, 'V', 'Vanadium', 'فاناديوم', 50.942, 'transition', 4, 5],
+  [24, 'Cr', 'Chromium', 'كروم', 51.996, 'transition', 4, 6],
+  [25, 'Mn', 'Manganese', 'منغنيز', 54.938, 'transition', 4, 7],
+  [26, 'Fe', 'Iron', 'حديد', 55.845, 'transition', 4, 8],
+  [27, 'Co', 'Cobalt', 'كوبالت', 58.933, 'transition', 4, 9],
+  [28, 'Ni', 'Nickel', 'نيكل', 58.693, 'transition', 4, 10],
+  [29, 'Cu', 'Copper', 'نحاس', 63.546, 'transition', 4, 11],
+  [30, 'Zn', 'Zinc', 'خارصين', 65.38, 'transition', 4, 12],
+  [31, 'Ga', 'Gallium', 'غاليوم', 69.723, 'post-transition', 4, 13],
+  [32, 'Ge', 'Germanium', 'جرمانيوم', 72.63, 'metalloid', 4, 14],
+  [33, 'As', 'Arsenic', 'زرنيخ', 74.922, 'metalloid', 4, 15],
+  [34, 'Se', 'Selenium', 'سيلينيوم', 78.971, 'nonmetal', 4, 16],
+  [35, 'Br', 'Bromine', 'بروم', 79.904, 'halogen', 4, 17],
+  [36, 'Kr', 'Krypton', 'كريبتون', 83.798, 'noble', 4, 18],
+  [37, 'Rb', 'Rubidium', 'روبيديوم', 85.468, 'alkali', 5, 1],
+  [38, 'Sr', 'Strontium', 'سترونتيوم', 87.62, 'alkaline', 5, 2],
+  [39, 'Y', 'Yttrium', 'إتريوم', 88.906, 'transition', 5, 3],
+  [40, 'Zr', 'Zirconium', 'زركونيوم', 91.224, 'transition', 5, 4],
+  [41, 'Nb', 'Niobium', 'نيوبيوم', 92.906, 'transition', 5, 5],
+  [42, 'Mo', 'Molybdenum', 'مولبيدنوم', 95.95, 'transition', 5, 6],
+  [43, 'Tc', 'Technetium', 'تكنيشيوم', 98, 'transition', 5, 7],
+  [44, 'Ru', 'Ruthenium', 'روثينيوم', 101.07, 'transition', 5, 8],
+  [45, 'Rh', 'Rhodium', 'روديوم', 102.91, 'transition', 5, 9],
+  [46, 'Pd', 'Palladium', 'بلاديوم', 106.42, 'transition', 5, 10],
+  [47, 'Ag', 'Silver', 'فضة', 107.87, 'transition', 5, 11],
+  [48, 'Cd', 'Cadmium', 'كادميوم', 112.41, 'transition', 5, 12],
+  [49, 'In', 'Indium', 'إنديوم', 114.82, 'post-transition', 5, 13],
+  [50, 'Sn', 'Tin', 'قصدير', 118.71, 'post-transition', 5, 14],
+  [51, 'Sb', 'Antimony', 'أنتيمون', 121.76, 'metalloid', 5, 15],
+  [52, 'Te', 'Tellurium', 'تيلوريوم', 127.6, 'metalloid', 5, 16],
+  [53, 'I', 'Iodine', 'يود', 126.9, 'halogen', 5, 17],
+  [54, 'Xe', 'Xenon', 'زينون', 131.29, 'noble', 5, 18],
+  [55, 'Cs', 'Caesium', 'سيزيوم', 132.91, 'alkali', 6, 1],
+  [56, 'Ba', 'Barium', 'باريوم', 137.33, 'alkaline', 6, 2],
+  [57, 'La', 'Lanthanum', 'لانثانوم', 138.91, 'lanthanide', 9, 3],
+  [58, 'Ce', 'Cerium', 'سيريوم', 140.12, 'lanthanide', 9, 4],
+  [59, 'Pr', 'Praseodymium', 'براسيوديميوم', 140.91, 'lanthanide', 9, 5],
+  [60, 'Nd', 'Neodymium', 'نيوديميوم', 144.24, 'lanthanide', 9, 6],
+  [61, 'Pm', 'Promethium', 'بروميثيوم', 145, 'lanthanide', 9, 7],
+  [62, 'Sm', 'Samarium', 'ساماريوم', 150.36, 'lanthanide', 9, 8],
+  [63, 'Eu', 'Europium', 'يوروبيوم', 151.96, 'lanthanide', 9, 9],
+  [64, 'Gd', 'Gadolinium', 'جادولينيوم', 157.25, 'lanthanide', 9, 10],
+  [65, 'Tb', 'Terbium', 'تيربيوم', 158.93, 'lanthanide', 9, 11],
+  [66, 'Dy', 'Dysprosium', 'ديسبروسيوم', 162.5, 'lanthanide', 9, 12],
+  [67, 'Ho', 'Holmium', 'هولميوم', 164.93, 'lanthanide', 9, 13],
+  [68, 'Er', 'Erbium', 'إربيوم', 167.26, 'lanthanide', 9, 14],
+  [69, 'Tm', 'Thulium', 'ثوليوم', 168.93, 'lanthanide', 9, 15],
+  [70, 'Yb', 'Ytterbium', 'إتيربيوم', 173.05, 'lanthanide', 9, 16],
+  [71, 'Lu', 'Lutetium', 'لوتيشيوم', 174.97, 'lanthanide', 9, 17],
+  [72, 'Hf', 'Hafnium', 'هافنيوم', 178.49, 'transition', 6, 4],
+  [73, 'Ta', 'Tantalum', 'تانتالوم', 180.95, 'transition', 6, 5],
+  [74, 'W', 'Tungsten', 'تنجستن', 183.84, 'transition', 6, 6],
+  [75, 'Re', 'Rhenium', 'رينيوم', 186.21, 'transition', 6, 7],
+  [76, 'Os', 'Osmium', 'أوزميوم', 190.23, 'transition', 6, 8],
+  [77, 'Ir', 'Iridium', 'إريديوم', 192.22, 'transition', 6, 9],
+  [78, 'Pt', 'Platinum', 'بلاتين', 195.08, 'transition', 6, 10],
+  [79, 'Au', 'Gold', 'ذهب', 196.97, 'transition', 6, 11],
+  [80, 'Hg', 'Mercury', 'زئبق', 200.59, 'transition', 6, 12],
+  [81, 'Tl', 'Thallium', 'ثاليوم', 204.38, 'post-transition', 6, 13],
+  [82, 'Pb', 'Lead', 'رصاص', 207.2, 'post-transition', 6, 14],
+  [83, 'Bi', 'Bismuth', 'بزموت', 208.98, 'post-transition', 6, 15],
+  [84, 'Po', 'Polonium', 'بولونيوم', 209, 'post-transition', 6, 16],
+  [85, 'At', 'Astatine', 'أستاتين', 210, 'halogen', 6, 17],
+  [86, 'Rn', 'Radon', 'رادون', 222, 'noble', 6, 18],
+  [87, 'Fr', 'Francium', 'فرانسيوم', 223, 'alkali', 7, 1],
+  [88, 'Ra', 'Radium', 'راديوم', 226, 'alkaline', 7, 2],
+  [89, 'Ac', 'Actinium', 'أكتينيوم', 227, 'actinide', 10, 3],
+  [90, 'Th', 'Thorium', 'ثوريوم', 232.04, 'actinide', 10, 4],
+  [91, 'Pa', 'Protactinium', 'بروتكتينيوم', 231.04, 'actinide', 10, 5],
+  [92, 'U', 'Uranium', 'يورانيوم', 238.03, 'actinide', 10, 6],
+  [93, 'Np', 'Neptunium', 'نبتونيوم', 237, 'actinide', 10, 7],
+  [94, 'Pu', 'Plutonium', 'بلوتونيوم', 244, 'actinide', 10, 8],
+  [95, 'Am', 'Americium', 'أمريشيوم', 243, 'actinide', 10, 9],
+  [96, 'Cm', 'Curium', 'كوريوم', 247, 'actinide', 10, 10],
+  [97, 'Bk', 'Berkelium', 'بركليوم', 247, 'actinide', 10, 11],
+  [98, 'Cf', 'Californium', 'كاليفورنيوم', 251, 'actinide', 10, 12],
+  [99, 'Es', 'Einsteinium', 'أينشتاينيوم', 252, 'actinide', 10, 13],
+  [100, 'Fm', 'Fermium', 'فيرميوم', 257, 'actinide', 10, 14],
+  [101, 'Md', 'Mendelevium', 'مندليفيوم', 258, 'actinide', 10, 15],
+  [102, 'No', 'Nobelium', 'نوبليوم', 259, 'actinide', 10, 16],
+  [103, 'Lr', 'Lawrencium', 'لورنسيوم', 266, 'actinide', 10, 17],
+  [104, 'Rf', 'Rutherfordium', 'رذرفورديوم', 267, 'transition', 7, 4],
+  [105, 'Db', 'Dubnium', 'دوبنيوم', 268, 'transition', 7, 5],
+  [106, 'Sg', 'Seaborgium', 'سيبورجيوم', 269, 'transition', 7, 6],
+  [107, 'Bh', 'Bohrium', 'بوريوم', 270, 'transition', 7, 7],
+  [108, 'Hs', 'Hassium', 'هاسيوم', 269, 'transition', 7, 8],
+  [109, 'Mt', 'Meitnerium', 'مايتنريوم', 278, 'unknown', 7, 9],
+  [110, 'Ds', 'Darmstadtium', 'دارمشتاتيوم', 281, 'unknown', 7, 10],
+  [111, 'Rg', 'Roentgenium', 'رونتجينيوم', 282, 'unknown', 7, 11],
+  [112, 'Cn', 'Copernicium', 'كوبرنيسيوم', 285, 'unknown', 7, 12],
+  [113, 'Nh', 'Nihonium', 'نيهونيوم', 286, 'unknown', 7, 13],
+  [114, 'Fl', 'Flerovium', 'فليروفيوم', 289, 'unknown', 7, 14],
+  [115, 'Mc', 'Moscovium', 'موسكوفيوم', 290, 'unknown', 7, 15],
+  [116, 'Lv', 'Livermorium', 'ليفرموريوم', 293, 'unknown', 7, 16],
+  [117, 'Ts', 'Tennessine', 'تينيسين', 294, 'unknown', 7, 17],
+  [118, 'Og', 'Oganesson', 'أوغانيسون', 294, 'unknown', 7, 18],
+];
+
+export const ELEMENTS: ElementInfo[] = RAW.map(([n, sym, name, ar, mass, cat, r, c]) => ({ n, sym, name, ar, mass, cat, r, c }));
+
+export const ELEMENT_BY_SYMBOL: Record<string, ElementInfo> = Object.fromEntries(ELEMENTS.map((e) => [e.sym, e]));
+export const ELEMENT_BY_NUMBER: Record<number, ElementInfo> = Object.fromEntries(ELEMENTS.map((e) => [e.n, e]));
+
+// Category labels
+export const CATEGORY_LABEL: Record<ElementCategory, { ar: string; en: string }> = {
+  alkali: { ar: 'فلز قلوي', en: 'Alkali metal' },
+  alkaline: { ar: 'فلز قلوي ترابي', en: 'Alkaline earth metal' },
+  transition: { ar: 'فلز انتقالي', en: 'Transition metal' },
+  'post-transition': { ar: 'فلز بعد انتقالي', en: 'Post-transition metal' },
+  metalloid: { ar: 'شبه فلز', en: 'Metalloid' },
+  nonmetal: { ar: 'لا فلز', en: 'Nonmetal' },
+  halogen: { ar: 'هالوجين', en: 'Halogen' },
+  noble: { ar: 'غاز نبيل', en: 'Noble gas' },
+  lanthanide: { ar: 'لانثانيد', en: 'Lanthanide' },
+  actinide: { ar: 'أكتينيد', en: 'Actinide' },
+  unknown: { ar: 'غير مصنف', en: 'Unknown properties' },
+};

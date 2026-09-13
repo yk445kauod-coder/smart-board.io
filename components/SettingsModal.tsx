@@ -37,7 +37,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
-            <span className="material-symbols-rounded text-base">language</span> {t('لغة الرد', 'Response language')}
+            <span className="material-symbols-rounded text-base">language</span> {t('لغة الواجهة', 'Interface language')}
           </label>
           <div className="grid grid-cols-2 gap-2">
             {LANGUAGES.map((l) => (
@@ -45,6 +45,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
                 key={l}
                 onClick={() => setLocal({ ...local, language: l })}
                 className={`mat-btn px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${local.language === l ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">smart_toy</span> {t('لغة رد المعلم الذكي', 'AI Teacher response language')}
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l}
+                onClick={() => setLocal({ ...local, aiLanguage: l })}
+                className={`mat-btn px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${(local.aiLanguage || local.language) === l ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}
               >
                 {l}
               </button>

@@ -22,7 +22,12 @@ export type ToolType =
   | 'add-mindmap'
   | 'add-flowchart'
   | 'add-timeline'
-  | 'add-sticky';
+  | 'add-sticky'
+  // Classroom panels
+  | 'atlas'
+  | 'lab';
+
+export type BoardTheme = 'white' | 'chalk' | 'black' | 'cream';
 
 export type LessonDetail = 'brief' | 'detailed';
 export type ToolbarPosition = 'top' | 'left';
@@ -45,12 +50,17 @@ export type LessonMode =
 export interface TeacherPersona {
   name: string;
   language: Language;
+  /** Language used by the AI Teacher for replies/speech (defaults to `language` when unset). */
+  aiLanguage?: Language;
   subject: string;
   personality: string;
   voice: 'male' | 'female';
   mode?: TeachingMode;
   topic?: string;
 }
+
+export const aiLangOf = (s: Pick<TeacherPersona, 'language' | 'aiLanguage'>): Language =>
+  s.aiLanguage || s.language;
 
 export type KnowledgeKind = 'pdf' | 'text' | 'notes';
 
@@ -99,7 +109,9 @@ export type ElementType =
   | 'mindmap'
   | 'flowchart'
   | 'timeline'
-  | 'sticky';
+  | 'sticky'
+  | 'atlas'
+  | 'periodic';
 
 // React Flow Data Interface
 export interface ElementData {
@@ -111,11 +123,12 @@ export interface ElementData {
   url?: string;
   description?: string;
   text?: string;
-  shapeType?: 'rectangle' | 'circle' | 'triangle' | 'diamond' | 'hexagon';
+  shapeType?: 'rectangle' | 'circle' | 'ellipse' | 'triangle' | 'diamond' | 'hexagon';
   code?: string;
   language?: string;
   style?: 'normal' | 'bold' | 'highlight';
   color?: string;
+  borderColor?: string;
   rotation?: number;
   width?: number;
   height?: number;
@@ -128,6 +141,9 @@ export interface ElementData {
   svgPath?: string;
   isFilled?: boolean;
 
+  // Freehand strokes drawn over a node (e.g. an atlas map)
+  sketches?: { color: string; width: number; points: { x: number; y: number }[] }[];
+
   // For comparison/table
   columns?: { title: string; items: string[] }[];
   rows?: { cells: string[] }[];
@@ -138,6 +154,10 @@ export interface ElementData {
 
   // For arrow/line
   arrowStyle?: string;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
 
   // For diagram/mindmap/flowchart/timeline (structured graph)
   graphNodes?: { id: string; label: string; color?: string; level?: number }[];
@@ -149,6 +169,11 @@ export interface ElementData {
 
   // For arrow/labeled nodes
   label?: string;
+
+  // For atlas/periodic nodes
+  regionId?: string;
+  pins?: Record<string, string>;
+  elementNumber?: number;
 }
 
 export interface ChatMessage {
@@ -195,7 +220,7 @@ export interface LessonRequest {
 }
 
 export interface BoardContext {
-  selectedElements?: { id: string; type: string; text?: string; title?: string; items?: string[]; content?: string }[];
+  selectedElements?: { id: string; type: string; text?: string; title?: string; items?: string[]; content?: string; hasMapStrokes?: number }[];
   pdfText?: string;
   pdfPages?: number[];
   previousActions?: string[];

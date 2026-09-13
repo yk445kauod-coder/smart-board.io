@@ -1,4 +1,5 @@
 import type { BoardAction, ChatMessage, KnowledgeDoc, LessonDetail, LessonMode, LessonRequest, TeacherPersona } from '../../types';
+import { aiLangOf } from '../../types';
 import { PROVIDERS, textToBoardCommands } from './omnirouter/providers';
 import { buildRoutingHint, layoutCommands } from './omnirouter/boardSchema';
 import { isPlainResponseMode } from './omnirouter/validate';
@@ -13,7 +14,7 @@ export interface AssistantCall {
   history?: ChatMessage[];
   knowledgeDocs?: KnowledgeDoc[];
   boardSummary?: string;
-  selectedElements?: Array<{ id: string; type: string; text?: string; title?: string; items?: string[]; content?: string }>;
+  selectedElements?: Array<{ id: string; type: string; text?: string; title?: string; items?: string[]; content?: string; hasMapStrokes?: number }>;
    pdfText?: string;
    pdfPages?: number[];
  }
@@ -134,11 +135,12 @@ export const generateLesson = async (
   onSpeak: (text: string) => void
 ): Promise<string> => {
   const { mode, prompt, settings, detail } = call;
-  const isAr = (settings.language || 'ar' ).toLowerCase().startsWith('ar');
+  const aiLanguage = aiLangOf(settings);
+  const isAr = aiLanguage.toLowerCase().startsWith('ar');
 const req: LessonRequest = {
 mode,
 prompt,
-language: settings.language,
+language: aiLanguage,
 subject: settings.subject,
 detail,
 context: {
@@ -148,7 +150,7 @@ pdfPages: call.pdfPages,
 boardSummary: call.boardSummary,
 },
 };
-const system = buildAssistantSystem(mode, settings.language, settings.subject, settings) + '\n' + (MODE_HINT[mode] || MODE_HINT['full-lesson']);
+const system = buildAssistantSystem(mode, aiLanguage, settings.subject, settings) + '\n' + (MODE_HINT[mode] || MODE_HINT['full-lesson']);
 const user = buildUserPrompt(req, call.knowledgeDocs || []);
 if (isPlainResponseMode(mode)) {
 // Plain chat answer modes

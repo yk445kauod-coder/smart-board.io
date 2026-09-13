@@ -120,7 +120,9 @@ const AISheet: React.FC<AISheetProps> = ({
           <span className="material-symbols-rounded">smart_toy</span>
         </div>
         <div className="flex-1">
-          <h2 className="font-semibold text-on-surface leading-tight">{isAr ? 'المعلم الذكي' : 'AI Teacher'}</h2>
+          <h2 className={`font-semibold text-on-surface leading-tight ${isAr ? 'font-display-ar' : 'font-display'}`}>
+            {isAr ? 'المعلم الذكي' : 'AI Teacher'}
+          </h2>
           <p className="text-xs text-on-surface/50">
             {isAr ? 'يساعدك على التحضير والشرح وتجهيز السبورة' : 'Prepares, explains and builds your board'}
           </p>
