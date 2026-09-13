@@ -10,6 +10,8 @@ import {
   DISPLACEMENT_EXAMPLES,
   COMPANION_MATERIALS,
   POLYATOMIC_IONS,
+  REACTION_PRESETS,
+  REACTION_FAMILY_LABELS,
 } from '../data/chemistry';
 
 interface SmartLabPanelProps {
@@ -21,7 +23,7 @@ interface SmartLabPanelProps {
   onPlaceText: (title: string, items: string[]) => void;
 }
 
-type Tab = 'table' | 'balancer' | 'reactions' | 'materials';
+type Tab = 'table' | 'balancer' | 'reactions' | 'redox' | 'materials';
 
 const SmartLabPanel: React.FC<SmartLabPanelProps> = ({ open, onClose, language, onPlaceElement, onPlaceReaction, onPlaceText }) => {
   const isAr = language.toLowerCase().startsWith('ar');
@@ -47,6 +49,7 @@ const SmartLabPanel: React.FC<SmartLabPanelProps> = ({ open, onClose, language, 
     { id: 'table', ar: 'الجدول الدوري', en: 'Periodic table', icon: 'grid_on' },
     { id: 'balancer', ar: 'موازنة المعادلات', en: 'Balance', icon: 'balance' },
     { id: 'reactions', ar: 'الإزاحة والتفاعلات', en: 'Reactions', icon: 'science' },
+    { id: 'redox', ar: 'الاحتراق والأكسدة', en: 'Combustion & redox', icon: 'local_fire_department' },
     { id: 'materials', ar: 'مرافق دراسية', en: 'Materials', icon: 'menu_book' },
   ];
 
@@ -329,6 +332,27 @@ const SmartLabPanel: React.FC<SmartLabPanelProps> = ({ open, onClose, language, 
               {t('ضع القائمة على السبورة', 'Place list on board')}
             </button>
           </div>
+        </div>
+      )}
+
+      {tab === 'redox' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-white to-sky-50 p-4">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-orange-500 text-white grid place-items-center shadow-md"><span className="material-symbols-rounded">local_fire_department</span></div>
+              <div><h3 className="font-bold text-lg">{t('أنماط التفاعل الأساسية', 'Core reaction patterns')}</h3><p className="text-sm text-on-surface/60">{t('اختر مثالًا جاهزًا، ووازن المعادلة ثم ضعه على السبورة.', 'Choose a classroom example, balance it, then place it on the board.')}</p></div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              {REACTION_PRESETS.map((reaction) => (
+                <button key={reaction.titleEn} onClick={() => { setTab('balancer'); const [a, b] = reaction.equation.split('→').map(x => x.trim()); setLhs(a); setRhs(b); }} className="mat-btn text-start rounded-2xl border border-black/10 bg-white p-4 hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="flex items-center justify-between gap-2"><span className="font-semibold">{t(reaction.titleAr, reaction.titleEn)}</span><span className="text-[10px] uppercase tracking-wide rounded-full bg-orange-100 text-orange-700 px-2 py-1">{t(REACTION_FAMILY_LABELS[reaction.family].ar, REACTION_FAMILY_LABELS[reaction.family].en)}</span></div>
+                  <code dir="ltr" className="block mt-2 text-sm text-primary font-semibold">{reaction.equation}</code>
+                  <p className="mt-2 text-xs text-on-surface/60">{t(reaction.explanationAr, reaction.explanationEn)}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <button onClick={() => onPlaceText(t('أنماط الاحتراق والأكسدة والاختزال', 'Combustion, oxidation and reduction'), REACTION_PRESETS.map(r => `${t(r.titleAr, r.titleEn)}: ${r.equation} — ${t(r.explanationAr, r.explanationEn)}`))} className="mat-btn px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-elev-1">{t('ضع الملخص على السبورة', 'Place summary on board')}</button>
         </div>
       )}
     </Sheet>

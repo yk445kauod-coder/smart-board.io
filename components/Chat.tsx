@@ -33,6 +33,7 @@ const Chat: React.FC<ChatProps> = ({
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sttRef = useRef<ReturnType<typeof createSTT> | null>(null);
+  const isAr = language.toLowerCase().startsWith('ar');
 
   useEffect(() => {
     if (isOpen) {
@@ -101,12 +102,12 @@ const Chat: React.FC<ChatProps> = ({
   };
 
   const QUICK_MODES: Array<{ mode: LessonMode; icon: string; label: string }> = [
-    { mode: 'full-lesson', icon: 'fa-chalkboard-user', label: 'Lesson' },
-    { mode: 'revision', icon: 'fa-list-check', label: 'Revise' },
-    { mode: 'explain', icon: 'fa-lightbulb', label: 'Explain' },
-    { mode: 'questions', icon: 'fa-question', label: 'Questions' },
-    { mode: 'activities', icon: 'fa-dumbbell', label: 'Activities' },
-    { mode: 'visualize', icon: 'fa-diagram-project', label: 'Visualize' },
+    { mode: 'full-lesson', icon: 'fa-chalkboard-user', label: isAr ? 'درس' : 'Lesson' },
+    { mode: 'revision', icon: 'fa-list-check', label: isAr ? 'مراجعة' : 'Revise' },
+    { mode: 'explain', icon: 'fa-lightbulb', label: isAr ? 'شرح' : 'Explain' },
+    { mode: 'questions', icon: 'fa-question', label: isAr ? 'أسئلة' : 'Questions' },
+    { mode: 'activities', icon: 'fa-dumbbell', label: isAr ? 'تدريبات' : 'Activities' },
+    { mode: 'visualize', icon: 'fa-diagram-project', label: isAr ? 'تصوير' : 'Visualize' },
   ];
 
   if (!isOpen) {
@@ -118,9 +119,9 @@ const Chat: React.FC<ChatProps> = ({
   }
 
   return (
-    <div className={`absolute bottom-6 right-6 z-[100] w-80 h-[500px] flex flex-col bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden font-ar transition-transform duration-300 ${projectorMode ? 'scale-110 origin-bottom-right' : 'scale-100'}`} dir="rtl">
+    <div className={`absolute bottom-6 right-6 z-[100] w-80 h-[500px] flex flex-col bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden ${isAr ? 'font-ar' : ''} transition-transform duration-300 ${projectorMode ? 'scale-110 origin-bottom-right' : 'scale-100'}`} dir={isAr ? 'rtl' : 'ltr'}>
       <div className="p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex justify-between items-center">
-        <h2 className="font-bold text-lg flex items-center gap-2"><i className="fa-solid fa-robot"></i> Smart AI Tutor</h2>
+        <h2 className="font-bold text-lg flex items-center gap-2"><i className="fa-solid fa-robot"></i> {isAr ? 'المعلم الذكي' : 'Smart AI Tutor'}</h2>
         <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-2 rounded-lg" title="Minimize"><i className="fa-solid fa-minus"></i></button>
       </div>
 
@@ -153,13 +154,13 @@ const Chat: React.FC<ChatProps> = ({
             </div>
           </div>
         ))}
-        {isLoading && <div className="text-center text-xs text-gray-400">AI is thinking...</div>}
+        {isLoading && <div className="text-center text-xs text-gray-400">{isAr ? 'المساعد يفكر...' : 'AI is thinking...'}</div>}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="p-3 bg-white border-t border-gray-200">
         <div className="relative flex items-end gap-2">
-          <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="اكتب طلبك للمساعد..." className="flex-1 p-3 rounded-xl border-2 bg-gray-50 max-h-32 text-sm" rows={1}/>
+          <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={isAr ? 'اكتب طلبك للمساعد...' : 'Ask the AI teacher...'} className="flex-1 p-3 rounded-xl border-2 bg-gray-50 max-h-32 text-sm" rows={1}/>
           <button onClick={toggleMic} disabled={isLoading} title={isListening ? 'Listening...' : 'Voice input'} className={`p-3 rounded-xl transition-all mb-0.5 ${isListening ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}><i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'}`}></i></button>
           <button onClick={handleSend} disabled={isLoading || !input.trim()} className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-all mb-0.5"><i className="fa-solid fa-paper-plane"></i></button>
         </div>

@@ -62,8 +62,11 @@ const AtlasPanel: React.FC<AtlasPanelProps> = ({ open, onClose, language, onPlac
       </div>
 
       {/* Map canvas */}
-      <div className="rounded-2xl overflow-hidden border border-black/10 bg-[#eaf3ff]">
-        <svg viewBox="0 0 1000 500" className="w-full h-auto">
+      <div className="rounded-2xl overflow-hidden border border-slate-900/20 bg-[#082b55] relative">
+        <img src="/atlas-hero.png" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-25 pointer-events-none" />
+        <svg viewBox="0 0 1000 500" className="w-full h-auto relative">
+          <rect width="1000" height="500" fill="rgba(8,43,85,.35)" />
+          <text x="32" y="42" fill="white" opacity=".85" fontSize="20" fontWeight="700">{t('خريطة الاستكشاف', 'Explore the world')}</text>
           {region === 'egypt' ? (
             <>
               <polygon

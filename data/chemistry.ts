@@ -274,3 +274,28 @@ export const POLYATOMIC_IONS = [
   { name: 'MnO4', charge: '1−', ar: 'برمنغنات', en: 'Permanganate' },
   { name: 'Cr2O7', charge: '2−', ar: 'ثنائي كرومات', en: 'Dichromate' },
 ];
+
+export type ReactionFamily = 'combustion' | 'oxidation' | 'reduction' | 'redox';
+export interface ReactionPreset {
+  family: ReactionFamily;
+  titleAr: string;
+  titleEn: string;
+  equation: string;
+  explanationAr: string;
+  explanationEn: string;
+}
+
+export const REACTION_PRESETS: ReactionPreset[] = [
+  { family: 'combustion', titleAr: 'احتراق الميثان', titleEn: 'Methane combustion', equation: 'CH4 + O2 → CO2 + H2O', explanationAr: 'هيدروكربون + أكسجين → ثاني أكسيد الكربون + ماء + طاقة', explanationEn: 'Hydrocarbon + oxygen → carbon dioxide + water + energy' },
+  { family: 'combustion', titleAr: 'احتراق الهيدروجين', titleEn: 'Hydrogen combustion', equation: 'H2 + O2 → H2O', explanationAr: 'ينتج الماء وتتحرر طاقة حرارية.', explanationEn: 'Water is produced and heat energy is released.' },
+  { family: 'oxidation', titleAr: 'أكسدة الحديد', titleEn: 'Iron oxidation', equation: 'Fe + O2 → Fe2O3', explanationAr: 'يفقد الحديد إلكترونات ويتحد مع الأكسجين مكوّنًا الصدأ.', explanationEn: 'Iron loses electrons and combines with oxygen to form rust.' },
+  { family: 'reduction', titleAr: 'اختزال أكسيد النحاس', titleEn: 'Copper oxide reduction', equation: 'CuO + H2 → Cu + H2O', explanationAr: 'يُختزل أكسيد النحاس إلى نحاس ويتكون الماء.', explanationEn: 'Copper oxide is reduced to copper while hydrogen forms water.' },
+  { family: 'redox', titleAr: 'تفاعل أكسدة واختزال', titleEn: 'Redox reaction', equation: 'Zn + CuSO4 → ZnSO4 + Cu', explanationAr: 'الزنك يتأكسد والنحاس يختزل في تفاعل إزاحة.', explanationEn: 'Zinc is oxidized and copper is reduced in a displacement reaction.' },
+];
+
+export const REACTION_FAMILY_LABELS: Record<ReactionFamily, { ar: string; en: string }> = {
+  combustion: { ar: 'الاحتراق', en: 'Combustion' },
+  oxidation: { ar: 'الأكسدة', en: 'Oxidation' },
+  reduction: { ar: 'الاختزال', en: 'Reduction' },
+  redox: { ar: 'أكسدة واختزال', en: 'Redox' },
+};
