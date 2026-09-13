@@ -207,17 +207,57 @@ export const PROVIDERS: TextProvider[] = [
   offlineProvider,
 ];
 
+// Normalize the loose field shapes LLMs can emit into the canonical
+// { action, id?, text?/title?/content?/items? } schema the board consumers
+// (layoutCommands, applyBoardCommands, handleToolCall) rely on. Without this,
+// GLM-family answers using `type`/`content` would be silently dropped.
+export const normalizeBoardCommand = (raw: unknown): BoardAction | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const type = String(r.action ?? r.type ?? r.command ?? r.name ?? '').trim();
+  if (!type) return null;
+  const out: Record<string, unknown> = { ...r };
+  if (typeof r.action !== 'string') out.action = type;
+  delete out.type;
+  delete out.command;
+  delete out.name;
+  // Generic array `content` is really a list of items (GLM sometimes emits
+  // addList content as a plain array instead of items).
+  if (Array.isArray(out.content) && out.items === undefined && (type === 'addList' || type === 'addText')) {
+    out.items = out.content;
+    delete out.content;
+  }
+  // Normalize generic string `content` or `text` into the field each action expects.
+  if (out.content !== undefined && out.text === undefined && (type === 'addWordArt' || type === 'addText')) {
+    out.text = out.content;
+    delete out.content;
+  }
+  // addNote / addSticky render from `content`; many models emit `text`.
+  if ((type === 'addNote' || type === 'addSticky') && out.content === undefined && out.text !== undefined) {
+    out.content = out.text;
+    delete out.text;
+  }
+  if (out.content !== undefined && out.title === undefined && ['addList', 'addTable', 'addComparison', 'addWordArt', 'addMindMap', 'addFlowchart', 'addTimeline', 'addDiagram'].includes(type)) {
+    if (type === 'addWordArt') { out.text = out.text ?? out.content; delete out.content; }
+    else { out.title = out.content; delete out.content; }
+  }
+  return out as BoardAction;
+};
+
 // Convenience helper for tests..
 export const textToBoardCommands = (text: string): BoardAction[] => {
   const cleaned = cleanupJsonMarkers(text);
   const arr = extractJsonArray(cleaned);
-  if (arr) {
-    return arr as BoardAction[];
+  let cmds: unknown[] | null = arr;
+  if (!cmds) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) cmds = parsed;
+      else if (parsed && typeof parsed === 'object' && (parsed as any).commands) cmds = (parsed as any).commands;
+    } catch (e) { /* ignore */ }
   }
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) return parsed as BoardAction[];
-    if (parsed && typeof parsed === 'object' && (parsed as any).commands) return (parsed as any).commands as BoardAction[];
-  } catch (e) { /* ignore */ }
-  return [];
+  if (!cmds) return [];
+  return cmds
+    .map(normalizeBoardCommand)
+    .filter((c): c is BoardAction => c !== null);
 };

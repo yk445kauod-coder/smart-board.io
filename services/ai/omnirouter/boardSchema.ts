@@ -84,7 +84,13 @@ export const layoutCommands = (commands: BoardAction[]): BoardAction[] => {
       hasRowContent = false;
       const x = (BOARD_W - w) / 2;
       const cx = Math.max(70, x);
-      return { x: cx, y: rowStartY + 60 };
+      const yPos = rowStartY + 60;
+      // Reserve vertical space below the big title so the first content row
+      // does not overlap it (text-7xl heading centered at yPos).
+      rowStartY += 60 + 96 + margin;
+      rowMaxH = 0;
+      rowStartX = 120;
+      return { x: cx, y: yPos };
     }
     if (rowStartX + w > BOARD_W - 60 && rowStartX > 120) {
       rowStartY += (rowMaxH || 0) + margin;

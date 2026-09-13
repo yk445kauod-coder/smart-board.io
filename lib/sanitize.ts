@@ -19,7 +19,7 @@ export const sanitizeHtml = (html: string): string => {
   // Strip javascript:/data: URLs defensively before purify
   const stripped = html
     .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/(href|src|xlink:href)\s*=\s*("|')\s*(javascript|data|vbscript)\s*:/gi, '$1=$2$3:');
+    .replace(/(href|src|xlink:href)\s*=\s*("|')\s*(javascript|data|vbscript)\s*:/gi, '$1=$2#$3:');
   return DOMPurify.sanitize(stripped, purifyOptions);
 };
 
