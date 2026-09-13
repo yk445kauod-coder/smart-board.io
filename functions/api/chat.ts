@@ -56,7 +56,7 @@ export const onRequest = async (context) => {
     }
 
     const { req, system, user } = body;
-    let lastErr: string | null = null;
+    const providerErrors: string[] = [];
 
     // 3. Try every real provider in order (same priority as the client usedtto).
     const needsBoardCommands = !isPlainResponseMode(req.mode);
@@ -73,18 +73,19 @@ export const onRequest = async (context) => {
         const res = await withTimeout(p.complete(req, system, user), 15000, `${p.id} timed out`);
         if (res && res.text && res.text.trim().length > 0) {
           if (needsBoardCommands && parseBoardCommands(res.text).length === 0) {
-            lastErr = `${p.id} returned no executable board commands`;
+            providerErrors.push(`${p.id}: returned no executable board commands`);
             continue;
           }
           return new Response(JSON.stringify({ text: res.text, model: res.model, provider: res.provider }), { status: 200, headers: corsHeaders() });
         }
       } catch (e) {
-        lastErr = (e as Error).message || '';
-        console.warn('[api/chat]', p.id, 'failed:', lastErr);
+        const message = (e as Error).message || '';
+        providerErrors.push(`${p.id}: ${message}`);
+        console.warn('[api/chat]', p.id, 'failed:', message);
       }
     }
 
-    return new Response(JSON.stringify({ error: 'No AI provider returned a usable response. ' + (lastErr || '') }), { status: 502, headers: corsHeaders() });
+    return new Response(JSON.stringify({ error: 'No AI provider returned a usable response. ' + providerErrors.join(' | ') }), { status: 502, headers: corsHeaders() });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message || 'Unexpected error' }), { status: 500, headers: corsHeaders() });
   }
