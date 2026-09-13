@@ -228,13 +228,33 @@ export const PROVIDERS: TextProvider[] = [
 export const normalizeBoardCommand = (raw: unknown): BoardAction | null => {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
-  const type = String(r.action ?? r.type ?? r.command ?? r.name ?? '').trim();
+  let type = String(r.action ?? r.type ?? r.command ?? r.name ?? '').trim();
   if (!type) return null;
-  const out: Record<string, unknown> = { ...r };
+  const aliases: Record<string, string> = {
+    create_text: 'addNote',
+    create_note: 'addNote',
+    create_heading: 'addWordArt',
+    add_heading: 'addWordArt',
+    add_paragraph: 'addNote',
+    add_bullet_points: 'addList',
+  };
+  const canonical = aliases[type] || type;
+  type = canonical;
+  const nested = (r.arguments && typeof r.arguments === 'object') ? r.arguments as Record<string, unknown> : {};
+  const out: Record<string, unknown> = { ...r, ...nested, action: canonical };
   if (typeof r.action !== 'string') out.action = type;
   delete out.type;
   delete out.command;
   delete out.name;
+  delete out.arguments;
+  if (type === 'addNote' && out.content === undefined && out.text !== undefined) out.content = out.text;
+  if (type === 'addNote' && out.content === undefined && out.markdown !== undefined) out.content = out.markdown;
+  if (type === 'addWordArt' && out.text === undefined && out.content !== undefined) out.text = out.content;
+  if (type === 'addList' && out.items === undefined && out.content !== undefined) {
+    out.items = Array.isArray(out.content)
+      ? out.content
+      : String(out.content).split(/\n|•|-/).map(s => s.trim()).filter(Boolean);
+  }
   // Generic array `content` is really a list of items (GLM sometimes emits
   // addList content as a plain array instead of items).
   if (Array.isArray(out.content) && out.items === undefined && (type === 'addList' || type === 'addText')) {
