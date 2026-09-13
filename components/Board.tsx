@@ -67,6 +67,7 @@ interface SmartBoardProps {
   penColor?: string;
   penSize?: number;
   onDeleteNode?: (id: string) => void;
+  mode?: 'slides' | 'infinite';
 }
 
 const BOARD_WIDTH = 1600;
@@ -99,6 +100,7 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
   penColor = '#000000',
   penSize = 6,
   onDeleteNode,
+  mode = 'infinite',
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [points, setPoints] = useState<number[][]>([]);
@@ -235,16 +237,21 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
       return getSvgPathFromStroke(stroke);
   }, [points, activeTool, penSize]);
 
+  const isSlides = mode === 'slides';
+
   return (
-    <div className="w-full h-full relative touch-none bg-gray-200 flex items-center justify-center p-4" dir="ltr">
+    <div
+      className={`w-full h-full relative touch-none flex items-center justify-center ${isSlides ? 'bg-gray-200 p-4' : 'bg-board'}`}
+      dir="ltr"
+    >
         <div 
-            className="relative shadow-2xl bg-white rounded-lg overflow-hidden border-8 border-gray-300"
+            className={`relative shadow-2xl bg-white rounded-lg overflow-hidden ${isSlides ? 'border-8 border-gray-300' : ''}`}
             style={{ 
                 width: '100%', 
                 height: '100%', 
-                maxWidth: `${BOARD_WIDTH}px`, 
-                maxHeight: `${BOARD_HEIGHT}px`,
-                aspectRatio: '16 / 9'
+                maxWidth: isSlides ? `${BOARD_WIDTH}px` : 'none',
+                maxHeight: isSlides ? `${BOARD_HEIGHT}px` : 'none',
+                aspectRatio: isSlides ? '16 / 9' : undefined
             }}
         >
             <ReactFlow
@@ -257,8 +264,8 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
                 connectionMode={ConnectionMode.Loose}
                 minZoom={0.5}
                 maxZoom={3}
-                translateExtent={[[0, 0], [BOARD_WIDTH, BOARD_HEIGHT]]}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+                translateExtent={isSlides ? [[0, 0], [BOARD_WIDTH, BOARD_HEIGHT]] : [[-20000, -20000], [20000, 20000]]}
+                defaultViewport={{ x: 0, y: 0, zoom: isSlides ? 0.8 : 1 }}
                 panOnDrag={activeTool === 'pan'} 
                 panOnScroll={false}
                 zoomOnScroll={true}

@@ -68,6 +68,7 @@ export interface PDFPageAnnotation {
   kind: 'pen' | 'note';
   points?: { x: number; y: number }[];
   color?: string;
+  strokeWidth?: number;
   text?: string;
   x?: number;
   y?: number;
@@ -218,4 +219,14 @@ export interface ProjectData {
   pdf?: { name: string; dataUrl: string; annotations: unknown[] };
   pdfAnnotations?: unknown[];
   chatMessages: ChatMessage[];
+}
+
+export type BoardMode = 'slides' | 'infinite';
+
+export interface SlideData< TNode = unknown, TEdge = unknown> {
+  id: string;
+  name: string;
+  nodes: TNode[];
+  edges: TEdge[];
+  viewport?: { x: number; y: number; zoom: number };
 }

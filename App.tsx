@@ -9,12 +9,16 @@ import SmartOnboarding from './components/SmartOnboarding';
 import HomeScreen from './components/HomeScreen';
 import BottomToolbar from './components/BottomToolbar';
 import AISheet from './components/AISheet';
-import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode } from './types';
+import SlideRail from './components/SlideRail';
+import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode, BoardMode } from './types';
+import type { SlideData } from './types';
 import { speakText, cancelSpeech } from './services/tts';
 import { generateImageWithPollinations } from './services/geminiService';
 import { generateLesson } from './services/ai/assistant';
 import { useNodesState, useEdgesState, addEdge, useReactFlow, ReactFlowProvider } from 'reactflow';
 import type { Connection, Edge, Node } from 'reactflow';
+
+type Slide = SlideData<Node<ElementData>, Edge>;
 
 const AppContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -25,6 +29,7 @@ const AppContent: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
   const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'Arabic', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female' });
+  const isAr = settings.language.toLowerCase().startsWith('ar');
   const [isMuted, setIsMuted] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
@@ -60,6 +65,12 @@ const AppContent: React.FC = () => {
   const historyLock = useRef(false);
   const lastNodes = useRef<Node<ElementData>[]>([]);
   const lastEdges = useRef<Edge[]>([]);
+
+  // Slides / Board mode
+  const [boardMode, setBoardMode] = useState<BoardMode>('infinite');
+  const [slides, setSlides] = useState<Slide[]>([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const slideSyncLock = useRef(false);
 
   // Snapshot board state for undo/redo
   useEffect(() => {
@@ -152,6 +163,99 @@ const AppContent: React.FC = () => {
       setEdges([]);
     }
   }, [setNodes, setEdges]);
+
+  // --- Slides / Board Mode ---
+  const currentSlide = slides.length > 0 && boardMode === 'slides'
+    ? slides[Math.min(Math.max(currentSlideIndex, 0), slides.length - 1)]
+    : undefined;
+
+  // When in slides mode, edit ops should target the active slide's stored content.
+  const switchBoardMode = useCallback((mode: BoardMode) => {
+    if (mode === boardMode) return;
+    if (mode === 'slides') {
+      // Seed slide 0 from current board if no slides yet.
+      setSlides(prev => {
+        if (prev.length > 0) return prev;
+        return [{
+          id: 'slide-' + Date.now(),
+          name: 'الشريحة 1 / Slide 1',
+          nodes: [...nodes],
+          edges: [...edges],
+        }];
+      });
+      setCurrentSlideIndex(0);
+    } else {
+      // Going back to infinite: merge? Keep current slide content as main board. Keep slides preserved.
+    }
+    setBoardMode(mode);
+  }, [boardMode, nodes, edges]);
+
+  // Load slide content when switching slides in slides mode.
+  const loadSlide = useCallback((index: number) => {
+    if (index < 0 || index >= slides.length) return;
+    const target = slides[index];
+    slideSyncLock.current = true;
+    setNodes(target.nodes);
+    setEdges(target.edges);
+    setCurrentSlideIndex(index);
+    setHistory([]);
+    setHistoryIndex(-1);
+    setTimeout(() => { slideSyncLock.current = false; }, 0);
+  }, [slides, setNodes, setEdges]);
+
+  const addSlide = useCallback(() => {
+    const next: Slide[] = [...slides, {
+      id: 'slide-' + Date.now(),
+      name: `الشريحة ${slides.length + 1} / Slide ${slides.length + 1}`,
+      nodes: [],
+      edges: [],
+    }];
+    setSlides(next);
+    slideSyncLock.current = true;
+    setNodes([]);
+    setEdges([]);
+    setCurrentSlideIndex(next.length - 1);
+    setHistory([]);
+    setHistoryIndex(-1);
+    setTimeout(() => { slideSyncLock.current = false; }, 0);
+  }, [slides, setNodes, setEdges]);
+
+  const deleteSlide = useCallback((index: number) => {
+    if (slides.length <= 1) {
+      alert(isAr ? 'يبقى على الأقل شريحة واحدة' : 'Keep at least one slide');
+      return;
+    }
+    const next = slides.filter((_, i) => i !== index);
+    setSlides(next);
+    if (index === currentSlideIndex) {
+      const targetIndex = Math.min(index, next.length - 1);
+      const target = next[targetIndex];
+      slideSyncLock.current = true;
+      setNodes(target.nodes);
+      setEdges(target.edges);
+      setCurrentSlideIndex(targetIndex);
+      setHistory([]);
+      setHistoryIndex(-1);
+      setTimeout(() => { slideSyncLock.current = false; }, 0);
+    } else if (index < currentSlideIndex) {
+      setCurrentSlideIndex(i => i - 1);
+    }
+  }, [slides, currentSlideIndex, setNodes, setEdges, isAr]);
+
+
+  // Persist live board edits into the active slide while in slides mode.
+  useEffect(() => {
+    if (boardMode !== 'slides' || slideSyncLock.current) return;
+    if (slides.length === 0) return;
+    const index = Math.min(Math.max(currentSlideIndex, 0), slides.length - 1);
+    setSlides(prev => {
+      const cur = prev[index];
+      if (!cur) return prev;
+      return prev.map((s, i) =>
+        i === index ? { ...s, nodes: [...nodes], edges: [...edges] } : s
+      );
+    });
+  }, [nodes, edges, boardMode, currentSlideIndex, slides.length]);
 
 
   useEffect(() => { 
@@ -359,7 +463,7 @@ const AppContent: React.FC = () => {
       id,
       type: 'image',
       position: { x: x || 200, y: y || 150 },
-      data: { id, type: 'image', imageUrl: url, title, width: 540, height: 380 },
+      data: { id, type: 'image', url, title, width: 540, height: 380 },
     }]);
     setIsPdfOpen(false);
   }, [setNodes]);
@@ -501,8 +605,6 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
     );
   }
 
-  const isAr = settings.language.toLowerCase().startsWith('ar');
-
   return (
     <div className="w-screen h-screen bg-board overflow-hidden flex flex-col">
       {/* Board canvas — always fills the screen */}
@@ -520,6 +622,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
           penColor={penColor}
           penSize={penSize}
           onDeleteNode={handleDeleteNode}
+          mode={boardMode}
         />
       </div>
 
@@ -537,7 +640,17 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
 
       {/* Bottom toolbar — main control center */}
       {!isRunning && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-3 px-2 flex justify-center">
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-3 px-2 flex flex-col items-center gap-2">
+          <SlideRail
+            mode={boardMode}
+            slides={slides}
+            currentIndex={currentSlideIndex}
+            onSwitchMode={switchBoardMode}
+            onSelect={loadSlide}
+            onAdd={addSlide}
+            onDelete={deleteSlide}
+            language={settings.language}
+          />
           <BottomToolbar
             activeTool={activeTool}
             setActiveTool={setActiveTool}
@@ -570,6 +683,29 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
             </div>
           </div>
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3">
+            {boardMode === 'slides' && slides.length > 1 && (
+              <div className="bg-white/90 backdrop-blur rounded-full shadow-elev-2 border border-black/10 px-2 py-1.5 flex items-center gap-1">
+                <button
+                  onClick={() => loadSlide(Math.max(currentSlideIndex - 1, 0))}
+                  disabled={currentSlideIndex <= 0}
+                  className="mat-btn p-1.5 rounded-full text-on-surface/80 hover:bg-surface-variant disabled:opacity-30"
+                  title={isAr ? 'الشريحة السابقة' : 'Previous slide'}
+                >
+                  <span className="material-symbols-rounded text-xl">{isAr ? 'chevron_right' : 'chevron_left'}</span>
+                </button>
+                <span className="text-xs font-semibold text-on-surface/80 tabular-nums min-w-[3rem] text-center">
+                  {currentSlideIndex + 1} / {slides.length}
+                </span>
+                <button
+                  onClick={() => loadSlide(Math.min(currentSlideIndex + 1, slides.length - 1))}
+                  disabled={currentSlideIndex >= slides.length - 1}
+                  className="mat-btn p-1.5 rounded-full text-on-surface/80 hover:bg-surface-variant disabled:opacity-30"
+                  title={isAr ? 'الشريحة التالية' : 'Next slide'}
+                >
+                  <span className="material-symbols-rounded text-xl">{isAr ? 'chevron_left' : 'chevron_right'}</span>
+                </button>
+              </div>
+            )}
             <button
               onClick={() => setIsRunning(false)}
               className="mat-btn bg-white/90 backdrop-blur border border-black/10 rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium text-on-surface shadow-elev-2 hover:bg-white"

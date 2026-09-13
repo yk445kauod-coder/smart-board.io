@@ -248,12 +248,12 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
       <div className={`p-4 bg-white shadow-xl rounded-xl border border-gray-100 transition-all ${selected ? 'ring-4 ring-indigo-300 scale-105' : 'hover:shadow-2xl'}`}>
-        <div className="w-72 h-64 bg-gray-50 rounded-lg overflow-hidden relative flex items-center justify-center">
+        <div className="bg-gray-50 rounded-lg overflow-hidden relative flex items-center justify-center" style={{ width: data.width || 288, height: data.height || 256 }}>
            {data.url && !error ? (
              <>
                 {loading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                        <i className="fa-solid fa-spinner fa-spin text-2xl text-indigo-400"></i>
+                        <span className="material-symbols-rounded animate-spin text-2xl text-indigo-400">progress_activity</span>
                     </div>
                 )}
                 <img 
@@ -267,7 +267,7 @@ export const ImageNode = memo(({ data, selected }: NodeProps<ElementData>) => {
              </>
            ) : (
              <div className="text-gray-400 flex flex-col items-center gap-2">
-                <i className="fa-regular fa-image text-3xl opacity-50"></i>
+                <span className="material-symbols-rounded text-3xl opacity-50">image</span>
                 <span className="text-xs font-medium">{error ? "Failed to load" : "No Image"}</span>
              </div>
            )}
