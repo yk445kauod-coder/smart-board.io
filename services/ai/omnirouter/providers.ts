@@ -246,6 +246,8 @@ export const normalizeBoardCommand = (raw: unknown): BoardAction | null => {
     add_paragraph: 'addNote',
     add_bullet_points: 'addList',
     text: 'addNote',
+    writeText: 'addText',
+    write_text: 'addText',
   };
   const canonical = aliases[type] || type;
   type = canonical;
@@ -308,7 +310,13 @@ export const textToBoardCommands = (text: string): BoardAction[] => {
     } catch (e) { /* ignore */ }
   }
   if (!cmds) return [];
+  const allowed = new Set([
+    'addWordArt', 'addNote', 'addText', 'addList', 'addComparison', 'addEquation',
+    'addTable', 'addImage', 'addShape', 'addSticky', 'addMindMap', 'addFlowchart',
+    'addTimeline', 'addDiagram', 'addArrow', 'addLine', 'addCode', 'addAtlas',
+    'addPeriodic', 'connect', 'update', 'remove',
+  ]);
   return cmds
     .map(normalizeBoardCommand)
-    .filter((c): c is BoardAction => c !== null);
+    .filter((c): c is BoardAction => c !== null && allowed.has(c.action));
 };
