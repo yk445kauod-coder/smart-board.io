@@ -60,7 +60,7 @@ export const cloudflareProvider: TextProvider = {
     // less likely to replace the requested answer with a safety status.
     const model = isPlainResponseMode(req.mode)
       ? '@cf/zai-org/glm-4.7-flash'
-      : '@cf/meta/llama-3.1-8b-instruct';
+      : '@cf/meta/llama-3.1-8b-fast-v2';
     const boardInstruction = isPlainResponseMode(req.mode)
       ? ''
       : '\nReturn a JSON object with exactly one key, "commands", whose value is the executable array. Never return a safety status, prose, markdown, or an empty response.';
@@ -79,7 +79,7 @@ export const cloudflareProvider: TextProvider = {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/zai-org/glm-4.7-flash`, {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${encodeURIComponent(model)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiToken}` },
         body: JSON.stringify(body),

@@ -61,14 +61,14 @@ export const onRequest = async (context) => {
     // 3. Try every real provider in order (same priority as the client usedtto).
     const needsBoardCommands = !isPlainResponseMode(req.mode);
     const providers = needsBoardCommands
-      ? [PROVIDERS.find(p => p.id === 'gemini'), PROVIDERS.find(p => p.id === 'openrouter')].filter(Boolean) as typeof PROVIDERS
+      ? [PROVIDERS.find(p => p.id === 'cloudflare'), PROVIDERS.find(p => p.id === 'gemini'), PROVIDERS.find(p => p.id === 'openrouter')].filter(Boolean) as typeof PROVIDERS
       : PROVIDERS;
     for (const p of providers) {
       if (p.id === 'offline') continue;
       // Board-writing modes use OpenRouter's structured-capable route. The
       // current Cloudflare board model can emit safety prose or invalid shapes;
       // Cloudflare remains available for plain explanatory answers.
-      if (needsBoardCommands && p.id !== 'gemini' && p.id !== 'openrouter') continue;
+      if (needsBoardCommands && p.id !== 'cloudflare' && p.id !== 'gemini' && p.id !== 'openrouter') continue;
       try {
         const res = await withTimeout(p.complete(req, system, user), 15000, `${p.id} timed out`);
         if (res && res.text && res.text.trim().length > 0) {
