@@ -7,7 +7,7 @@ interface AtlasPanelProps {
   open: boolean;
   onClose: () => void;
   language: string;
-  onPlace: (regionId: string, title: string, opts?: { pins?: string[] }) => void;
+  onPlace: (regionId: string, title: string, opts?: { pins?: string[]; countries?: string[] }) => void;
 }
 
 const GEO_URL = '/world-countries-110m.json';
@@ -43,7 +43,10 @@ const AtlasPanel: React.FC<AtlasPanelProps> = ({ open, onClose, language, onPlac
 
   const place = () => {
     const preset = ATLAS_PRESETS.find(x => x.id === region);
-    onPlace(region, isAr ? preset?.nameAr || region : preset?.nameEn || region, { pins: pins.size ? [...pins] : undefined });
+    onPlace(region, isAr ? preset?.nameAr || region : preset?.nameEn || region, {
+      pins: pins.size ? [...pins] : undefined,
+      countries: selectedCountries.length ? [...selectedCountries] : undefined,
+    });
   };
 
   const selectedCountries = REGION_COUNTRIES[region] || [];

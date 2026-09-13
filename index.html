@@ -6,6 +6,7 @@
     <title>SmartBoard AI — Classroom Whiteboard</title>
     <meta name="description" content="SmartBoard AI — an AI-powered bilingual classroom whiteboard with Smart Lab, Atlas and PDF learning tools." />
     <link rel="icon" type="image/png" href="/smartboard-logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -176,6 +177,23 @@
       
       .cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.5 8.6L13 18l5-5"/></svg>') 0 24, crosshair !important; }
       .cursor-eraser { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1.5"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>') 12 12, crosshair !important; }
+
+      /* SmartBoard signature: pixel-art UI chrome only. Board canvas and board elements stay smooth. */
+      button, input, textarea, select, .mat-btn, [role="button"] {
+        border-radius: 0 !important;
+        image-rendering: pixelated;
+      }
+      button, .mat-btn, [role="button"] {
+        border: 2px solid currentColor;
+        box-shadow: 3px 3px 0 rgba(16, 24, 40, .28);
+        transition: transform .08s steps(2), box-shadow .08s steps(2), filter .08s steps(2);
+      }
+      button:hover, .mat-btn:hover, [role="button"]:hover { filter: brightness(1.08); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 rgba(16, 24, 40, .3); }
+      button:active, .mat-btn:active, [role="button"]:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(16, 24, 40, .25); }
+      input, textarea, select { border: 2px solid rgba(16, 24, 40, .35) !important; box-shadow: inset 2px 2px 0 rgba(16, 24, 40, .08); }
+      .pixel-panel { border: 3px solid #172554; box-shadow: 6px 6px 0 rgba(15, 23, 42, .24); border-radius: 0 !important; }
+      .pixel-badge { border: 2px solid currentColor; border-radius: 0 !important; box-shadow: 2px 2px 0 rgba(15, 23, 42, .22); }
+      .material-symbols-rounded, i, .fa-solid, .fa-regular { image-rendering: pixelated; }
     </style>
 <script type="importmap">
 {

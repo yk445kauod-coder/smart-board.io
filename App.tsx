@@ -87,6 +87,34 @@ const AppContent: React.FC = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const slideSyncLock = useRef(false);
+  const boardHydrated = useRef(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
+
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('smartboard_board_snapshot');
+      if (saved) {
+        const snapshot = JSON.parse(saved);
+        if (Array.isArray(snapshot.nodes)) setNodes(snapshot.nodes);
+        if (Array.isArray(snapshot.edges)) setEdges(snapshot.edges);
+      }
+    } catch (e) { console.warn('Offline board restore failed', e); }
+    boardHydrated.current = true;
+  }, [setNodes, setEdges]);
+
+  useEffect(() => {
+    if (!boardHydrated.current) return;
+    try { localStorage.setItem('smartboard_board_snapshot', JSON.stringify({ nodes, edges, savedAt: Date.now() })); }
+    catch (e) { console.warn('Offline board save failed', e); }
+  }, [nodes, edges]);
 
   // Snapshot board state for undo/redo
   useEffect(() => {
@@ -533,7 +561,7 @@ const AppContent: React.FC = () => {
   }, [setNodes]);
 
   // --- Atlas: place a region map on the board ---
-  const handleAtlasPlace = useCallback((regionId: string, title: string, opts?: { pins?: string[] }) => {
+  const handleAtlasPlace = useCallback((regionId: string, title: string, opts?: { pins?: string[]; countries?: string[] }) => {
     const id = 'atlas-' + Date.now();
     setNodes(nds => [...nds, {
       id,
@@ -542,8 +570,9 @@ const AppContent: React.FC = () => {
       data: {
         id,
         type: 'atlas',
-        regionId,
-        title,
+          regionId,
+          title,
+          selectedCountries: opts?.countries,
         description: opts?.pins?.length
           ? (isAr ? 'المناطق المحددة: ' : 'Selected: ') + opts.pins.map(p => {
               const pin = PIN_BY_ID[p];
@@ -784,6 +813,9 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
           </div>
         </div>
       )}
+      <div className={`absolute top-3 right-3 z-40 pixel-badge px-2 py-1 text-[10px] font-bold ${isOffline ? 'bg-amber-200 text-amber-950' : 'bg-emerald-200 text-emerald-950'}`}>
+        {isOffline ? (isAr ? 'أوفلاين · محفوظ محليًا' : 'OFFLINE · SAVED LOCALLY') : (isAr ? 'متصل' : 'ONLINE')}
+      </div>
 
       {/* Bottom toolbar — main control center */}
       {!isRunning && (
