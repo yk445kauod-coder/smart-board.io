@@ -68,11 +68,15 @@ export const cloudflareProvider: TextProvider = {
     };
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/zai-org/glm-4.7-flash`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiToken}` },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.errors?.[0]?.message || `Cloudflare HTTP ${res.status}`);
       const msg: CfMsg = data?.result?.choices?.[0]?.message;
