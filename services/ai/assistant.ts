@@ -110,7 +110,8 @@ await onToolCall('connect', { ...cmd, from: src, to: dst }, originalMessage);
 
 async function askApiChat(req: LessonRequest, system: string, user: string): Promise<{ text: string; provider?: string; model?: string } | null> {
   try {
-    const res = await fetch('/api/chat', {
+    const apiBase = (globalThis as any).__SMARTBOARD_API_BASE__ || '';
+    const res = await fetch(`${apiBase}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ req, system, user }),

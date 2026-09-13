@@ -1,0 +1,7 @@
+name = "smartboard-ai-api"
+main = "worker-api.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[ai]
+binding = "AI"

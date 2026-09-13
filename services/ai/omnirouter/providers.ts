@@ -51,9 +51,10 @@ export const cloudflareProvider: TextProvider = {
   id: 'cloudflare',
   name: 'Cloudflare Workers AI (GLM-4.7-Flash)',
   async complete(req, system, user) {
+    const binding = (globalThis as any).__SMARTBOARD_AI__;
     const accountId = env('CLOUDFLARE_ACCOUNT_ID');
     const apiToken = env('CLOUDFLARE_API_TOKEN');
-    if (!accountId || !apiToken) return null;
+    if (!binding?.run && (!accountId || !apiToken)) return null;
 
     // Llama is more reliable than GLM for board-building JSON. GLM remains
     // useful for natural-language explanations, where its safety layer is
@@ -77,7 +78,6 @@ export const cloudflareProvider: TextProvider = {
     };
 
     try {
-      const binding = (globalThis as any).__SMARTBOARD_AI__;
       if (binding?.run) {
         const direct = await binding.run(model, {
           messages: body.messages,
