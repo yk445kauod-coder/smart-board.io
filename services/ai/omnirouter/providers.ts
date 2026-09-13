@@ -115,7 +115,7 @@ export const openRouterProvider: TextProvider ={
       ],
       temperature: 0.5,
       max_tokens: 4096,
-      reasoning: { enabled: false },
+      ...(isPlainResponseMode(req.mode) ? { reasoning: { enabled: false } } : {}),
       ...(isPlainResponseMode(req.mode) ? {} : { response_format: { type: 'json_object' } }),
     };
 
