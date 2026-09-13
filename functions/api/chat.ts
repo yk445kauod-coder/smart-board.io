@@ -62,9 +62,10 @@ export const onRequest = async (context) => {
     const needsBoardCommands = !isPlainResponseMode(req.mode);
     for (const p of PROVIDERS) {
       if (p.id === 'offline') continue;
-      // Board-writing modes must use a structured board-capable provider only.
-      // Text fallbacks can return safety prose or wait on long public endpoints.
-      if (needsBoardCommands && p.id !== 'cloudflare') continue;
+      // Board-writing modes use OpenRouter's structured-capable route. The
+      // current Cloudflare board model can emit safety prose or invalid shapes;
+      // Cloudflare remains available for plain explanatory answers.
+      if (needsBoardCommands && p.id !== 'openrouter') continue;
       try {
         const res = await withTimeout(p.complete(req, system, user), 15000, `${p.id} timed out`);
         if (res && res.text && res.text.trim().length > 0) {

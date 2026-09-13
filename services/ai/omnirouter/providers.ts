@@ -110,12 +110,13 @@ export const openRouterProvider: TextProvider ={
     const body = {
       model: 'openrouter/free',
       messages: [
-        { role: 'system', content: system },
+        { role: 'system', content: system + (isPlainResponseMode(req.mode) ? '' : '\nReturn exactly one JSON object: {"commands":[...]} using only the allowed board actions. Do not return prose or safety status.') },
         { role: 'user', content: user },
       ],
       temperature: 0.5,
       max_tokens: 4096,
       reasoning: { enabled: false },
+      ...(isPlainResponseMode(req.mode) ? {} : { response_format: { type: 'json_object' } }),
     };
 
     try {
@@ -252,7 +253,15 @@ export const normalizeBoardCommand = (raw: unknown): BoardAction | null => {
   }
   if (out.content !== undefined && out.title === undefined && ['addList', 'addTable', 'addComparison', 'addWordArt', 'addMindMap', 'addFlowchart', 'addTimeline', 'addDiagram'].includes(type)) {
     if (type === 'addWordArt') { out.text = out.text ?? out.content; delete out.content; }
-    else { out.title = out.content; delete out.content; }
+    else {
+      out.title = out.content;
+      if (type === 'addList' && out.items === undefined) out.items = [String(out.content)];
+      delete out.content;
+    }
+  }
+  if (type === 'addEquation' && out.latex === undefined && out.content !== undefined) {
+    out.latex = String(out.content);
+    delete out.content;
   }
   return out as BoardAction;
 };
