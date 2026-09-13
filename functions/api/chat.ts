@@ -27,6 +27,7 @@ export const onRequest = async (context) => {
   }
 
   // 1. Surface Page secrets into process.env for the shared providers module.
+  (globalThis as any).__SMARTBOARD_AI__ = (env as any).AI;
 
 
 

@@ -77,6 +77,17 @@ export const cloudflareProvider: TextProvider = {
     };
 
     try {
+      const binding = (globalThis as any).__SMARTBOARD_AI__;
+      if (binding?.run) {
+        const direct = await binding.run(model, {
+          messages: body.messages,
+          temperature: body.temperature,
+          max_tokens: body.max_tokens,
+          response_format: body.response_format,
+        });
+        const directText = readCfMessage(direct?.response || direct?.result || direct);
+        if (directText) return { text: directText, model, provider: 'cloudflare' };
+      }
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {

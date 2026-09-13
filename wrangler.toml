@@ -3,5 +3,10 @@ pages_build_output_dir = "dist"
 compatibility_date = "2026-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+[ai]
+bindings = [
+  { name = "AI", type = "ai" }
+]
+
 [observability]
 enabled = true
