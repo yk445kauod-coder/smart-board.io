@@ -63,7 +63,7 @@ export const onRequest = async (context) => {
     for (const p of PROVIDERS) {
       if (p.id === 'offline') continue;
       try {
-        const res = await p.complete(req, system, user);
+        const res = await withTimeout(p.complete(req, system, user), 15000, `${p.id} timed out`);
         if (res && res.text && res.text.trim().length > 0) {
           if (needsBoardCommands && parseBoardCommands(res.text).length === 0) {
             lastErr = `${p.id} returned no executable board commands`;
@@ -81,7 +81,17 @@ export const onRequest = async (context) => {
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message || 'Unexpected error' }), { status: 500, headers: corsHeaders() });
   }
-};
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 function corsHeaders(): Record<string, string> {
 
