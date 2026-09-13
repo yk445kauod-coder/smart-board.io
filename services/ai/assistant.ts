@@ -1,6 +1,6 @@
 import type { BoardAction, ChatMessage, KnowledgeDoc, LessonDetail, LessonMode, LessonRequest, TeacherPersona } from '../../types';
 import { aiLangOf } from '../../types';
-import { PROVIDERS, textToBoardCommands } from './omnirouter/providers';
+import { textToBoardCommands } from './omnirouter/providers';
 import { buildRoutingHint, layoutCommands } from './omnirouter/boardSchema';
 import { isPlainResponseMode } from './omnirouter/validate';
 import { buildKnowledgeContext } from '../knowledge';
@@ -186,16 +186,8 @@ try {
 } catch (e) {
   lastErr2 = (e as Error).message;
 }
-// Offline deterministic fallback
-const offline = PROVIDERS[PROVIDERS.length - 1];
-const res = await offline.complete(req, system, user);
-if (res) {
-  const commands = textToBoardCommands(res.text);
-  const withLayout = layoutCommands(commands);
-  await applyBoardCommands(withLayout, onToolCall, prompt);
-  const reply = pickReply(withLayout, isAr);
-  onSpeak(reply);
-  return reply;
-}
-return (isAr ? 'تعذر إنشاء الدرس. حاول مرة أخرى.' : 'Could not build the lesson. Please try again.') + (lastErr2 ? ' (' + lastErr2 + ')' : '');
+return (isAr
+  ? 'تعذر إنشاء الدرس من مزود الذكاء الاصطناعي. لم يتم تعديل اللوحة. حاول مرة أخرى.'
+  : 'The AI provider did not return executable board commands. The board was not changed. Please try again.')
+  + (lastErr2 ? ` (${lastErr2})` : '');
 };

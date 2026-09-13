@@ -1,4 +1,5 @@
 import type { LessonRequest } from '../../types';
+import { isPlainResponseMode } from '../../services/ai/omnirouter/validate';
 
 interface ChatBody {
   req: LessonRequest;
@@ -43,9 +44,9 @@ export const onRequest = async (context) => {
 
 
 
-  const [{ PROVIDERS }, { buildOfflineLesson }] = await Promise.all([
+  const [{ PROVIDERS }, { textToBoardCommands: parseBoardCommands }] = await Promise.all([
     import('../../services/ai/omnirouter/providers'),
-    import('../../services/ai/omnirouter/offlineLesson'),
+    import('../../services/ai/omnirouter/providers'),
   ]);
 
    try {
@@ -58,11 +59,16 @@ export const onRequest = async (context) => {
     let lastErr: string | null = null;
 
     // 3. Try every real provider in order (same priority as the client usedtto).
+    const needsBoardCommands = !isPlainResponseMode(req.mode);
     for (const p of PROVIDERS) {
       if (p.id === 'offline') continue;
       try {
         const res = await p.complete(req, system, user);
         if (res && res.text && res.text.trim().length > 0) {
+          if (needsBoardCommands && parseBoardCommands(res.text).length === 0) {
+            lastErr = `${p.id} returned no executable board commands`;
+            continue;
+          }
           return new Response(JSON.stringify({ text: res.text, model: res.model, provider: res.provider }), { status: 200, headers: corsHeaders() });
         }
       } catch (e) {
@@ -71,15 +77,7 @@ export const onRequest = async (context) => {
       }
     }
 
-    // 4. Deterministic offline fallback (always works, no network).
-    try {
-      const text = JSON.stringify(buildOfflineLesson(req));
-      return new Response(JSON.stringify({ text, model: 'offline-deterministic', provider: 'offline' }), { status: 200, headers: corsHeaders() });
-    } catch (e) {
-      lastErr = (e as Error).message || lastErr;
-    }
-
-    return new Response(JSON.stringify({ error: 'All AI providers failed. ' + (lastErr || '') }), { status: 502, headers: corsHeaders() });
+    return new Response(JSON.stringify({ error: 'No AI provider returned a usable response. ' + (lastErr || '') }), { status: 502, headers: corsHeaders() });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message || 'Unexpected error' }), { status: 500, headers: corsHeaders() });
   }
