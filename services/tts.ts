@@ -47,28 +47,43 @@ export const cancelSpeech = () => {
     isProcessing = false;
 };
 
-// Play decoded audio buffer (Gemini)
+// Play decoded audio buffer (Gemini or Web Audio)
 const playBuffer = (base64Data: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         try {
             const ctx = getAudioContext();
             const rawBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-            const pcm16 = new Int16Array(rawBytes.buffer);
-            const audioBuffer = ctx.createBuffer(1, pcm16.length, 24000);
-            const channelData = audioBuffer.getChannelData(0);
-            for (let i = 0; i < pcm16.length; i++) {
-                channelData[i] = pcm16[i] / 32768.0;
-            }
-
-            const source = ctx.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(ctx.destination);
-            source.onended = () => {
-                currentSource = null;
-                resolve();
-            };
-            currentSource = source;
-            source.start(0);
+            ctx.decodeAudioData(rawBytes.buffer.slice(0), (audioBuffer) => {
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                source.onended = () => {
+                    currentSource = null;
+                    resolve();
+                };
+                currentSource = source;
+                source.start(0);
+            }, () => {
+                try {
+                    const pcm16 = new Int16Array(rawBytes.buffer);
+                    const audioBuffer = ctx.createBuffer(1, pcm16.length, 24000);
+                    const channelData = audioBuffer.getChannelData(0);
+                    for (let i = 0; i < pcm16.length; i++) {
+                        channelData[i] = pcm16[i] / 32768.0;
+                    }
+                    const source = ctx.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(ctx.destination);
+                    source.onended = () => {
+                        currentSource = null;
+                        resolve();
+                    };
+                    currentSource = source;
+                    source.start(0);
+                } catch (pcmErr) {
+                    reject(pcmErr);
+                }
+            });
         } catch (e) {
             reject(e);
         }
