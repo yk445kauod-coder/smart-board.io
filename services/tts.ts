@@ -9,6 +9,9 @@ interface SpeechTask {
 
 let speechQueue: SpeechTask[] = [];
 let isProcessing = false;
+type TtsMode = 'gemini' | 'browser' | 'off';
+let ttsMode: TtsMode = 'gemini';
+export const setTtsMode = (mode: TtsMode) => { ttsMode = mode; if (mode === 'off') cancelSpeech(); };
 
 // Audio State
 let audioContext: AudioContext | null = null;
@@ -75,6 +78,15 @@ const playBuffer = (base64Data: string): Promise<void> => {
 // Play fallback audio
 const playFallback = (text: string, language: Language): Promise<void> => {
     return new Promise((resolve, reject) => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = language.toLowerCase().startsWith('ar') ? 'ar-SA' : language.toLowerCase().startsWith('fr') ? 'fr-FR' : language.toLowerCase().startsWith('it') ? 'it-IT' : 'en-US';
+            utterance.onend = () => resolve();
+            utterance.onerror = () => reject(new Error('Browser speech synthesis failed'));
+            window.speechSynthesis.speak(utterance);
+            return;
+        }
         const langCode = language.toLowerCase().startsWith('ar') ? 'ar' : 'en-US';
         // Fallback truncation logic to avoid URL length issues
         const safeText = text.length > 200 ? text.substring(0, 200) : text;
@@ -107,13 +119,14 @@ const processQueue = async () => {
     const task = speechQueue[0]; // Peek at the first task
 
     try {
-        // 1. Attempt Gemini TTS
+        if (ttsMode === 'off') return;
         let audioData = null;
-        try {
-            // Fetching here sequentially helps avoid Rate Limit (429) errors
-            audioData = await getSpeechAudioData(task.text, task.language);
-        } catch (e) {
-            console.warn("Gemini TTS fetch failed, trying fallback...");
+        if (ttsMode === 'gemini') {
+          try {
+              audioData = await getSpeechAudioData(task.text, task.language);
+          } catch (e) {
+              console.warn("Gemini TTS fetch failed, trying browser fallback...");
+          }
         }
 
         // Check if queue was cleared while fetching (user interruption)

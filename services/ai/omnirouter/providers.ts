@@ -185,32 +185,35 @@ export const geminiProvider: TextProvider ={
     const apiKey = (typeof window !== 'undefined' && (window as any).__SMARTBOARD_AI_KEY__) || env('GEMINI_API_KEY');
     if (!apiKey) return null;
 
+    const model = env('SMARTBOARD_GEMINI_MODEL') || 'gemini-2.5-pro';
+    const groundedPrompt = `${system}\n\n${user}\n\nUse the Google Search tool when current, factual, or location-specific information would improve the answer. Prefer the teacher-provided document context when present. Do not invent citations or facts.`;
     const body = {
-      model: 'gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.5,
-      response_format: { type: 'json_object' },
-      max_tokens: 4096,
+      system_instruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: `${user}\n\nUse Google Search when needed for current facts. Prefer teacher-provided documents when present.` }] }],
+      tools: [{ google_search: {} }],
+      generationConfig: {
+        temperature: 0.35,
+        maxOutputTokens: 8192,
+        ...(isPlainResponseMode(req.mode) ? {} : { responseMimeType: 'application/json' }),
+      },
+      _groundedPrompt: groundedPrompt,
     };
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, _groundedPrompt: undefined }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error?.message || `Gemini HTTP ${res.status}`);
-      const text = data?.choices?.[0]?.message?.content;
+      const text = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('').trim();
       if (!text) throw new Error('Gemini returned empty content');
-      return { text, model: data?.model || body.model, provider: 'gemini' };
+      return { text, model: data?.model || model, provider: 'gemini', raw: data?.groundingMetadata };
     } catch (e) {
       console.warn('[ai] Gemini failed:', (e as Error).message);
       throw e;

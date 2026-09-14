@@ -91,6 +91,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
+            <span className="material-symbols-rounded text-base">volume_up</span> {t('محرك النطق', 'Speech engine')}
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['gemini', 'browser', 'off'] as const).map((mode) => (
+              <button key={mode} onClick={() => setLocal({ ...local, ttsMode: mode })} className={`mat-btn px-2 py-2.5 rounded-xl border text-sm font-medium transition-all ${(local.ttsMode || 'gemini') === mode ? 'bg-tonal border-primary text-[#4a3f9e]' : 'bg-surface-variant/40 border-black/10 text-on-surface/70'}`}>
+                {mode === 'gemini' ? 'Gemini' : mode === 'browser' ? t('المتصفح', 'Browser') : t('إيقاف', 'Off')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-on-surface/70 flex items-center gap-2">
             <span className="material-symbols-rounded text-base">personality</span> {t('شخصية المساعد', 'Personality')}
           </label>
           <input

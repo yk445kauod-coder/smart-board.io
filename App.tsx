@@ -17,7 +17,7 @@ import { PIN_BY_ID } from './data/atlas';
 import { ElementInfo, ELEMENT_BY_SYMBOL, ELEMENT_BY_NUMBER } from './data/periodic';
 import { defaultInk, THEME_LIST } from './data/themes';
 import type { SlideData } from './types';
-import { speakText, cancelSpeech } from './services/tts';
+import { speakText, cancelSpeech, setTtsMode } from './services/tts';
 import { generateImageWithPollinations } from './services/geminiService';
 import { generateLesson } from './services/ai/assistant';
 import { useNodesState, useEdgesState, addEdge, useReactFlow, ReactFlowProvider } from 'reactflow';
@@ -36,11 +36,12 @@ const AppContent: React.FC = () => {
   // App State
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
-  const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'Arabic', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female' });
+  const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'English', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female', ttsMode: 'gemini' });
   const isAr = settings.language.toLowerCase().startsWith('ar');
   const aiLang = aiLangOf(settings); // Language used by the AI Teacher (may differ from UI language)
   const aiIsAr = aiLang.toLowerCase().startsWith('ar');
   const [isMuted, setIsMuted] = useState(false);
+  useEffect(() => { setTtsMode(settings.ttsMode || 'gemini'); }, [settings.ttsMode]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
   const [isPdfOpen, setIsPdfOpen] = useState(false);
@@ -55,9 +56,19 @@ const AppContent: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [lessonMode, setLessonMode] = useState<LessonMode>('full-lesson');
   const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDoc[]>([]);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('smartboard_knowledge_docs');
+      if (saved) setKnowledgeDocs(JSON.parse(saved));
+    } catch (e) { console.warn('Knowledge restore failed', e); }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('smartboard_knowledge_docs', JSON.stringify(knowledgeDocs)); }
+    catch (e) { console.warn('Knowledge save failed', e); }
+  }, [knowledgeDocs]);
   const [chatPrefill, setChatPrefill] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: 'أهلاً بك! أنا مساعدك البصري. عن ماذا تريد أن نتعلم اليوم؟', timestamp: Date.now() }
+    { role: 'model', text: 'Welcome! I am your visual teaching assistant. What would you like to learn today?', timestamp: Date.now() }
   ]);
 
   // New Features State
@@ -763,12 +774,12 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         customSubjects={customSubjects}
         newSubjectInput={newSubjectInput}
         onSubjectChange={(s) => setSettings(prev => ({ ...prev, subject: s }))}
-        onLanguageChange={(lang) => setSettings(prev => ({ ...prev, language: lang }))}
+        onLanguageChange={(lang) => setSettings(prev => ({ ...prev, language: lang, aiLanguage: lang }))}
         onNewSubjectInput={setNewSubjectInput}
         onAddSubject={handleAddSubject}
         onStart={(data) => {
           if (data.file) handlePdfDocAdded(data.file);
-          setSettings(prev => ({ ...prev, name: data.name.trim() || prev.name, mode: data.mode, topic: data.topic.trim() || prev.topic }));
+          setSettings(prev => ({ ...prev, name: data.name.trim() || prev.name, mode: data.mode, topic: data.topic.trim() || prev.topic, aiLanguage: prev.language }));
           setChatPrefill(data.topic.trim()
             ? (settings.language.toLowerCase().startsWith('ar') ? `حضّر درسًا كاملًا عن: ${data.topic.trim()}` : `Prepare a complete lesson on: ${data.topic.trim()}`)
             : (settings.language.toLowerCase().startsWith('ar') ? 'حضّر درسًا كاملًا' : 'Prepare a complete lesson'));

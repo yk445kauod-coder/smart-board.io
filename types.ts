@@ -55,6 +55,7 @@ export interface TeacherPersona {
   subject: string;
   personality: string;
   voice: 'male' | 'female';
+  ttsMode?: 'gemini' | 'browser' | 'off';
   mode?: TeachingMode;
   topic?: string;
 }
