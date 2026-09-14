@@ -1,7 +1,7 @@
 interface TtsBody {
   text: string;
   language?: string;
- }
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -10,12 +10,11 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-export const onRequest = async ({ request, env }) => {
+export const onRequest = async ({ request, env }: { request: Request; env: any }) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (request.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: CORS });
 
-
-   try {
+  try {
     const { text, language } = await request.json() as TtsBody;
     if (!text || typeof text !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing text' }), { status: 400, headers: CORS });
@@ -27,7 +26,7 @@ export const onRequest = async ({ request, env }) => {
     }
 
     const voice = (language || 'ar').toLowerCase().startsWith('ar') ? 'Zephyr' : 'Puck';
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    const models = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash', 'gemini-2.0-flash'];
     let audioData: string | null = null;
     let lastError: string = '';
 
