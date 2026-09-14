@@ -856,8 +856,20 @@ export const AtlasNode = memo(({ data, selected }: NodeProps<ElementData>) => {
         selected ? 'ring-4 ring-indigo-300' : 'hover:shadow-2xl'
       }`}>
         {data.title && (
-          <div className={`px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg text-center ${fontClass}`}>
+          <div className={`px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg text-center relative ${fontClass}`}>
             {data.title}
+            {selected && enabled.length > 0 && (
+              <button
+                className="absolute top-1.5 start-2 bg-white/90 hover:bg-white text-[11px] px-2 py-0.5 rounded shadow text-red-600 font-medium z-20 pointer-events-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  (window as any).updateNodeData?.(data.id, { sketches: [] });
+                }}
+                title="Clear map annotations"
+              >
+                Clear map drawing
+              </button>
+            )}
           </div>
         )}
         <svg

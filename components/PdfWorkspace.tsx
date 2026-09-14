@@ -106,6 +106,16 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
         lines.forEach((ln, i) => ctx.fillText(ln, nx + 8 * (w / 800), ny + 16 * (w / 800) + i * lh));
       }
     }
+    if (drawing && drawing.kind === 'eraser' && drawing.points?.length) {
+      const last = drawing.points[drawing.points.length - 1];
+      ctx.beginPath();
+      ctx.arc(px(last.x), (last.y || 0) * overlay.height, 0.035 * w, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+    }
   };
 
   const loadPdf = async (file: File) => {
@@ -177,10 +187,30 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     const overlay = overlayRef.current;
     if (!overlay) return null;
     const rect = overlay.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
     return {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
     };
+  };
+
+  const eraseAtPoint = (pos: { x: number; y: number }) => {
+    const radius = 0.035;
+    setAnnotations(prev =>
+      prev.map(a => {
+        if (a.page !== currentPage) return a;
+        const items = a.items.filter(it => {
+          if (it.kind === 'pen' && it.points?.length) {
+            return !it.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) <= radius);
+          }
+          if (it.kind === 'note' && it.x != null && it.y != null) {
+            return Math.hypot(it.x - pos.x, it.y - pos.y) > radius;
+          }
+          return true;
+        });
+        return { ...a, items };
+      }).filter(a => a.items.length > 0)
+    );
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -190,14 +220,17 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     if (tool === 'note') {
       setNoteDraft({ x: pos.x, y: pos.y });
       setNoteText('');
-    } else if (tool === 'pen' || tool === 'eraser') {
+    } else if (tool === 'eraser') {
+      eraseAtPoint(pos);
+      setDrawing({ id: 'e-' + Date.now(), kind: 'eraser', points: [pos] });
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    } else if (tool === 'pen') {
       const drawItem: PDFPageAnnotation = {
         id: 'a-' + Date.now(),
-        kind: tool,
-        points: [{ x: pos.x, y: pos.y }],
+        kind: 'pen',
+        points: [pos],
         color: penColor,
         strokeWidth: penWidth,
-        text: tool === 'eraser' ? '' : undefined,
       };
       setDrawing(drawItem);
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -208,38 +241,22 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     if (!pdf || !drawing) return;
     const pos = getPos(e);
     if (!pos) return;
-    setDrawing(d => (d ? { ...d, points: [...(d.points || []), { x: pos.x, y: pos.y }] } : d));
-  };
-
-  const eraseAt = (path: { x: number; y: number }[]) => {
-    const radius = 0.04;
-    const hit = (p: { x: number; y: number }) =>
-      path.some(e =>
-        Math.hypot(e.x - p.x, e.y - p.y) <= radius
-      );
-    setAnnotations(prev =>
-      prev.map(a => {
-        if (a.page !== currentPage) return a;
-        const items = a.items.filter(it => {
-          if (it.kind === 'pen' && it.points?.length) {
-            return !it.points.some(hit);
-          }
-          if (it.kind === 'note' && it.x != null && it.y != null) {
-            return !hit({ x: it.x, y: it.y });
-          }
-          return true;
-        });
-        return { ...a, items };
-      }).filter(a => a.items.length > 0)
-    );
-  };
-
-  const onPointerUp = () => {
-    if (!drawing) return;
-    const item = drawing;
-    if (item.kind === 'eraser') {
-      eraseAt(item.points || []);
+    if (drawing.kind === 'eraser') {
+      eraseAtPoint(pos);
+      setDrawing(d => (d ? { ...d, points: [...(d.points || []), pos] } : d));
     } else {
+      setDrawing(d => (d ? { ...d, points: [...(d.points || []), pos] } : d));
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!drawing) return;
+    try {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    } catch (_) { /* ignore */ }
+
+    if (drawing.kind === 'pen' && drawing.points && drawing.points.length > 0) {
+      const item = drawing;
       setAnnotations(prev => {
         const exists = prev.find(a => a.page === currentPage);
         const clean: PDFPageAnnotation = {
