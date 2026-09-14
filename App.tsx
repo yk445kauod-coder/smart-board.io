@@ -37,6 +37,19 @@ const AppContent: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
   const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'English', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female', ttsMode: 'gemini' });
+  const settingsHydrated = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('smartboard_settings');
+      if (saved) setSettings(prev => ({ ...prev, ...JSON.parse(saved) }));
+    } catch (e) { console.warn('Settings restore failed', e); }
+    settingsHydrated.current = true;
+  }, []);
+  useEffect(() => {
+    if (!settingsHydrated.current) return;
+    try { localStorage.setItem('smartboard_settings', JSON.stringify(settings)); }
+    catch (e) { console.warn('Settings save failed', e); }
+  }, [settings]);
   const isAr = settings.language.toLowerCase().startsWith('ar');
   const aiLang = aiLangOf(settings); // Language used by the AI Teacher (may differ from UI language)
   const aiIsAr = aiLang.toLowerCase().startsWith('ar');
