@@ -3,6 +3,7 @@ import { ChatMessage, LessonMode, KnowledgeDoc } from '../types';
 import { createSTT } from '../services/stt';
 import { sanitizeHtml } from '../lib/sanitize';
 import { MButton, Spinner, IconBtn } from './ui';
+import { loadVectorMemories } from '../services/ai/vectorMemory';
 
 interface AISheetProps {
   messages: ChatMessage[];
@@ -132,7 +133,13 @@ const AISheet: React.FC<AISheetProps> = ({
         {docs.length > 0 && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium">
             <span className="material-symbols-rounded text-sm">menu_book</span>
-            {isAr ? `${docs.length} مصادر RAG` : `${docs.length} RAG docs`}
+            {isAr ? `${docs.length} RAG` : `${docs.length} RAG`}
+          </span>
+        )}
+        {loadVectorMemories().length > 0 && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium" title="Forever Vector Memory">
+            <span className="material-symbols-rounded text-sm">memory</span>
+            {isAr ? `${loadVectorMemories().length} ذاكرة` : `${loadVectorMemories().length} Mem`}
           </span>
         )}
       </div>
