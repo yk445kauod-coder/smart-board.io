@@ -216,6 +216,8 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  // Track pressure data incrementally O(1) to avoid O(N) array scans on every pointermove frame
+  const hasCustomPressureRef = useRef<boolean>(false);
   
   const { getViewport } = useReactFlow();
 
@@ -251,6 +253,7 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
           const x = e.clientX - bbox.left;
           const y = e.clientY - bbox.top;
           const pressure = e.pressure !== undefined ? e.pressure : 0.5;
+          hasCustomPressureRef.current = pressure !== 0.5;
           setPoints([[x, y, pressure]]);
           setDragStart({ x, y });
           setDragEnd({ x, y });
@@ -276,6 +279,7 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
               const x = evt.clientX - bbox.left;
               const y = evt.clientY - bbox.top;
               const pressure = evt.pressure !== undefined && evt.pressure !== 0 ? evt.pressure : 0.5;
+              if (pressure !== 0.5) hasCustomPressureRef.current = true;
               return [x, y, pressure];
           });
           
@@ -352,7 +356,8 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
       if (points.length > 1) {
           const { x: vpX, y: vpY, zoom } = getViewport();
           const isStylus = e.pointerType === 'pen';
-          const hasPressureData = isStylus || points.some(p => Math.abs(p[2] - 0.5) > 0.05);
+          // Use O(1) incrementally tracked pressure ref instead of scanning all points
+          const hasPressureData = isStylus || hasCustomPressureRef.current;
 
           // Auto-correct freehand into a neat shape
           if (smartShapes && activeTool === 'pen') {
@@ -411,6 +416,7 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
               }
           });
       }
+      hasCustomPressureRef.current = false;
       setPoints([]);
       setDragStart(null);
       setDragEnd(null);
@@ -460,12 +466,14 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
 
       if (points.length < 2) return '';
       const currentSize = activeTool === 'highlighter' ? 24 : penSize;
+      // Optimization: use O(1) incremental pressure tracking (hasCustomPressureRef)
+      // instead of O(N) points.every scan on every pointer move frame
       const options = {
         size: currentSize,
         thinning: 0.6,
         smoothing: 0.7,
         streamline: 0.6,
-        simulatePressure: points.every(p => p[2] === 0.5)
+        simulatePressure: !hasCustomPressureRef.current
       };
       const stroke = getStroke(points, options);
       return getSvgPathFromStroke(stroke);
