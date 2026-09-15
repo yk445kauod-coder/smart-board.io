@@ -105,6 +105,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
         <div className="relative">
           <button
             onClick={() => { setShapeMenuOpen(v => !v); setThemeMenuOpen(false); }}
+            aria-label={isAr ? 'أشكال' : 'Shapes'}
             title={isAr ? 'أشكال' : 'Shapes'}
             className={`mat-btn flex flex-col items-center justify-center gap-0.5 rounded-xl px-2.5 py-2 transition-all select-none ${
               activeTool === 'add-shape'
@@ -121,6 +122,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
                 <button
                   key={s.id}
                   onClick={() => { onSelectShape(s.id); setActiveTool('add-shape'); setShapeMenuOpen(false); }}
+                  aria-label={`${s.labelAr} / ${s.labelEn}`}
                   title={`${s.labelAr} / ${s.labelEn}`}
                   className={`mat-btn flex flex-col items-center gap-0.5 rounded-xl px-2 py-2 ${activeShape === s.id && activeTool === 'add-shape' ? 'bg-tonal text-[#4a3f9e]' : 'hover:bg-surface-variant/70'}`}
                 >
@@ -142,6 +144,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
         <div className="relative">
           <button
             onClick={() => { setToolkitMenuOpen(v => !v); setShapeMenuOpen(false); setThemeMenuOpen(false); }}
+            aria-label={isAr ? 'حقيبة أدوات الفصل' : 'Classroom Toolkit'}
             title={isAr ? 'حقيبة أدوات الفصل' : 'Classroom Toolkit'}
             className="mat-btn flex flex-col items-center justify-center gap-0.5 rounded-xl min-w-[48px] min-h-[48px] px-2.5 py-2 transition-all select-none text-on-surface/80 hover:bg-surface-variant/70"
           >
@@ -149,10 +152,10 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
             <span className="text-[9px] leading-none font-bold opacity-80">{isAr ? 'أدوات الفصل' : 'Toolkit'}</span>
           </button>
           {toolkitMenuOpen && (
-            <div className="absolute bottom-full mb-2 -start-10 z-50 bg-[#080D1E] text-white rounded-2xl shadow-2xl border border-white/10 p-2.5 grid grid-cols-3 gap-2 w-[280px] animate-fade-in font-arabic">
+            <div className="absolute bottom-full mb-2 -start-10 z-50 bg-[#080D1E] text-white rounded-2xl shadow-2xl border-2 border-[#00E5FF]/40 shadow-[4px_4px_0px_0px_#00E5FF] p-2.5 grid grid-cols-3 gap-2 w-[280px] animate-fade-in font-arabic">
               <button
                 onClick={() => { onOpenLab(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF]"
               >
                 <span className="material-symbols-rounded text-xl text-[#00E5FF]">science</span>
                 <span>{isAr ? 'المختبر الكيميائي 3D' : 'Smart Lab 3D'}</span>
@@ -160,7 +163,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
 
               <button
                 onClick={() => { onOpenAtlas(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF]"
               >
                 <span className="material-symbols-rounded text-xl text-[#00E5FF]">map</span>
                 <span>{isAr ? 'أطلس الجغرافيا' : 'Geography Atlas'}</span>
@@ -168,7 +171,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
 
               <button
                 onClick={() => { onOpenWheel?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#F59E0B]"
               >
                 <span className="material-symbols-rounded text-xl text-[#F59E0B]">casino</span>
                 <span>{isAr ? 'قرعة الطلاب' : 'Student Wheel'}</span>
@@ -176,15 +179,15 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
 
               <button
                 onClick={() => { onOpenGeometry?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#D946EF]"
               >
-                <span className="material-symbols-rounded text-xl text-[#10B981]">straighten</span>
+                <span className="material-symbols-rounded text-xl text-[#D946EF]">straighten</span>
                 <span>{isAr ? 'الأدوات الهندسية' : 'Geometry Tools'}</span>
               </button>
 
               <button
                 onClick={() => { onOpenSpotlight?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#F59E0B]"
               >
                 <span className="material-symbols-rounded text-xl text-[#F59E0B]">curtains</span>
                 <span>{isAr ? 'الستارة وكاشف الإجابات' : 'Spotlight & Curtain'}</span>
@@ -192,7 +195,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
 
               <button
                 onClick={() => { onOpenCalculator?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF]"
               >
                 <span className="material-symbols-rounded text-xl text-[#00E5FF]">calculate</span>
                 <span>{isAr ? 'الحاسبة العلمية' : 'Scientific Calculator'}</span>
@@ -211,6 +214,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
         <div className="relative">
           <button
             onClick={() => { setThemeMenuOpen(v => !v); setShapeMenuOpen(false); }}
+            aria-label={isAr ? 'لون السبورة' : 'Board color'}
             title={isAr ? 'لون السبورة' : 'Board color'}
             className="mat-btn flex items-center justify-center rounded-xl px-2 py-2 hover:bg-surface-variant/70"
           >
@@ -225,6 +229,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
                 <button
                   key={t.id}
                   onClick={() => { onSelectTheme(t.id); setThemeMenuOpen(false); }}
+                  aria-label={`${t.ar} / ${t.en}`}
                   title={`${t.ar} / ${t.en}`}
                   className={`mat-btn w-8 h-8 rounded-full border-2 ${boardTheme === t.id ? 'border-primary scale-110' : 'border-black/15'} hover:scale-105 transition-transform`}
                   style={{ backgroundColor: t.bg }}
@@ -238,8 +243,9 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
         {/* Run Board */}
         <button
           onClick={onToggleRun}
+          aria-label={isAr ? (isRunning ? 'إنهاء العرض' : 'تشغيل اللوحة') : isRunning ? 'Exit run' : 'Run board'}
           title={isAr ? (isRunning ? 'إنهاء العرض' : 'تشغيل اللوحة') : isRunning ? 'Exit run' : 'Run board'}
-          className={`mat-btn flex items-center gap-1.5 px-4 py-2 rounded-full font-semibold text-sm shadow-elev-1 transition-all ${
+          className={`mat-btn flex items-center gap-1.5 px-4 py-2 rounded-full font-semibold text-sm shadow-elev-1 transition-all focus-visible:ring-2 focus-visible:ring-primary ${
             isRunning ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-primary text-white hover:shadow-elev-2'
           }`}
         >
