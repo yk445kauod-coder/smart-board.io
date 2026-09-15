@@ -36,6 +36,10 @@ export interface ToolbarProps {
   // New classroom tools
   onOpenAtlas: () => void;
   onOpenLab: () => void;
+  onOpenWheel?: () => void;
+  onOpenGeometry?: () => void;
+  onOpenSpotlight?: () => void;
+  onOpenCalculator?: () => void;
   boardTheme: BoardTheme;
   onSelectTheme: (t: BoardTheme) => void;
   activeShape: string;
@@ -77,6 +81,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
   const shapeLabel = SHAPES.find(s => s.id === activeShape);
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [toolkitMenuOpen, setToolkitMenuOpen] = useState(false);
 
   return (
     <div className="pointer-events-auto w-full flex justify-center pb-3 relative">
@@ -129,27 +134,68 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
         <IconBtn label={isAr ? 'إعادة' : 'Redo'} icon="redo" onClick={onRedo} disabled={!canRedo} />
         <ToolSeparator />
 
-        {/* Classroom panels: Atlas + Smart Lab */}
-        <button
-          onClick={onOpenAtlas}
-          title={isAr ? 'الأطلس — الخرائط' : 'Atlas — Maps'}
-          className={`mat-btn flex flex-col items-center justify-center gap-0.5 rounded-xl px-2.5 py-2 transition-all select-none ${
-            activeTool === 'atlas' ? 'mat-btn--active shadow-elev-1' : 'text-on-surface/80 hover:bg-surface-variant/70'
-          }`}
-        >
-          <span className="material-symbols-rounded leading-none text-[19px]">map</span>
-          <span className="text-[9px] leading-none opacity-70">{isAr ? 'الأطلس' : 'Atlas'}</span>
-        </button>
-        <button
-          onClick={onOpenLab}
-          title={isAr ? 'المعمل الذكي — الجدول الدوري' : 'Smart Lab — Chemistry'}
-          className={`mat-btn flex flex-col items-center justify-center gap-0.5 rounded-xl px-2.5 py-2 transition-all select-none ${
-            activeTool === 'lab' ? 'mat-btn--active shadow-elev-1' : 'text-on-surface/80 hover:bg-surface-variant/70'
-          }`}
-        >
-          <span className="material-symbols-rounded leading-none text-[19px]">science</span>
-          <span className="text-[9px] leading-none opacity-70">{isAr ? 'المعمل' : 'Lab'}</span>
-        </button>
+        {/* Classroom Toolkit Popup Menu */}
+        <div className="relative">
+          <button
+            onClick={() => { setToolkitMenuOpen(v => !v); setShapeMenuOpen(false); setThemeMenuOpen(false); }}
+            title={isAr ? 'حقيبة أدوات الفصل' : 'Classroom Toolkit'}
+            className="mat-btn flex flex-col items-center justify-center gap-0.5 rounded-xl min-w-[48px] min-h-[48px] px-2.5 py-2 transition-all select-none text-on-surface/80 hover:bg-surface-variant/70"
+          >
+            <span className="material-symbols-rounded leading-none text-[22px] text-[#00E5FF]">home_storage</span>
+            <span className="text-[9px] leading-none font-bold opacity-80">{isAr ? 'أدوات الفصل' : 'Toolkit'}</span>
+          </button>
+          {toolkitMenuOpen && (
+            <div className="absolute bottom-full mb-2 -start-10 z-50 bg-[#080D1E] text-white rounded-2xl shadow-2xl border border-white/10 p-2.5 grid grid-cols-3 gap-2 w-[280px] animate-fade-in font-arabic">
+              <button
+                onClick={() => { onOpenLab(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#00E5FF]">science</span>
+                <span>{isAr ? 'المختبر الكيميائي 3D' : 'Smart Lab 3D'}</span>
+              </button>
+
+              <button
+                onClick={() => { onOpenAtlas(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#00E5FF]">map</span>
+                <span>{isAr ? 'أطلس الجغرافيا' : 'Geography Atlas'}</span>
+              </button>
+
+              <button
+                onClick={() => { onOpenWheel?.(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#F59E0B]">casino</span>
+                <span>{isAr ? 'قرعة الطلاب' : 'Student Wheel'}</span>
+              </button>
+
+              <button
+                onClick={() => { onOpenGeometry?.(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#10B981]">straighten</span>
+                <span>{isAr ? 'الأدوات الهندسية' : 'Geometry Tools'}</span>
+              </button>
+
+              <button
+                onClick={() => { onOpenSpotlight?.(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#F59E0B]">curtains</span>
+                <span>{isAr ? 'الستارة وكاشف الإجابات' : 'Spotlight & Curtain'}</span>
+              </button>
+
+              <button
+                onClick={() => { onOpenCalculator?.(); setToolkitMenuOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/5"
+              >
+                <span className="material-symbols-rounded text-xl text-[#00E5FF]">calculate</span>
+                <span>{isAr ? 'الحاسبة العلمية' : 'Scientific Calculator'}</span>
+              </button>
+            </div>
+          )}
+        </div>
         <ToolSeparator />
 
         {/* Board tools */}
