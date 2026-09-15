@@ -48,6 +48,7 @@ export async function parsePdfFile(
         parts.push(trimmed);
         currentTotalLength += trimmed.length;
       }
+      page.cleanup();
     } catch (err) {
       console.warn(`Failed to parse page ${i} of PDF`, err);
     }
