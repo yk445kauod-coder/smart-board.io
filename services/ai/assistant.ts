@@ -5,6 +5,7 @@ import { buildRoutingHint, layoutCommands } from './omnirouter/boardSchema';
 import { isPlainResponseMode } from './omnirouter/validate';
 import { buildKnowledgeContext } from '../knowledge';
 import { neutralizeDocText, truncateForPrompt } from '../../lib/sanitize';
+import { storeMemory, recallRelevantMemories } from './vectorMemory';
 
 export interface AssistantCall {
   mode: LessonMode;
@@ -59,6 +60,17 @@ const buildUserPrompt = (req: LessonRequest, docs: KnowledgeDoc[]): string => {
   parts.push(buildRoutingHint(req, []));
   parts.push('');
   parts.push('Teacher request: ' + req.prompt);
+
+  // Retrieve Forever Vector Memory entries relevant to current prompt
+  const recalledMemories = recallRelevantMemories(req.prompt, 4);
+  if (recalledMemories.length > 0) {
+    parts.push('');
+    parts.push('Forever Vector Memory (Recalled long-term teacher context):');
+    recalledMemories.forEach(m => {
+      parts.push(`- [${m.category}] ${m.text}`);
+    });
+  }
+
   if (docs.length > 0) {
     parts.push('');
     parts.push(buildKnowledgeContext(req.prompt, docs));

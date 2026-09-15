@@ -3,6 +3,7 @@ import { ChatMessage, LessonMode, KnowledgeDoc } from '../types';
 import { createSTT } from '../services/stt';
 import { sanitizeHtml } from '../lib/sanitize';
 import { MButton, Spinner, IconBtn } from './ui';
+import { loadVectorMemories } from '../services/ai/vectorMemory';
 
 interface AISheetProps {
   messages: ChatMessage[];
@@ -115,22 +116,30 @@ const AISheet: React.FC<AISheetProps> = ({
   return (
     <div className="bg-white rounded-t-3xl shadow-elev-12 flex flex-col max-h-[72vh]" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div className="px-6 pt-5 pb-3 border-b border-black/5 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-tonal text-[#4a3f9e] flex items-center justify-center">
-          <span className="material-symbols-rounded">smart_toy</span>
+      <div className="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-slate-900 to-emerald-950 text-white rounded-t-3xl">
+        <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg relative">
+          <span className="material-symbols-rounded text-2xl ms-fill">smart_toy</span>
+          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse" />
         </div>
         <div className="flex-1">
-          <h2 className={`font-semibold text-on-surface leading-tight ${isAr ? 'font-display-ar' : 'font-display'}`}>
-            {isAr ? 'المعلم الذكي' : 'AI Teacher'}
+          <h2 className={`font-bold text-lg leading-tight text-white flex items-center gap-2 ${isAr ? 'font-display-ar' : 'font-display'}`}>
+            {isAr ? 'المعلم الذكي — المساعد التفاعلي' : 'AI Classroom Assistant'}
+            <span className="pixel-badge bg-emerald-400/20 text-emerald-300 border-emerald-400/40 text-[10px] px-2 py-0.5">LIVE</span>
           </h2>
-          <p className="text-xs text-on-surface/50">
-            {isAr ? 'يساعدك على التحضير والشرح وتجهيز السبورة' : 'Prepares, explains and builds your board'}
+          <p className="text-xs text-emerald-200/80">
+            {isAr ? 'يتحكم بالسبورة ويشرح ويبني الدروس تفاعليًا' : 'Controls whiteboard, explains & builds lessons interactively'}
           </p>
         </div>
         {docs.length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tonal text-[#4a3f9e] text-xs font-medium">
-            <span className="material-symbols-rounded text-sm">database</span>
-            {isAr ? `${docs.length} مصدر` : `${docs.length} source`}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium">
+            <span className="material-symbols-rounded text-sm">menu_book</span>
+            {isAr ? `${docs.length} RAG` : `${docs.length} RAG`}
+          </span>
+        )}
+        {loadVectorMemories().length > 0 && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium" title="Forever Vector Memory">
+            <span className="material-symbols-rounded text-sm">memory</span>
+            {isAr ? `${loadVectorMemories().length} ذاكرة` : `${loadVectorMemories().length} Mem`}
           </span>
         )}
       </div>

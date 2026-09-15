@@ -99,19 +99,54 @@ export const generateImageWithPollinations = (description: string): string => {
 export const getSpeechAudioData = (text: string, language: string): Promise<string | null> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const res = await fetch('/api/tts', {
+      const apiBase = (globalThis as any).__SMARTBOARD_API_BASE__ || '';
+      let res: Response | null = null;
+      try {
+        res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, language }),
+        });
+      } catch (e) { /* ignore relative fetch error */ }
+
+      if ((!res || !res.ok) && apiBase) {
+        try {
+          res = await fetch(`${apiBase}/api/tts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, language }),
+          });
+        } catch (e) { /* ignore */ }
+      }
+
+      if (res && res.ok) {
+        const data = await res.json() as { audioData?: string };
+        if (data?.audioData) return resolve(data.audioData);
+      }
+
+      // Direct Gemini REST API fallback
+      const apiKey = (globalThis as any).__GEMINI_API_KEY__ || (typeof process !== 'undefined' ? (process as any).env?.GEMINI_API_KEY : undefined);
+      if (!apiKey) throw new Error('GEMINI_API_KEY not set');
+      const voice = (language || 'ar').toLowerCase().startsWith('ar') ? 'Zephyr' : 'Puck';
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language }),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+          },
+        }),
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error || ('TTS HTTP ' + res.status));
+
+      if (geminiRes.ok) {
+        const gData = await geminiRes.json().catch(() => ({}));
+        const audioData = gData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (audioData) return resolve(audioData);
       }
-      const data = await res.json() as { audioData?: string };
-      const audioData = data?.audioData;
-      if (!audioData) throw new Error('No audio data returned from API');
-      resolve(audioData);
+
+      throw new Error('Gemini TTS service unavailable');
     } catch (error) {
       console.error("TTS API Error:", error);
       reject(error);

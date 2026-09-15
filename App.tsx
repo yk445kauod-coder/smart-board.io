@@ -1028,10 +1028,14 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
   );
 };
 
+import { ErrorBoundary } from './components/ui';
+
 const App: React.FC = () => (
-  <ReactFlowProvider>
-    <AppContent />
-  </ReactFlowProvider>
+  <ErrorBoundary>
+    <ReactFlowProvider>
+      <AppContent />
+    </ReactFlowProvider>
+  </ErrorBoundary>
 );
 
 export default App;

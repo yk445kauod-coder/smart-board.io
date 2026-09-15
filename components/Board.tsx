@@ -529,7 +529,7 @@ const SmartBoard: React.FC<SmartBoardProps> = ({
             {(isDrawTool || isShapeTool) && (
                 <div 
                     className="absolute inset-0 z-50 touch-none"
-                    style={{ pointerEvents: isDrawing ? 'auto' : 'none' }}
+                    style={{ pointerEvents: (isDrawTool || isShapeTool) ? 'auto' : 'none' }}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
