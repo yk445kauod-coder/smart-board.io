@@ -144,7 +144,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center">
           <div className="bg-slate-800 p-8 rounded-2xl max-w-md shadow-2xl border border-slate-700">
-            <span className="material-symbols-rounded text-5xl text-emerald-400 mb-3 block">warning</span>
+            <span className="material-symbols-rounded text-5xl text-[#00E5FF] mb-3 block">warning</span>
             <h2 className="text-xl font-bold mb-2">SmartBoard Recovered</h2>
             <p className="text-sm text-slate-300 mb-6">
               An unexpected issue occurred, but your session is protected.
@@ -154,7 +154,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 (this as any).setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-lg transition-all"
+              className="px-6 py-2.5 bg-[#00E5FF] hover:brightness-110 text-black rounded-xl font-semibold shadow-lg transition-all"
             >
               Reload Application
             </button>
