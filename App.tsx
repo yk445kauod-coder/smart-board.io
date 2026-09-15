@@ -10,9 +10,14 @@ import HomeScreen from './components/HomeScreen';
 import BottomToolbar from './components/BottomToolbar';
 import AISheet from './components/AISheet';
 import SlideRail from './components/SlideRail';
+import TopBar from './components/TopBar';
 import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode, BoardMode, BoardTheme, aiLangOf } from './types';
 import AtlasPanel from './components/AtlasPanel';
 import SmartLabPanel from './components/SmartLabPanel';
+import StudentPickerModal from './components/StudentPickerModal';
+import GeometryToolsOverlay from './components/GeometryToolsModal';
+import SpotlightCurtainOverlay from './components/SpotlightCurtainOverlay';
+import ScientificCalcModal from './components/ScientificCalcModal';
 import { PIN_BY_ID } from './data/atlas';
 import { ElementInfo, ELEMENT_BY_SYMBOL, ELEMENT_BY_NUMBER } from './data/periodic';
 import { defaultInk, THEME_LIST } from './data/themes';
@@ -98,6 +103,10 @@ const AppContent: React.FC = () => {
   const [activeShape, setActiveShape] = useState('rectangle');
   const [isAtlasOpen, setIsAtlasOpen] = useState(false);
   const [isLabOpen, setIsLabOpen] = useState(false);
+  const [isWheelOpen, setIsWheelOpen] = useState(false);
+  const [isGeometryOpen, setIsGeometryOpen] = useState(false);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
 
   // Undo/Redo stacks
   const [history, setHistory] = useState<Array<{ nodes: Node<ElementData>[]; edges: Edge[] }>>([]);
@@ -804,8 +813,19 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
 
   return (
     <div className="w-screen h-screen bg-board overflow-hidden flex flex-col">
+      {/* Clean Head Bar */}
+      {!isRunning && (
+        <TopBar
+          lessonTitle={settings.topic || settings.subject || ''}
+          onLessonTitleChange={(t) => setSettings(prev => ({ ...prev, topic: t }))}
+          isOffline={isOffline}
+          language={settings.language}
+          onExportPdf={() => setIsPdfOpen(true)}
+        />
+      )}
+
       {/* Board canvas — always fills the screen */}
-      <div className={`flex-1 min-h-0 relative ${isRunning ? '' : 'p-2'} ${isRunning ? '' : 'pt-3'}`}>
+      <div className="flex-1 min-h-0 relative">
         <SmartBoard
           nodes={nodes}
           edges={edges}
@@ -826,20 +846,6 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         />
       </div>
 
-      {/* Top status chip (compact, Material) */}
-      {!isRunning && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
-          <div className="bg-white/80 backdrop-blur rounded-full shadow-elev-1 border border-black/5 px-4 py-1.5 flex items-center gap-2 text-xs text-on-surface/70">
-            <span className="material-symbols-rounded text-sm text-primary ms-fill">cast_for_education</span>
-            <span className="font-medium">{settings.subject || 'General'}</span>
-            {settings.topic && <span className="hidden sm:inline text-on-surface/40">·</span>}
-            {settings.topic && <span className="hidden sm:inline max-w-[16rem] truncate">{settings.topic}</span>}
-          </div>
-        </div>
-      )}
-      <div className={`absolute top-3 right-3 z-40 pixel-badge px-2 py-1 text-[10px] font-bold ${isOffline ? 'bg-amber-200 text-amber-950' : 'bg-emerald-200 text-emerald-950'}`}>
-        {isOffline ? (isAr ? 'أوفلاين · محفوظ محليًا' : 'OFFLINE · SAVED LOCALLY') : (isAr ? 'متصل' : 'ONLINE')}
-      </div>
 
       {/* Bottom toolbar — main control center */}
       {!isRunning && (
@@ -874,6 +880,10 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
             onAddText={() => setActiveTool('add-text')}
             onOpenAtlas={() => setIsAtlasOpen(true)}
             onOpenLab={() => setIsLabOpen(true)}
+            onOpenWheel={() => setIsWheelOpen(true)}
+            onOpenGeometry={() => setIsGeometryOpen(true)}
+            onOpenSpotlight={() => setIsSpotlightOpen(true)}
+            onOpenCalculator={() => setIsCalcOpen(true)}
             boardTheme={boardTheme}
             onSelectTheme={(t) => {
               setBoardTheme(t);
@@ -1023,6 +1033,30 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         onPlaceElement={handlePlaceElement}
         onPlaceReaction={handlePlaceReaction}
         onPlaceText={handlePlaceLabText}
+      />
+
+      <StudentPickerModal
+        isOpen={isWheelOpen}
+        onClose={() => setIsWheelOpen(false)}
+        language={settings.language}
+      />
+
+      <GeometryToolsOverlay
+        isOpen={isGeometryOpen}
+        onClose={() => setIsGeometryOpen(false)}
+        language={settings.language}
+      />
+
+      <SpotlightCurtainOverlay
+        isOpen={isSpotlightOpen}
+        onClose={() => setIsSpotlightOpen(false)}
+        language={settings.language}
+      />
+
+      <ScientificCalcModal
+        isOpen={isCalcOpen}
+        onClose={() => setIsCalcOpen(false)}
+        language={settings.language}
       />
     </div>
   );
