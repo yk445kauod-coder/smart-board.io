@@ -181,7 +181,7 @@ const SmartLabPanel: React.FC<SmartLabPanelProps> = ({ open, onClose, language, 
             </div>
             {balanced && (
               <div className={`mt-3 rounded-xl px-4 py-3 font-mono text-center text-base font-semibold ${
-                balanced.balanced ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'
+                balanced.balanced ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : 'bg-[#F59E0B]/10 text-[#F59E0B]'
               }`} dir="ltr">
                 {equationToString(balanced, isAr)}
               </div>
@@ -236,7 +236,7 @@ const SmartLabPanel: React.FC<SmartLabPanelProps> = ({ open, onClose, language, 
               </select>
             </div>
             <div className={`mt-3 rounded-xl px-4 py-3 text-sm font-medium ${
-              doesDisplace(metalA, metalB) ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'
+              doesDisplace(metalA, metalB) ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : 'bg-red-50 text-red-700'
             }`}>
               {doesDisplace(metalA, metalB)
                 ? t(`${REACTIVITY_NAMES[metalA]?.ar || metalA} يزيح ${REACTIVITY_NAMES[metalB]?.ar || metalB} من مركباته.`, `${metalA} displaces ${metalB} from its compounds.`)

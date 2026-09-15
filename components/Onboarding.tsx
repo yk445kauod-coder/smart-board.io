@@ -195,7 +195,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
           ) : (
             <button
               onClick={() => onStart({ name, mode, topic, file })}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white text-lg font-bold shadow-lg hover:shadow-xl"
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#D946EF] text-black text-lg font-bold shadow-lg hover:brightness-110"
             >
               <i className="fa-solid fa-rocket mr-2"></i>{isAr ? 'ابدأ التدريس' : 'Start Teaching'}
             </button>
