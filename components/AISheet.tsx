@@ -116,28 +116,28 @@ const AISheet: React.FC<AISheetProps> = ({
   return (
     <div className="bg-white rounded-t-3xl shadow-elev-12 flex flex-col max-h-[72vh]" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div className="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-slate-900 to-emerald-950 text-white rounded-t-3xl">
-        <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg relative">
+      <div className="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-slate-900 via-[#080D1E] to-slate-950 text-white rounded-t-3xl">
+        <div className="w-11 h-11 rounded-2xl bg-[#00E5FF] text-slate-950 flex items-center justify-center shadow-lg relative">
           <span className="material-symbols-rounded text-2xl ms-fill">smart_toy</span>
-          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse" />
+          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#00E5FF] rounded-full border-2 border-slate-900 animate-pulse" />
         </div>
         <div className="flex-1">
           <h2 className={`font-bold text-lg leading-tight text-white flex items-center gap-2 ${isAr ? 'font-display-ar' : 'font-display'}`}>
             {isAr ? 'المعلم الذكي — المساعد التفاعلي' : 'AI Classroom Assistant'}
-            <span className="pixel-badge bg-emerald-400/20 text-emerald-300 border-emerald-400/40 text-[10px] px-2 py-0.5">LIVE</span>
+            <span className="pixel-badge bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/40 text-[10px] px-2 py-0.5">LIVE</span>
           </h2>
-          <p className="text-xs text-emerald-200/80">
+          <p className="text-xs text-cyan-200/80">
             {isAr ? 'يتحكم بالسبورة ويشرح ويبني الدروس تفاعليًا' : 'Controls whiteboard, explains & builds lessons interactively'}
           </p>
         </div>
         {docs.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00E5FF]/20 text-cyan-200 border border-[#00E5FF]/30 text-xs font-medium">
             <span className="material-symbols-rounded text-sm">menu_book</span>
             {isAr ? `${docs.length} RAG` : `${docs.length} RAG`}
           </span>
         )}
         {loadVectorMemories().length > 0 && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-xs font-medium" title="Forever Vector Memory">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#00E5FF]/20 text-cyan-200 border border-[#00E5FF]/30 text-xs font-medium" title="Forever Vector Memory">
             <span className="material-symbols-rounded text-sm">memory</span>
             {isAr ? `${loadVectorMemories().length} ذاكرة` : `${loadVectorMemories().length} Mem`}
           </span>

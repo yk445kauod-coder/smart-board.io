@@ -141,7 +141,7 @@ export const ScientificCalcModal: React.FC<ScientificCalcModalProps> = ({
               onClick={() => (btn === '=' ? handleCalculate() : handleAppend(btn))}
               className={`py-3 rounded-xl font-bold font-numbers text-sm transition-all ${
                 btn === '='
-                  ? 'bg-gradient-to-r from-[#00E5FF] to-emerald-400 text-black font-extrabold'
+                  ? 'bg-[#00E5FF] hover:bg-[#00E5FF]/90 text-black font-extrabold shadow-md'
                   : 'bg-white/10 hover:bg-white/20 text-white'
               }`}
             >

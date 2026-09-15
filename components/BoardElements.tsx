@@ -792,166 +792,119 @@ const REGION_FILL: Record<string, string> = {
   'middle-east': '#ffe0b2',
 };
 
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
+
+const GEO_URL = '/world-countries-110m.json';
+const REGION_CENTER_CONFIG: Record<string, { center: [number, number]; zoom: number }> = {
+  world: { center: [0, 0], zoom: 1 },
+  africa: { center: [20, 0], zoom: 2.2 },
+  'n-america': { center: [-100, 40], zoom: 2.2 },
+  's-america': { center: [-60, -20], zoom: 2.2 },
+  asia: { center: [90, 30], zoom: 2.2 },
+  europe: { center: [15, 50], zoom: 3.2 },
+  oceania: { center: [135, -25], zoom: 2.5 },
+  'middle-east': { center: [45, 25], zoom: 3.5 },
+  egypt: { center: [30, 26.5], zoom: 5.5 },
+};
+
+const MAP_PIN_COORDS: Record<string, [number, number]> = {
+  us: [-100, 38], brazil: [-52, -10], uk: [-3, 55], france: [2, 46], germany: [10, 51],
+  egypt: [30, 27], saudi: [45, 24], japan: [138, 36], china: [105, 35], india: [79, 22],
+  australia: [134, -25], russia: [90, 60],
+};
+
+const EGYPT_GOVERNORATES: Record<string, { nameAr: string; nameEn: string; coords: [number, number] }> = {
+  cairo: { nameAr: 'القاهرة', nameEn: 'Cairo', coords: [31.2357, 30.0444] },
+  alexandria: { nameAr: 'الإسكندرية', nameEn: 'Alexandria', coords: [29.9187, 31.2001] },
+  aswan: { nameAr: 'أسوان', nameEn: 'Aswan', coords: [32.8998, 24.0889] },
+  luxor: { nameAr: 'الأقصر', nameEn: 'Luxor', coords: [32.6396, 25.6872] },
+  sinai: { nameAr: 'سيناء', nameEn: 'Sinai', coords: [33.8, 28.5] },
+  giza: { nameAr: 'الجيزة', nameEn: 'Giza', coords: [31.2109, 30.0131] },
+  sahel: { nameAr: 'الساحل الشمالي', nameEn: 'North Coast', coords: [28.95, 30.9] },
+};
+
 export const AtlasNode = memo(({ data, selected }: NodeProps<ElementData>) => {
   const fontClass = getFontClass(data.title || '');
-  const region = data.regionId;
-  const [localStrokes, setLocalStrokes] = useState<Map<string, string[][]>>(new Map());
-  const drawingRef = useRef<string[][]>([]);
-  const drawingActive = useRef(false);
+  const region = data.regionId || 'world';
+  const cfg = REGION_CENTER_CONFIG[region] || REGION_CENTER_CONFIG.world;
 
-  const commitStrokes = () => {
-    const current = drawingRef.current;
-    if (!current.length) return;
-    const merged = [...(data.sketches || []), ...current.map(pts => ({ color: '#e53935', width: 4, points: pts }))];
-    drawingRef.current = [];
-    setLocalStrokes(new Map());
-    (window as any).updateNodeData?.(data.id, { sketches: merged });
-  };
-
-  const onMapPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    if ((window as any).isPointerTool?.()) return;
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    drawingActive.current = true;
-    const svg = e.currentTarget;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const p = pt.matrixTransform(ctm.inverse());
-    drawingRef.current = [[`${p.x},${p.y}`]];
-    setLocalStrokes(new Map(drawingRef.current.map((pts, i) => [String(i), [pts]])));
-    svg.setPointerCapture?.(e.pointerId);
-  };
-
-  const onMapPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!drawingActive.current) return;
-    const svg = e.currentTarget;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const p = pt.matrixTransform(ctm.inverse());
-    const idx = drawingRef.current.length - 1;
-    if (idx < 0) return;
-    drawingRef.current[idx].push(`${p.x},${p.y}`);
-    setLocalStrokes(new Map(drawingRef.current.map((pts, i) => [String(i), [pts]])));
-  };
-
-  const onMapPointerUp = () => {
-    if (!drawingActive.current) return;
-    drawingActive.current = false;
-    commitStrokes();
-  };
-
-  const enabled = (Array.isArray(data.sketches) ? data.sketches : []);
-  const strokes = enabled.map(s => s.points.map(pt => `${pt.x},${pt.y}`)).concat(Array.from(localStrokes.values()).map(g => g[0]));
+  const enabled = Array.isArray(data.sketches) ? data.sketches : [];
 
   return (
     <div className="relative group">
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <DeleteHandle id={data.id} onDelete={(window as any).deleteNode} />
-      <div className={`bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden ${
+      <div className={`bg-[#082b55] rounded-2xl shadow-xl border border-gray-200 overflow-hidden w-[560px] ${
         selected ? 'ring-4 ring-indigo-300' : 'hover:shadow-2xl'
       }`}>
         {data.title && (
-          <div className={`px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg text-center relative ${fontClass}`}>
+          <div className={`px-4 py-2.5 bg-gradient-to-r from-slate-900 via-[#080D1E] to-slate-950 text-white font-bold text-lg text-center relative border-b border-white/10 ${fontClass}`}>
             {data.title}
-            {selected && enabled.length > 0 && (
-              <button
-                className="absolute top-1.5 start-2 bg-white/90 hover:bg-white text-[11px] px-2 py-0.5 rounded shadow text-red-600 font-medium z-20 pointer-events-auto"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  (window as any).updateNodeData?.(data.id, { sketches: [] });
-                }}
-                title="Clear map annotations"
-              >
-                Clear map drawing
-              </button>
-            )}
           </div>
         )}
-        <svg
-          viewBox="0 0 1000 500"
-          className="w-[560px] max-w-full h-auto"
-          style={{ background: '#eaf3ff', touchAction: 'none', cursor: (window as any).isPointerTool?.() ? 'grab' : 'crosshair' }}
-          onPointerDown={onMapPointerDown}
-          onPointerMove={onMapPointerMove}
-          onPointerUp={onMapPointerUp}
-          onPointerLeave={onMapPointerUp}
-        >
-          {region === 'egypt' ? (
-            <>
-              <polygon
-                points={EGYPT.points.map(p => `${Math.round(p[0]*1.4)},${Math.round(p[1]*1.5)}`).join(' ')}
-                fill="#c8e6c9"
-                stroke="#2e7d32"
-                strokeWidth="3"
-              />
-              {Object.entries(EGYPT.governorates).map(([k, g]) => (
-                <g key={k}>
-                  <circle cx={Math.round(g.x*1.4)} cy={Math.round(g.y*1.5)} r="5" fill="#1e88e5">
-                    <title>{g.nameAr} / {g.nameEn}</title>
-                  </circle>
-                  <text x={Math.round(g.x*1.4) + 8} y={Math.round(g.y*1.5) + 4} fontSize="13" fill="#0d47a1" className={getFontClass(g.nameAr)}>
-                    {g.nameAr}
-                  </text>
-                </g>
+        <div className="relative w-full h-[320px] bg-[#082b55]">
+          <ComposableMap projection="geoEqualEarth" projectionConfig={{ scale: 140 }} className="w-full h-full">
+            <ZoomableGroup zoom={cfg.zoom} center={cfg.center} minZoom={1} maxZoom={8}>
+              <Geographies geography={GEO_URL}>
+                {({ geographies }) =>
+                  geographies.map((geo) => (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      style={{
+                        default: { fill: '#284b73', stroke: '#d8f3f7', strokeWidth: 0.4, outline: 'none' },
+                        hover: { fill: '#00E5FF', outline: 'none' },
+                        pressed: { fill: '#F59E0B', outline: 'none' },
+                      }}
+                    />
+                  ))
+                }
+              </Geographies>
+              {region === 'egypt' ? (
+                Object.entries(EGYPT_GOVERNORATES).map(([key, gov]) => (
+                  <Marker key={key} coordinates={gov.coords}>
+                    <circle r={4} fill="#00E5FF" stroke="#fff" strokeWidth={1} />
+                    <text
+                      textAnchor="middle"
+                      y={-8}
+                      style={{ fontSize: 9, fill: '#fff', fontWeight: 'bold', fontFamily: 'sans-serif' }}
+                    >
+                      {gov.nameAr}
+                    </text>
+                  </Marker>
+                ))
+              ) : (
+                WORLD_PINS.map((pin) => {
+                  const coords = MAP_PIN_COORDS[pin.id];
+                  if (!coords) return null;
+                  return (
+                    <Marker key={pin.id} coordinates={coords}>
+                      <circle r={3.5} fill="#F59E0B" stroke="#fff" strokeWidth={1} />
+                    </Marker>
+                  );
+                })
+              )}
+            </ZoomableGroup>
+          </ComposableMap>
+          {enabled.length > 0 && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+              {enabled.map((s: any, idx: number) => (
+                <path
+                  key={idx}
+                  d={s.path || s.svgPath || ''}
+                  fill={s.fill || 'none'}
+                  stroke={s.stroke || s.strokeColor || '#00E5FF'}
+                  strokeWidth={s.strokeWidth || 3}
+                  opacity={s.opacity || 1}
+                />
               ))}
-            </>
-          ) : region === 'world' || !region ? (
-            <>
-              {WORLD.map((r) => (
-                <polygon
-                  key={r.id}
-                  points={r.points}
-                  fill={region === 'world' ? REGION_FILL[r.id] : '#dfe7f0'}
-                  stroke="#607d8b"
-                  strokeWidth={region === 'world' ? 2 : 1.2}
-                  opacity={region === 'world' ? 0.95 : 0.8}
-                >
-                  <title>{r.nameAr} / {r.nameEn}</title>
-                </polygon>
-              ))}
-              {WORLD_PINS.map((p) => (
-                <g key={p.id}>
-                  <circle cx={p.x} cy={p.y} r="4" fill="#ef5350" stroke="#fff" strokeWidth="1.5">
-                    <title>{p.nameAr}</title>
-                  </circle>
-                </g>
-              ))}
-            </>
-          ) : (
-            <>
-              {WORLD.filter((r) => r.id === region).map((r) => (
-                <polygon key={r.id} points={r.points} fill={REGION_FILL[r.id] || '#ffe082'} stroke="#e65100" strokeWidth="3" opacity="0.9">
-                  <title>{r.nameAr}</title>
-                </polygon>
-              ))}
-              {WORLD_PINS.filter((p) => p.id === region).map((p) => (
-                <g key={p.id}>
-                  <circle cx={p.x} cy={p.y} r="5" fill="#ef5350" stroke="#fff" strokeWidth="1.5" />
-                </g>
-              ))}
-            </>
+            </svg>
           )}
-          {/* Teacher / AI annotations drawn over the map */}
-          {strokes.map((pts, i) => (
-            <polyline
-              key={'d' + i}
-              points={pts.join(' ')}
-              fill="none"
-              stroke={data.sketches?.[i]?.color || '#e53935'}
-              strokeWidth={data.sketches?.[i]?.width || 4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.95}
-            />
-          ))}
-        </svg>
+        </div>
         {data.description && (
-          <div className={`px-4 py-2 text-sm text-gray-600 border-t border-gray-100 ${getFontClass(data.description)}`}>{data.description}</div>
+          <div className={`px-4 py-2 text-xs text-cyan-100 bg-slate-900/80 border-t border-white/10 ${getFontClass(data.description)}`}>
+            {data.description}
+          </div>
         )}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
