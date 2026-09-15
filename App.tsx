@@ -16,7 +16,6 @@ import AtlasPanel from './components/AtlasPanel';
 import SmartLabPanel from './components/SmartLabPanel';
 import StudentPickerModal from './components/StudentPickerModal';
 import GeometryToolsOverlay from './components/GeometryToolsModal';
-import SpotlightCurtainOverlay from './components/SpotlightCurtainOverlay';
 import ScientificCalcModal from './components/ScientificCalcModal';
 import { PIN_BY_ID } from './data/atlas';
 import { ElementInfo, ELEMENT_BY_SYMBOL, ELEMENT_BY_NUMBER } from './data/periodic';
@@ -105,7 +104,6 @@ const AppContent: React.FC = () => {
   const [isLabOpen, setIsLabOpen] = useState(false);
   const [isWheelOpen, setIsWheelOpen] = useState(false);
   const [isGeometryOpen, setIsGeometryOpen] = useState(false);
-  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
 
   // Undo/Redo stacks
@@ -285,7 +283,7 @@ const AppContent: React.FC = () => {
       });
       setCurrentSlideIndex(0);
     } else {
-      // Going back to infinite: merge? Keep current slide content as main board. Keep slides preserved.
+      // Going back to infinite
     }
     setBoardMode(mode);
   }, [boardMode, nodes, edges]);
@@ -384,7 +382,6 @@ const AppContent: React.FC = () => {
             'add-note': { content: 'New Note', color: '#fff740' },
             'add-text': { text: 'Type something...', color: '#333' },
             'add-shape': (() => {
-              // Single click → quick default shape; line/arrow need a drag
               if (activeShape === 'line' || activeShape === 'arrow') return null;
               return { shapeType: activeShape, color: penColor || '#a8e6cf', width: 150, height: 110 };
             })(),
@@ -429,7 +426,7 @@ const AppContent: React.FC = () => {
           const { title, nodes: mindMapNodes, x, y } = args;
           const centerX = x || defaultPos.x;
           const centerY = y || defaultPos.y;
-          const rootId = id; // Use passed-in ID for the root
+          const rootId = id;
 
           const newFlowNodes: Node[] = [];
           const newFlowEdges: Edge[] = [];
@@ -527,7 +524,6 @@ const AppContent: React.FC = () => {
              const nodeType = typeMap[name];
              if(nodeType) {
                 const data: Record<string, unknown> = { ...args, type: nodeType };
-                // Normalize graph-based nodes into the data shape the renderers expect.
                 if ((name === 'addFlowchart' || name === 'addDiagram') && Array.isArray(args.nodes)) {
                   data.graphNodes = args.nodes;
                 }
@@ -548,7 +544,6 @@ const AppContent: React.FC = () => {
                   data.x2 = args.x2 ?? 120; data.y2 = args.y2 ?? 0;
                 }
                 if (name === 'addPeriodic') {
-                  // Resolve symbol → element number so the card renders.
                   const el = typeof args.elementNumber === 'number'
                     ? ELEMENT_BY_NUMBER[Number(args.elementNumber)]
                     : ELEMENT_BY_SYMBOL[String(args.symbol || '').trim().replace(/[0-9]/g, '')];
@@ -652,7 +647,7 @@ const AppContent: React.FC = () => {
     setIsLabOpen(false);
   }, [setNodes]);
 
-  // --- Smart Lab: place a text list (reactivity series, companion materials) ---
+  // --- Smart Lab: place a text list ---
   const handlePlaceLabText = useCallback((title: string, items: string[]) => {
     const id = 'list-' + Date.now();
     setNodes(nds => [...nds, {
@@ -665,13 +660,12 @@ const AppContent: React.FC = () => {
 
 const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) => {
     const nextMode = mode || lessonMode;
-    cancelSpeech(); // Stop any previous speech
+    cancelSpeech();
     const userMsg: ChatMessage = { role: 'user', text: prompt, timestamp: Date.now() };
     setChatMessages(prev => [...prev, userMsg]);
     setIsAiLoading(true);
 
     try {
-      // Gather context from the current board
       const selected = nodes.filter((n: Node) => (n as any).selected).map((n: Node) => {
         const d = (n.data as any) || {};
         return {
@@ -775,7 +769,6 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
 
   // --- RENDER LOGIC ---
 
-  // Clean up when leaving board
   useEffect(() => {
     if (view !== 'board') {
       setIsChatOpen(false);
@@ -824,7 +817,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         />
       )}
 
-      {/* Board canvas — always fills the screen */}
+      {/* Board canvas */}
       <div className="flex-1 min-h-0 relative">
         <SmartBoard
           nodes={nodes}
@@ -847,7 +840,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
       </div>
 
 
-      {/* Bottom toolbar — main control center */}
+      {/* Bottom toolbar */}
       {!isRunning && (
         <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none pb-3 px-2 flex flex-col items-center gap-2">
           <SlideRail
@@ -882,12 +875,10 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
             onOpenLab={() => setIsLabOpen(true)}
             onOpenWheel={() => setIsWheelOpen(true)}
             onOpenGeometry={() => setIsGeometryOpen(true)}
-            onOpenSpotlight={() => setIsSpotlightOpen(true)}
             onOpenCalculator={() => setIsCalcOpen(true)}
             boardTheme={boardTheme}
             onSelectTheme={(t) => {
               setBoardTheme(t);
-              // Auto-switch default pen color to match board brightness
               setPenColor(defaultInk(t));
             }}
             activeShape={activeShape}
@@ -948,7 +939,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         </>
       )}
 
-      {/* AI Teacher bottom sheet (temporary overlay, not permanent) */}
+      {/* AI Teacher bottom sheet */}
       {isChatOpen && (
         <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/20 animate-fade-in" onClick={() => setIsChatOpen(false)}>
           <div className="w-full max-w-2xl mx-auto px-4 pb-4 animate-fade-in-down" onClick={(e) => e.stopPropagation()}>
@@ -969,7 +960,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
         </div>
       )}
 
-      {/* Pen options (color + size) — compact Material popover above toolbar */}
+      {/* Pen options */}
       {!isRunning && (activeTool === 'pen' || activeTool === 'highlighter') && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-white/95 backdrop-blur shadow-elev-2 rounded-2xl px-4 py-2.5 flex items-center gap-3 border border-black/5 animate-fade-in">
@@ -1044,12 +1035,6 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
       <GeometryToolsOverlay
         isOpen={isGeometryOpen}
         onClose={() => setIsGeometryOpen(false)}
-        language={settings.language}
-      />
-
-      <SpotlightCurtainOverlay
-        isOpen={isSpotlightOpen}
-        onClose={() => setIsSpotlightOpen(false)}
         language={settings.language}
       />
 

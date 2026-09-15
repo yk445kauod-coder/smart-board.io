@@ -33,12 +33,11 @@ export interface ToolbarProps {
   onAddNote: () => void;
   onAddText: () => void;
   hasSelected?: boolean;
-  // New classroom tools
+  // Classroom tools
   onOpenAtlas: () => void;
   onOpenLab: () => void;
   onOpenWheel?: () => void;
   onOpenGeometry?: () => void;
-  onOpenSpotlight?: () => void;
   onOpenCalculator?: () => void;
   boardTheme: BoardTheme;
   onSelectTheme: (t: BoardTheme) => void;
@@ -69,7 +68,6 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
   onOpenLab,
   onOpenWheel,
   onOpenGeometry,
-  onOpenSpotlight,
   onOpenCalculator,
   boardTheme,
   onSelectTheme,
@@ -152,7 +150,7 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
             <span className="text-[9px] leading-none font-bold opacity-80">{isAr ? 'أدوات الفصل' : 'Toolkit'}</span>
           </button>
           {toolkitMenuOpen && (
-            <div className="absolute bottom-full mb-2 -start-10 z-50 bg-[#080D1E] text-white rounded-2xl shadow-2xl border-2 border-[#00E5FF]/40 shadow-[4px_4px_0px_0px_#00E5FF] p-2.5 grid grid-cols-3 gap-2 w-[280px] animate-fade-in font-arabic">
+            <div className="absolute bottom-full mb-2 -start-10 z-50 bg-[#080D1E] text-white rounded-2xl shadow-2xl border border-white/10 p-2.5 grid grid-cols-2 gap-2 w-[240px] animate-fade-in font-arabic">
               <button
                 onClick={() => { onOpenLab(); setToolkitMenuOpen(false); }}
                 className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF]"
@@ -182,20 +180,12 @@ const BottomToolbar: React.FC<ToolbarProps> = ({
                 className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#D946EF]"
               >
                 <span className="material-symbols-rounded text-xl text-[#D946EF]">straighten</span>
-                <span>{isAr ? 'الأدوات الهندسية' : 'Geometry Tools'}</span>
-              </button>
-
-              <button
-                onClick={() => { onOpenSpotlight?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#F59E0B]"
-              >
-                <span className="material-symbols-rounded text-xl text-[#F59E0B]">curtains</span>
-                <span>{isAr ? 'الستارة وكاشف الإجابات' : 'Spotlight & Curtain'}</span>
+                <span>{isAr ? 'الهندسة والرياضيات' : 'Geometry & Math'}</span>
               </button>
 
               <button
                 onClick={() => { onOpenCalculator?.(); setToolkitMenuOpen(false); }}
-                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF]"
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-center border border-white/10 hover:border-[#00E5FF] col-span-2"
               >
                 <span className="material-symbols-rounded text-xl text-[#00E5FF]">calculate</span>
                 <span>{isAr ? 'الحاسبة العلمية' : 'Scientific Calculator'}</span>

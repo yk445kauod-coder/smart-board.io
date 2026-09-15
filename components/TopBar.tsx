@@ -56,7 +56,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="w-full bg-[#080D1E]/95 backdrop-blur border-b-2 border-[#00E5FF]/20 text-white px-4 py-2 flex items-center justify-between select-none z-40 transition-all font-sans">
+    <header className="w-full bg-[#080D1E]/90 backdrop-blur border-b border-white/10 text-white px-4 py-2 flex items-center justify-between select-none z-40 transition-all font-sans">
       {/* Right side (RTL): Brand Logo + editable Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -68,11 +68,11 @@ export const TopBar: React.FC<TopBarProps> = ({
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
-          <span className="font-bold text-sm tracking-wider bg-gradient-to-r from-[#00E5FF] via-[#D946EF] to-[#F59E0B] bg-clip-text text-transparent font-numbers">
+          <span className="font-bold text-sm tracking-wide text-[#00E5FF] font-numbers">
             SmartBoard
           </span>
-          {/* Retro Pixel Art Chrome Badge */}
-          <span className="bg-[#080D1E] text-[#00E5FF] text-[10px] font-mono font-bold px-1.5 py-0.5 border-2 border-[#00E5FF] shadow-[2px_2px_0px_0px_#00E5FF] font-numbers uppercase tracking-tight">
+          {/* Subtle Clean Badge */}
+          <span className="bg-[#00E5FF]/10 text-[#00E5FF] text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-[#00E5FF]/30 font-numbers">
             v2.4
           </span>
         </div>
@@ -81,28 +81,28 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Lesson Title Input */}
         <div className="flex items-center gap-1.5">
-          <span className="material-symbols-rounded text-xs text-[#00E5FF]/70">edit_note</span>
+          <span className="material-symbols-rounded text-xs text-white/50">edit_note</span>
           <input
             type="text"
             value={lessonTitle}
             onChange={(e) => onLessonTitleChange(e.target.value)}
             placeholder={isAr ? 'عنوان الدرس...' : 'Lesson Title...'}
             aria-label={isAr ? 'عنوان الدرس' : 'Lesson Title'}
-            className="bg-transparent border-b-2 border-white/20 hover:border-[#00E5FF]/50 focus:border-[#00E5FF] focus:bg-white/5 px-1 py-0.5 text-sm font-semibold text-white focus:outline-none focus:ring-1 focus:ring-[#00E5FF] transition-all rounded-none w-40 sm:w-60 font-arabic"
+            className="bg-transparent border-b border-white/20 hover:border-white/40 focus:border-[#00E5FF] focus:bg-white/5 px-1 py-0.5 text-sm font-semibold text-white/90 focus:outline-none transition-all rounded w-40 sm:w-60 font-arabic"
           />
         </div>
       </div>
 
       {/* Center: Local Save Indicator + Timer */}
       <div className="flex items-center gap-4">
-        {/* Retro Pixel Chrome Offline Local Save Indicator */}
-        <div className="flex items-center gap-2 bg-[#080D1E] border-2 border-[#00E5FF] shadow-[2px_2px_0px_0px_#00E5FF] px-2.5 py-0.5 text-xs text-[#00E5FF] font-mono tracking-tight font-bold">
-          <span className="w-2 h-2 bg-[#00E5FF] animate-pulse" />
-          <span>{isAr ? 'تم الحفظ محلياً ✓' : 'Saved locally ✓'}</span>
+        {/* Offline local save indicator in Cyan/Amber theme */}
+        <div className="flex items-center gap-2 bg-[#00E5FF]/10 border border-[#00E5FF]/30 px-2.5 py-1 rounded-full text-xs text-[#00E5FF]">
+          <span className="w-2 h-2 rounded-full bg-[#00E5FF] animate-pulse" />
+          <span className="font-medium">{isAr ? 'تم الحفظ محلياً ✓' : 'Saved locally ✓'}</span>
         </div>
 
-        {/* Classroom Activity Timer with Pixel Shadow */}
-        <div className="hidden md:flex items-center gap-2 bg-[#080D1E] border-2 border-[#F59E0B]/80 shadow-[2px_2px_0px_0px_#F59E0B] px-3 py-0.5">
+        {/* Classroom Activity Timer */}
+        <div className="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
           <span className="material-symbols-rounded text-sm text-[#F59E0B]">timer</span>
           <span className="font-mono text-xs font-bold text-[#F59E0B] tracking-wider">
             {formatTime(seconds)}
@@ -133,7 +133,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={onExportPdf}
           aria-label={isAr ? 'تصدير الدرس بصيغة PDF' : 'Export Lesson PDF'}
-          className="flex items-center gap-1.5 px-3 py-1 bg-[#080D1E] hover:bg-white/10 text-xs font-semibold text-white transition-all border-2 border-white/20 hover:border-[#00E5FF] shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)] hover:shadow-[2px_2px_0px_0px_#00E5FF] focus-visible:ring-2 focus-visible:ring-[#00E5FF]"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-all border border-white/10 focus-visible:ring-2 focus-visible:ring-[#00E5FF]"
           title={isAr ? 'تصدير الدرس PDF' : 'Export Lesson PDF'}
         >
           <span className="material-symbols-rounded text-sm text-[#00E5FF]">picture_as_pdf</span>
@@ -143,7 +143,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={toggleFullscreen}
           aria-label={isAr ? 'ملء الشاشة' : 'Fullscreen'}
-          className="p-1 bg-[#080D1E] hover:bg-white/10 text-white/80 hover:text-white transition-all border-2 border-white/20 hover:border-[#00E5FF] shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)] focus-visible:ring-2 focus-visible:ring-[#00E5FF]"
+          className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all border border-white/10 focus-visible:ring-2 focus-visible:ring-[#00E5FF]"
           title={isAr ? 'ملء الشاشة' : 'Fullscreen'}
         >
           <span className="material-symbols-rounded text-base">fullscreen</span>

@@ -6,7 +6,7 @@ interface GeometryToolsOverlayProps {
   language: string;
 }
 
-type ActiveTool = 'ruler' | 'protractor' | 'compass';
+type TabType = 'shapes' | 'theorems' | 'latex';
 
 export const GeometryToolsOverlay: React.FC<GeometryToolsOverlayProps> = ({
   isOpen,
@@ -14,238 +14,323 @@ export const GeometryToolsOverlay: React.FC<GeometryToolsOverlayProps> = ({
   language,
 }) => {
   const isAr = language.toLowerCase().startsWith('ar');
-  const [activeTool, setActiveTool] = useState<ActiveTool>('ruler');
+  const [activeTab, setActiveTab] = useState<TabType>('shapes');
 
-  // Ruler state
-  const [rulerPos, setRulerPos] = useState({ x: 200, y: 200 });
-  const [rulerAngle, setRulerAngle] = useState(0);
+  // Interactive Shape calculations state
+  const [selectedShape, setSelectedShape] = useState<'rightTriangle' | 'isosceles' | 'equilateral' | 'circle' | 'parallelogram'>('rightTriangle');
+  const [sideA, setSideA] = useState<number>(3);
+  const [sideB, setSideB] = useState<number>(4);
+  const [radius, setRadius] = useState<number>(5);
 
-  // Protractor state
-  const [protPos, setProtPos] = useState({ x: 300, y: 150 });
-
-  // Compass state
-  const [compassPos, setCompassPos] = useState({ x: 250, y: 220 });
-  const [compassRadius, setCompassRadius] = useState(120);
-  const [compassAngle, setCompassAngle] = useState(0);
+  // LaTeX & Theorem states
+  const [activeTheorem, setActiveTheorem] = useState<'pythagoras' | 'area' | 'thales' | 'circleTheory'>('pythagoras');
+  const [customLatex, setCustomLatex] = useState<string>('a^2 + b^2 = c^2');
 
   if (!isOpen) return null;
 
+  // Compute geometry metrics dynamically
+  const pythagorasHyp = Math.sqrt(sideA * sideA + sideB * sideB).toFixed(2);
+  const rightTriangleArea = (0.5 * sideA * sideB).toFixed(2);
+  const circleArea = (Math.PI * radius * radius).toFixed(2);
+  const circleCircumference = (2 * Math.PI * radius).toFixed(2);
+
   return (
-    <div className="fixed inset-0 z-40 pointer-events-none flex flex-col justify-between p-4">
-      {/* Geometry Control Toolbar */}
-      <div className="pointer-events-auto self-center bg-[#080D1E]/90 backdrop-blur border border-white/10 text-white rounded-2xl shadow-xl px-4 py-2 flex items-center gap-3">
-        <span className="text-xs font-bold text-[#00E5FF] font-arabic flex items-center gap-1">
-          <span className="material-symbols-rounded text-base">straighten</span>
-          {isAr ? 'الأدوات الهندسية' : 'Geometry Tools'}
-        </span>
-
-        <div className="h-4 w-px bg-white/20" />
-
-        <button
-          onClick={() => setActiveTool('ruler')}
-          className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-            activeTool === 'ruler' ? 'bg-[#00E5FF] text-black' : 'hover:bg-white/10 text-white/80'
-          }`}
-        >
-          <span className="material-symbols-rounded text-sm">square_foot</span>
-          {isAr ? 'المسطرة' : 'Ruler'}
-        </button>
-
-        <button
-          onClick={() => setActiveTool('protractor')}
-          className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-            activeTool === 'protractor' ? 'bg-[#00E5FF] text-[#080D1E]' : 'hover:bg-white/10 text-white/80'
-          }`}
-        >
-          <span className="material-symbols-rounded text-sm">donut_large</span>
-          {isAr ? 'المنقلة' : 'Protractor'}
-        </button>
-
-        <button
-          onClick={() => setActiveTool('compass')}
-          className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-            activeTool === 'compass' ? 'bg-[#00E5FF] text-[#080D1E]' : 'hover:bg-white/10 text-white/80'
-          }`}
-        >
-          <span className="material-symbols-rounded text-sm">architecture</span>
-          {isAr ? 'الفرجار' : 'Compass'}
-        </button>
-
-        <div className="h-4 w-px bg-white/20" />
-
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-white/20 rounded-lg text-white/60 hover:text-white transition-all"
-          title={isAr ? 'إغلاق الأدوات' : 'Close tools'}
-        >
-          <span className="material-symbols-rounded text-sm">close</span>
-        </button>
-      </div>
-
-      {/* Interactive Tool Renderers */}
-      <div className="flex-1 relative pointer-events-none my-4">
-        {/* 1. Ruler Tool Overlay */}
-        {activeTool === 'ruler' && (
-          <div
-            style={{
-              transform: `translate(${rulerPos.x}px, ${rulerPos.y}px) rotate(${rulerAngle}deg)`,
-            }}
-            className="pointer-events-auto absolute bg-amber-100/90 border-2 border-amber-600/60 rounded-lg shadow-2xl w-[450px] h-[70px] select-none flex flex-col justify-between p-1.5 cursor-move"
-            onMouseDown={(e) => {
-              const startX = e.clientX - rulerPos.x;
-              const startY = e.clientY - rulerPos.y;
-              const onMove = (me: MouseEvent) => {
-                setRulerPos({ x: me.clientX - startX, y: me.clientY - startY });
-              };
-              const onUp = () => {
-                window.removeEventListener('mousemove', onMove);
-                window.removeEventListener('mouseup', onUp);
-              };
-              window.addEventListener('mousemove', onMove);
-              window.addEventListener('mouseup', onUp);
-            }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in font-arabic">
+      <div className="bg-[#080D1E] border border-white/10 text-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-rounded text-[#D946EF] text-2xl">architecture</span>
+            <h2 className="text-lg font-bold text-white">
+              {isAr ? 'الأشكال والنظريات الهندسية (LaTeX)' : 'Geometry Shapes & Theorems'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label={isAr ? 'إغلاق' : 'Close'}
+            className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
           >
-            {/* Top Ticks */}
-            <div className="flex justify-between items-start h-6 border-b border-amber-800/30 px-2 relative">
-              {Array.from({ length: 30 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <div
-                    className={`bg-amber-900 ${i % 5 === 0 ? 'h-4 w-0.5' : 'h-2 w-px opacity-60'}`}
-                  />
-                  {i % 5 === 0 && (
-                    <span className="text-[9px] font-mono font-bold text-amber-950">
-                      {i / 2}
-                    </span>
+            <span className="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        {/* Tab Selection Navigation */}
+        <div className="flex border-b border-white/10 bg-black/30 px-6 pt-3 gap-2">
+          <button
+            onClick={() => setActiveTab('shapes')}
+            className={`px-4 py-2 text-xs font-semibold rounded-t-xl transition-all border-b-2 flex items-center gap-1.5 ${
+              activeTab === 'shapes'
+                ? 'border-[#00E5FF] text-[#00E5FF] bg-white/5'
+                : 'border-transparent text-white/60 hover:text-white'
+            }`}
+          >
+            <span className="material-symbols-rounded text-sm">category</span>
+            {isAr ? 'الأشكال الهندسية' : 'Geometric Shapes'}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('theorems')}
+            className={`px-4 py-2 text-xs font-semibold rounded-t-xl transition-all border-b-2 flex items-center gap-1.5 ${
+              activeTab === 'theorems'
+                ? 'border-[#F59E0B] text-[#F59E0B] bg-white/5'
+                : 'border-transparent text-white/60 hover:text-white'
+            }`}
+          >
+            <span className="material-symbols-rounded text-sm">functions</span>
+            {isAr ? 'النظريات والقوانين' : 'Theorems & Laws'}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('latex')}
+            className={`px-4 py-2 text-xs font-semibold rounded-t-xl transition-all border-b-2 flex items-center gap-1.5 ${
+              activeTab === 'latex'
+                ? 'border-[#D946EF] text-[#D946EF] bg-white/5'
+                : 'border-transparent text-white/60 hover:text-white'
+            }`}
+          >
+            <span className="material-symbols-rounded text-sm">draw</span>
+            {isAr ? 'محرر صيغ LaTeX' : 'LaTeX Formula Renderer'}
+          </button>
+        </div>
+
+        {/* Tab Body Contents */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {/* TAB 1: Geometric Shapes */}
+          {activeTab === 'shapes' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Left Selector List */}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs text-[#00E5FF] font-bold mb-1">
+                  {isAr ? 'اختر الشكل:' : 'Select Shape:'}
+                </span>
+                {[
+                  { id: 'rightTriangle', labelAr: 'مثلث قائم الزاويه (Right Triangle)', labelEn: 'Right Triangle' },
+                  { id: 'isosceles', labelAr: 'مثلث متساوي الساقين (Isosceles)', labelEn: 'Isosceles Triangle' },
+                  { id: 'equilateral', labelAr: 'مثلث متساوي الأضلاع (Equilateral)', labelEn: 'Equilateral Triangle' },
+                  { id: 'circle', labelAr: 'الدائرة (Circle)', labelEn: 'Circle' },
+                  { id: 'parallelogram', labelAr: 'متوازي الأضلاع (Parallelogram)', labelEn: 'Parallelogram' },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedShape(s.id as any)}
+                    className={`p-3 rounded-xl text-xs text-start font-medium transition-all border ${
+                      selectedShape === s.id
+                        ? 'bg-[#00E5FF]/10 border-[#00E5FF] text-[#00E5FF]'
+                        : 'bg-white/5 border-white/5 text-white/80 hover:bg-white/10'
+                    }`}
+                  >
+                    {isAr ? s.labelAr : s.labelEn}
+                  </button>
+                ))}
+              </div>
+
+              {/* Center Interactive SVG Diagram */}
+              <div className="md:col-span-2 bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-between">
+                <div className="w-full h-48 flex items-center justify-center relative">
+                  {selectedShape === 'rightTriangle' && (
+                    <svg width="200" height="150" viewBox="0 0 200 150">
+                      <polygon points="30,120 170,120 30,20" fill="rgba(0, 229, 255, 0.15)" stroke="#00E5FF" strokeWidth="3" />
+                      <rect x="30" y="105" width="15" height="15" fill="none" stroke="#F59E0B" strokeWidth="2" />
+                      <text x="100" y="140" fill="#fff" fontSize="12" textAnchor="middle">a = {sideA}</text>
+                      <text x="15" y="70" fill="#fff" fontSize="12" textAnchor="middle">b = {sideB}</text>
+                      <text x="110" y="65" fill="#D946EF" fontSize="12" fontWeight="bold">c = {pythagorasHyp}</text>
+                    </svg>
+                  )}
+
+                  {selectedShape === 'circle' && (
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                      <circle cx="90" cy="90" r="70" fill="rgba(217, 70, 239, 0.15)" stroke="#D946EF" strokeWidth="3" />
+                      <line x1="90" y1="90" x2="160" y2="90" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4" />
+                      <circle cx="90" cy="90" r="4" fill="#00E5FF" />
+                      <text x="125" y="80" fill="#F59E0B" fontSize="12" fontWeight="bold">r = {radius}</text>
+                    </svg>
+                  )}
+
+                  {(selectedShape === 'isosceles' || selectedShape === 'equilateral') && (
+                    <svg width="200" height="150" viewBox="0 0 200 150">
+                      <polygon points="100,20 30,130 170,130" fill="rgba(245, 158, 11, 0.15)" stroke="#F59E0B" strokeWidth="3" />
+                      <text x="100" y="145" fill="#fff" fontSize="12" textAnchor="middle">Base (القاعدة)</text>
+                    </svg>
+                  )}
+
+                  {selectedShape === 'parallelogram' && (
+                    <svg width="220" height="140" viewBox="0 0 220 140">
+                      <polygon points="50,20 200,20 170,120 20,120" fill="rgba(0, 229, 255, 0.15)" stroke="#00E5FF" strokeWidth="3" />
+                      <text x="110" y="75" fill="#fff" fontSize="12" textAnchor="middle">Parallelogram</text>
+                    </svg>
                   )}
                 </div>
-              ))}
-            </div>
 
-            {/* Rotation Control handle */}
-            <div className="flex justify-between items-center px-3 text-amber-900 text-xs font-semibold">
-              <span className="text-[10px] opacity-70">
-                {isAr ? 'قياس بالسنتمتر (cm)' : 'Centimeters (cm)'}
-              </span>
-              <div className="flex items-center gap-2">
-                <label className="text-[10px] font-bold">Z:</label>
-                <input
-                  type="range"
-                  min="-180"
-                  max="180"
-                  value={rulerAngle}
-                  onChange={(e) => setRulerAngle(Number(e.target.value))}
-                  className="w-20 accent-amber-700"
-                />
-                <span className="font-mono text-[10px]">{rulerAngle}°</span>
+                {/* Input Controls & Metrics Calculation */}
+                <div className="w-full border-t border-white/10 pt-3 flex flex-col gap-2">
+                  {selectedShape === 'rightTriangle' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-1">الضلع الأول (a):</label>
+                        <input
+                          type="number"
+                          value={sideA}
+                          onChange={(e) => setSideA(Math.max(1, Number(e.target.value)))}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-white/70 block mb-1">الضلع الثاني (b):</label>
+                        <input
+                          type="number"
+                          value={sideB}
+                          onChange={(e) => setSideB(Math.max(1, Number(e.target.value)))}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedShape === 'circle' && (
+                    <div>
+                      <label className="text-[11px] text-white/70 block mb-1">نصف القطر (r):</label>
+                      <input
+                        type="number"
+                        value={radius}
+                        onChange={(e) => setRadius(Math.max(1, Number(e.target.value)))}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                      />
+                    </div>
+                  )}
+
+                  <div className="bg-white/5 rounded-xl p-2 text-xs flex justify-around text-center">
+                    {selectedShape === 'rightTriangle' && (
+                      <>
+                        <div>
+                          <span className="text-white/50 block text-[10px]">الوتر (Hypotenuse):</span>
+                          <span className="font-mono text-[#D946EF] font-bold">{pythagorasHyp}</span>
+                        </div>
+                        <div>
+                          <span className="text-white/50 block text-[10px]">المساحة (Area):</span>
+                          <span className="font-mono text-[#00E5FF] font-bold">{rightTriangleArea}</span>
+                        </div>
+                      </>
+                    )}
+                    {selectedShape === 'circle' && (
+                      <>
+                        <div>
+                          <span className="text-white/50 block text-[10px]">المساحة (Area):</span>
+                          <span className="font-mono text-[#D946EF] font-bold">{circleArea}</span>
+                        </div>
+                        <div>
+                          <span className="text-white/50 block text-[10px]">المحيط (Circumference):</span>
+                          <span className="font-mono text-[#F59E0B] font-bold">{circleCircumference}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 2. Protractor Tool Overlay */}
-        {activeTool === 'protractor' && (
-          <div
-            style={{ transform: `translate(${protPos.x}px, ${protPos.y}px)` }}
-            className="pointer-events-auto absolute bg-sky-200/40 border-2 border-sky-500/80 rounded-t-full shadow-2xl w-[320px] h-[160px] select-none cursor-move flex flex-col justify-end items-center relative overflow-hidden"
-            onMouseDown={(e) => {
-              const startX = e.clientX - protPos.x;
-              const startY = e.clientY - protPos.y;
-              const onMove = (me: MouseEvent) => {
-                setProtPos({ x: me.clientX - startX, y: me.clientY - startY });
-              };
-              const onUp = () => {
-                window.removeEventListener('mousemove', onMove);
-                window.removeEventListener('mouseup', onUp);
-              };
-              window.addEventListener('mousemove', onMove);
-              window.addEventListener('mouseup', onUp);
-            }}
-          >
-            {/* Protractor Arc Ticks */}
-            <svg className="absolute inset-0 w-full h-full">
-              <path
-                d="M 10 150 A 150 150 0 0 1 310 150 Z"
-                fill="none"
-                stroke="rgba(14, 165, 233, 0.4)"
-                strokeWidth="2"
-              />
-              {Array.from({ length: 19 }).map((_, i) => {
-                const angle = (i * 10 * Math.PI) / 180;
-                const x1 = 160 - 150 * Math.cos(angle);
-                const y1 = 160 - 150 * Math.sin(angle);
-                const x2 = 160 - 135 * Math.cos(angle);
-                const y2 = 160 - 135 * Math.sin(angle);
-                return (
-                  <line
-                    key={i}
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke="#0369a1"
-                    strokeWidth={i % 3 === 0 ? "2" : "1"}
-                  />
-                );
-              })}
-            </svg>
-            <div className="w-3 h-3 rounded-full border-2 border-sky-700 bg-white mb-1 z-10" />
-            <span className="text-[10px] font-bold text-sky-900 mb-2 z-10 font-mono">180°</span>
-          </div>
-        )}
+          {/* TAB 2: Mathematical Theorems */}
+          {activeTab === 'theorems' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {[
+                  { id: 'pythagoras', title: 'نظرية فيثاغورس (Pythagoras)' },
+                  { id: 'area', title: 'مساحة المثلث (Triangle Area)' },
+                  { id: 'thales', title: 'نظرية طاليس (Thales Theorem)' },
+                  { id: 'circleTheory', title: 'قوانين الدائرة (Circle Laws)' },
+                ].map((th) => (
+                  <button
+                    key={th.id}
+                    onClick={() => setActiveTheorem(th.id as any)}
+                    className={`p-2.5 rounded-xl text-xs font-semibold text-center border transition-all ${
+                      activeTheorem === th.id
+                        ? 'bg-[#F59E0B]/10 border-[#F59E0B] text-[#F59E0B]'
+                        : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    {th.title}
+                  </button>
+                ))}
+              </div>
 
-        {/* 3. Compass Tool Overlay */}
-        {activeTool === 'compass' && (
-          <div
-            style={{ transform: `translate(${compassPos.x}px, ${compassPos.y}px)` }}
-            className="pointer-events-auto absolute select-none cursor-move flex flex-col items-center"
-            onMouseDown={(e) => {
-              const startX = e.clientX - compassPos.x;
-              const startY = e.clientY - compassPos.y;
-              const onMove = (me: MouseEvent) => {
-                setCompassPos({ x: me.clientX - startX, y: me.clientY - startY });
-              };
-              const onUp = () => {
-                window.removeEventListener('mousemove', onMove);
-                window.removeEventListener('mouseup', onUp);
-              };
-              window.addEventListener('mousemove', onMove);
-              window.addEventListener('mouseup', onUp);
-            }}
-          >
-            <svg width={compassRadius * 2 + 20} height={compassRadius * 2 + 20} className="overflow-visible">
-              <circle
-                cx={compassRadius + 10}
-                cy={compassRadius + 10}
-                r={compassRadius}
-                fill="none"
-                stroke="#00E5FF"
-                strokeWidth="2"
-                strokeDasharray="6 4"
-              />
-              <line
-                x1={compassRadius + 10}
-                y1={compassRadius + 10}
-                x2={compassRadius + 10 + compassRadius * Math.cos((compassAngle * Math.PI) / 180)}
-                y2={compassRadius + 10 + compassRadius * Math.sin((compassAngle * Math.PI) / 180)}
-                stroke="#F59E0B"
-                strokeWidth="3"
-              />
-            </svg>
+              <div className="bg-black/40 border border-white/10 rounded-2xl p-5 space-y-4">
+                {activeTheorem === 'pythagoras' && (
+                  <div>
+                    <h3 className="text-[#F59E0B] font-bold text-sm mb-2">نظرية فيثاغورس (Pythagorean Theorem)</h3>
+                    <p className="text-xs text-white/80 leading-relaxed mb-3">
+                      في المثلث القائم الزاوية، مربع طول الوتر يساوي مجموع مربعي طولي الضلعين المحاذيين للزاوية القائمة.
+                    </p>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-sm text-[#00E5FF]">
+                      a^2 + b^2 = c^2 \implies c = \sqrt{`{a^2 + b^2}`}
+                    </div>
+                  </div>
+                )}
 
-            <div className="bg-[#080D1E] border border-white/20 text-white rounded-xl p-2 mt-2 flex items-center gap-2 text-xs">
-              <span>{isAr ? 'نصف القطر:' : 'Radius:'}</span>
-              <input
-                type="range"
-                min="40"
-                max="200"
-                value={compassRadius}
-                onChange={(e) => setCompassRadius(Number(e.target.value))}
-                className="w-24 accent-[#00E5FF]"
-              />
-              <span className="font-mono">{compassRadius}px</span>
+                {activeTheorem === 'area' && (
+                  <div>
+                    <h3 className="text-[#F59E0B] font-bold text-sm mb-2">مساحة المثلث (Triangle Area)</h3>
+                    <p className="text-xs text-white/80 leading-relaxed mb-3">
+                      مساحة أي مثلث تساوي نصف حاصل ضرب طول القاعدة في الارتفاع العمودي عليها.
+                    </p>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-sm text-[#00E5FF]">
+                      \text{`{Area}`} = \frac{`{1}`}{`{2}`} \times \text{`{Base}`} \times \text{`{Height}`}
+                    </div>
+                  </div>
+                )}
+
+                {activeTheorem === 'thales' && (
+                  <div>
+                    <h3 className="text-[#F59E0B] font-bold text-sm mb-2">نظرية طاليس (Thales Theorem)</h3>
+                    <p className="text-xs text-white/80 leading-relaxed mb-3">
+                      إذا تقاطع خطان مستقيمان مع عدة مستقيمات متوازية، فإن أطوال القطع المستقيمة المتقاطعة تكون متناسبة.
+                    </p>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-sm text-[#00E5FF]">
+                      \frac{`{AB}`}{`{A'B'}`} = \frac{`{BC}`}{`{B'C'}`} = \frac{`{AC}`}{`{A'C'}`}
+                    </div>
+                  </div>
+                )}
+
+                {activeTheorem === 'circleTheory' && (
+                  <div>
+                    <h3 className="text-[#F59E0B] font-bold text-sm mb-2">قوانين الدائرة (Circle Equations)</h3>
+                    <p className="text-xs text-white/80 leading-relaxed mb-3">
+                      معادلة الدائرة في المستوى الإحداثي بنصف قطر r ومتحركة عند المركز (h, k).
+                    </p>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-sm text-[#00E5FF]">
+                      (x - h)^2 + (y - k)^2 = r^2
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* TAB 3: LaTeX Renderer */}
+          {activeTab === 'latex' && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#D946EF] block mb-1">
+                  أدخل صيغة LaTeX الرياضية (Enter LaTeX Formula):
+                </label>
+                <input
+                  type="text"
+                  value={customLatex}
+                  onChange={(e) => setCustomLatex(e.target.value)}
+                  placeholder="\int_{a}^{b} f(x) \, dx"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none focus:border-[#D946EF]"
+                />
+              </div>
+
+              {/* Formatted Render Output */}
+              <div className="bg-black/50 border border-[#D946EF]/30 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[140px] text-center">
+                <span className="text-[10px] text-white/40 block mb-2 font-mono uppercase">LaTeX Output Render</span>
+                <div className="font-mono text-base text-[#00E5FF] tracking-widest bg-white/5 px-6 py-3 rounded-xl border border-white/10">
+                  {customLatex || 'Latex expression preview'}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
