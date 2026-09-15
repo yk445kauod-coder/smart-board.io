@@ -18,19 +18,50 @@ export async function parsePdfFile(
   const pdf = await getDocument({ data: buf }).promise;
   const pages = pdf.numPages;
 
+  const MAX_TOTAL_TEXT_LENGTH = 1_200_000; // Protect V8 heap memory (~1.2MB text max)
+  let currentTotalLength = 0;
   const parts: string[] = [];
-  for (let i =  1; i <= pages; i++) {
-    const page = await pdf.getPage(i);
-    const tc = await page.getTextContent();
-    let pageText = '';
-    for (const item of tc.items as any[]) {
-      const str = String((item as any).str ?? '');
-      pageText += str;
-      if ((item as any).hasEOL) pageText += '\n';
+
+  for (let i = 1; i <= pages; i++) {
+    // Yield to main event loop every 5 pages to keep UI responsive
+    if (i % 5 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    parts.push(pageText.trim());
+
+    if (currentTotalLength >= MAX_TOTAL_TEXT_LENGTH) {
+      parts.push(`[... text extraction truncated for large document beyond page ${i - 1} ...]`);
+      onProgress?.(pages, pages);
+      break;
+    }
+
+    try {
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      let pageText = '';
+      for (const item of tc.items as any[]) {
+        const str = String((item as any).str ?? '');
+        pageText += str;
+        if ((item as any).hasEOL) pageText += '\n';
+      }
+      const trimmed = pageText.trim();
+      if (trimmed) {
+        parts.push(trimmed);
+        currentTotalLength += trimmed.length;
+      }
+    } catch (err) {
+      console.warn(`Failed to parse page ${i} of PDF`, err);
+    }
+
     onProgress?.(i, pages);
   }
+
+  // Cleanup PDFJS document reference
+  try {
+    await pdf.destroy();
+  } catch (_) {
+    /* ignore */
+  }
+
   return { text: parts.join('\n\n'), pages };
 }
 

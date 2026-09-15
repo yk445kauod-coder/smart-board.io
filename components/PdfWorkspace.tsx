@@ -36,6 +36,8 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfName, setPdfName] = useState('');
+  const [fileBlobUrl, setFileBlobUrl] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'canvas' | 'native'>('canvas');
   const [isParsing, setIsParsing] = useState(false);
   const [progress, setProgress] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,11 +124,25 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     setIsParsing(true);
     setProgress(0);
     try {
+      if (fileBlobUrl) {
+        URL.revokeObjectURL(fileBlobUrl);
+      }
+      const objectUrl = URL.createObjectURL(file);
+      setFileBlobUrl(objectUrl);
+
       const buf = await file.arrayBuffer();
       const pdfDoc = await getDocument({ data: buf }).promise;
       setPdf(pdfDoc);
       setPdfName(file.name);
       setCurrentPage(1);
+
+      // Auto-switch to native viewer for very large documents (>= 80 pages) for instant smooth scrolling
+      if (pdfDoc.numPages >= 80) {
+        setViewMode('native');
+      } else {
+        setViewMode('canvas');
+      }
+
       await renderPage(pdfDoc, 1);
       const parsed = await parsePdfFile(file, (done, total) => {
         setProgress(Math.round((done / total) * 100));
@@ -145,6 +161,14 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
       setIsParsing(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (fileBlobUrl) {
+        URL.revokeObjectURL(fileBlobUrl);
+      }
+    };
+  }, [fileBlobUrl]);
 
   const renderPage = useCallback(async (pdfDoc: PDFDocumentProxy, pageNum: number) => {
     const page = await pdfDoc.getPage(pageNum);
@@ -368,7 +392,27 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
             <span className={`material-symbols-rounded text-red-500 ${isAr ? 'ms-0' : ''}`}>picture_as_pdf</span>
             {pdfName ? pdfName : t('مساحة عمل PDF', 'PDF Workspace')}
           </h3>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {fileBlobUrl && (
+              <div className="flex bg-black/5 p-1 rounded-xl text-xs font-semibold">
+                <button
+                  onClick={() => setViewMode('canvas')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    viewMode === 'canvas' ? 'bg-primary text-white shadow-sm' : 'text-on-surface/70 hover:text-on-surface'
+                  }`}
+                >
+                  {t('لوحة التفاعل والتعليق', 'Interactive Canvas')}
+                </button>
+                <button
+                  onClick={() => setViewMode('native')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    viewMode === 'native' ? 'bg-primary text-white shadow-sm' : 'text-on-surface/70 hover:text-on-surface'
+                  }`}
+                >
+                  {t('عارض المتصفح السريع (للكتب الكبيرة)', 'Fast Native Viewer (Large Docs)')}
+                </button>
+              </div>
+            )}
             <label className="mat-btn px-3 py-1.5 rounded-lg bg-primary text-white text-sm cursor-pointer hover:shadow-elev-1 transition-all inline-flex items-center gap-1.5">
               <span className="material-symbols-rounded text-lg">add</span>
               {t('فتح PDF', 'Open PDF')}
@@ -393,15 +437,29 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
 
         <div className="flex-1 flex overflow-hidden">
           {/* Pages */}
-          <div className="flex-1 bg-board flex items-center justify-center overflow-auto p-4 relative">
+          <div className="flex-1 bg-board flex items-center justify-center overflow-hidden relative">
             {!pdf && (
-              <div className="text-center text-on-surface/40">
+              <div className="text-center text-on-surface/40 p-4">
                 <span className="material-symbols-rounded text-6xl text-red-300 block mb-3">picture_as_pdf</span>
                 {t('افتح ملف PDF لبدء العمل', 'Open a PDF file to start working')}
               </div>
             )}
-            {pdf && (
-              <div className="flex flex-col items-center gap-3">
+            {pdf && viewMode === 'native' && fileBlobUrl && (
+              <div className="w-full h-full flex flex-col relative">
+                {isParsing && (
+                  <div className="absolute top-2 right-2 z-20 text-xs text-on-surface/80 bg-white/90 backdrop-blur rounded-full px-4 py-1 shadow-elev-2">
+                    {t('جارٍ استخراج النص للذكاء الاصطناعي...', 'Extracting text for AI...')} {progress}%
+                  </div>
+                )}
+                <iframe
+                  src={fileBlobUrl}
+                  title={pdfName}
+                  className="w-full h-full border-none"
+                />
+              </div>
+            )}
+            {pdf && viewMode === 'canvas' && (
+              <div className="flex flex-col items-center gap-3 overflow-auto p-4 w-full h-full">
                 {isParsing && (
                   <div className="text-xs text-on-surface/60 bg-white rounded-full px-4 py-1 shadow-elev-1">
                     {t('جارٍ استخراج النص...', 'Extracting text...')} {progress}%

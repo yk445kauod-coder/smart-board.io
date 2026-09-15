@@ -1,6 +1,7 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 import { ElementData } from '../types';
 import { WORLD, EGYPT, WORLD_PINS, PIN_BY_ID, AtlasRegion } from '../data/atlas';
 import { ELEMENT_BY_NUMBER, CATEGORY_COLOR } from '../data/periodic';
@@ -791,8 +792,6 @@ const REGION_FILL: Record<string, string> = {
   oceania: '#ffccbc',
   'middle-east': '#ffe0b2',
 };
-
-import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 
 const GEO_URL = '/world-countries-110m.json';
 const REGION_CENTER_CONFIG: Record<string, { center: [number, number]; zoom: number }> = {
