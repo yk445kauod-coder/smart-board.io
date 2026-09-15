@@ -171,7 +171,17 @@ let lastErr: string | null = null;
 try {
 const viaApi = await askApiChat(req, system, user);
 if (viaApi) {
-const clean = neutralizeDocText(viaApi.text);
+        let clean = neutralizeDocText(viaApi.text);
+        // If the model returned JSON array or object with commands even in plain mode, parse and extract human readable text
+        if (clean.trim().startsWith('[') || clean.trim().startsWith('{')) {
+          const commands = textToBoardCommands(clean);
+          if (commands.length > 0) {
+            const extracted = commands.map((c: any) => c.content || c.text || c.title || (Array.isArray(c.items) ? c.items.join(' · ') : null)).filter(Boolean);
+            if (extracted.length > 0) {
+              clean = extracted.join('\n\n');
+            }
+          }
+        }
 onSpeak(truncateForPrompt(clean, 400));
 return clean;
 }

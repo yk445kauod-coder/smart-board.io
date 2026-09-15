@@ -86,7 +86,29 @@ const AISheet: React.FC<AISheetProps> = ({
   };
 
   const formatMessage = (text: string) => {
-    const html = text
+    let cleanText = text;
+
+    // Check if the message text is a raw JSON string or JSON array of board commands
+    if (cleanText.trim().startsWith('[') || cleanText.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(cleanText.trim());
+        const cmds = Array.isArray(parsed) ? parsed : (parsed?.commands || parsed?.actions || null);
+        if (Array.isArray(cmds) && cmds.length > 0) {
+          const extractedTexts = cmds.map((c: any) => {
+            return c.content || c.text || c.title || c.markdown || (Array.isArray(c.items) ? c.items.join(' · ') : null);
+          }).filter(Boolean);
+          if (extractedTexts.length > 0) {
+            cleanText = extractedTexts.join('\n\n');
+          } else {
+            cleanText = isAr ? 'تم تطبيق العناصر على اللوحة.' : 'Applied commands to the board.';
+          }
+        }
+      } catch (_) {
+        // Not valid JSON, keep cleanText as is
+      }
+    }
+
+    const html = cleanText
       .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
       .replace(/\*(.*?)\*/g, '<i>$1</i>')
       .replace(/\n/g, '<br />');

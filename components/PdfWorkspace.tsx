@@ -42,7 +42,7 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const [canvasUrl, setCanvasUrl] = useState<string>('');
   const [annotations, setAnnotations] = useState<PDFAnnotation[]>([]);
-  const [tool, setTool] = useState<Tool>('pan');
+  const [tool, setTool] = useState<Tool>('pen');
   const [penColor, setPenColor] = useState(PEN_COLORS[0]);
   const [penWidth, setPenWidth] = useState(PEN_WIDTHS[1]);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -50,6 +50,9 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
   const [drawing, setDrawing] = useState<PDFPageAnnotation | null>(null);
   const [noteDraft, setNoteDraft] = useState<{ x: number; y: number } | null>(null);
   const [showKnowledge, setShowKnowledge] = useState(true);
+
+  const isDrawingRef = useRef(false);
+  const currentPointsRef = useRef<{ x: number; y: number }[]>([]);
 
   const currentAnnotations = useCallback(
     (page: number): PDFPageAnnotation[] =>
@@ -127,6 +130,7 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
       setPdf(pdfDoc);
       setPdfName(file.name);
       setCurrentPage(1);
+      setTool('pen');
       await renderPage(pdfDoc, 1);
       const parsed = await parsePdfFile(file, (done, total) => {
         setProgress(Math.round((done / total) * 100));
@@ -221,10 +225,14 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
       setNoteDraft({ x: pos.x, y: pos.y });
       setNoteText('');
     } else if (tool === 'eraser') {
+      isDrawingRef.current = true;
+      currentPointsRef.current = [pos];
       eraseAtPoint(pos);
       setDrawing({ id: 'e-' + Date.now(), kind: 'eraser', points: [pos] });
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     } else if (tool === 'pen') {
+      isDrawingRef.current = true;
+      currentPointsRef.current = [pos];
       const drawItem: PDFPageAnnotation = {
         id: 'a-' + Date.now(),
         kind: 'pen',
@@ -234,44 +242,86 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
       };
       setDrawing(drawItem);
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+
+      // Immediately render stroke start directly onto canvas for zero lag
+      const overlay = overlayRef.current;
+      if (overlay) {
+        const ctx = overlay.getContext('2d');
+        if (ctx) {
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = penColor;
+          ctx.lineWidth = penWidth * (overlay.width / 800);
+          ctx.beginPath();
+          ctx.arc(pos.x * overlay.width, pos.y * overlay.height, (penWidth * (overlay.width / 800)) / 2, 0, 2 * Math.PI);
+          ctx.fillStyle = penColor;
+          ctx.fill();
+        }
+      }
     }
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!pdf || !drawing) return;
+    if (!pdf || !isDrawingRef.current) return;
     const pos = getPos(e);
     if (!pos) return;
-    if (drawing.kind === 'eraser') {
+
+    if (tool === 'eraser') {
       eraseAtPoint(pos);
-      setDrawing(d => (d ? { ...d, points: [...(d.points || []), pos] } : d));
-    } else {
-      setDrawing(d => (d ? { ...d, points: [...(d.points || []), pos] } : d));
+      currentPointsRef.current.push(pos);
+      setDrawing(d => (d ? { ...d, points: [...currentPointsRef.current] } : d));
+    } else if (tool === 'pen') {
+      const prevPos = currentPointsRef.current[currentPointsRef.current.length - 1];
+      currentPointsRef.current.push(pos);
+
+      // Direct draw onto overlay context for instant smooth response
+      const overlay = overlayRef.current;
+      if (overlay && prevPos) {
+        const ctx = overlay.getContext('2d');
+        if (ctx) {
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = penColor;
+          ctx.lineWidth = penWidth * (overlay.width / 800);
+          ctx.beginPath();
+          ctx.moveTo(prevPos.x * overlay.width, prevPos.y * overlay.height);
+          ctx.lineTo(pos.x * overlay.width, pos.y * overlay.height);
+          ctx.stroke();
+        }
+      }
+      setDrawing(d => (d ? { ...d, points: [...currentPointsRef.current] } : d));
     }
   };
 
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!drawing) return;
-    try {
-      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
-    } catch (_) { /* ignore */ }
+  const finishDrawing = (e?: React.PointerEvent) => {
+    if (e) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+      } catch (_) { /* ignore */ }
+    }
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
 
-    if (drawing.kind === 'pen' && drawing.points && drawing.points.length > 0) {
-      const item = drawing;
+    if (tool === 'pen' && currentPointsRef.current.length > 0) {
+      const points = [...currentPointsRef.current];
+      const item: PDFPageAnnotation = {
+        id: 'a-' + Date.now(),
+        kind: 'pen',
+        points,
+        color: penColor,
+        strokeWidth: penWidth,
+      };
       setAnnotations(prev => {
         const exists = prev.find(a => a.page === currentPage);
-        const clean: PDFPageAnnotation = {
-          ...item,
-          color: item.color || PEN_COLORS[0],
-          strokeWidth: item.strokeWidth || PEN_WIDTHS[1],
-        };
         if (exists) {
           return prev.map(a =>
-            a.page === currentPage ? { ...a, items: [...a.items, clean] } : a
+            a.page === currentPage ? { ...a, items: [...a.items, item] } : a
           );
         }
-        return [...prev, { id: 'ann-' + Date.now(), page: currentPage, items: [clean] }];
+        return [...prev, { id: 'ann-' + Date.now(), page: currentPage, items: [item] }];
       });
     }
+    currentPointsRef.current = [];
     setDrawing(null);
   };
 
@@ -465,7 +515,9 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
                       className={`absolute inset-0 top-0 left-0 w-full h-full ${tool === 'pan' ? 'pointer-events-none' : 'cursor-crosshair'}`}
                       onPointerDown={onPointerDown}
                       onPointerMove={onPointerMove}
-                      onPointerUp={onPointerUp}
+                      onPointerUp={finishDrawing}
+                      onPointerCancel={finishDrawing}
+                      onPointerLeave={finishDrawing}
                     />
                   )}
                   {noteDraft && (
