@@ -217,7 +217,7 @@ const SmartOnboarding: React.FC<SmartOnboardingProps> = ({
           <div>
             <label className="block p-6 rounded-2xl border-2 border-dashed border-black/15 bg-surface-variant/30 hover:border-primary cursor-pointer text-center transition-colors">
               <div className="flex flex-col items-center gap-2">
-                <span className={`material-symbols-rounded text-4xl ${file ? 'text-green-600 ms-fill text-primary' : 'text-on-surface/40'}`}>
+                <span className={`material-symbols-rounded text-4xl ${file ? 'text-[#00E5FF] ms-fill text-primary' : 'text-on-surface/40'}`}>
                   {isParsing ? 'progress_activity' : file ? 'task_alt' : 'upload_file'}
                 </span>
                 {isParsing ? (

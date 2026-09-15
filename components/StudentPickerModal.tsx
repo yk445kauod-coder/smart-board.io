@@ -6,15 +6,21 @@ interface StudentPickerModalProps {
   language: string;
 }
 
-const DEFAULT_STUDENTS = [
-  'أحمد علي',
-  'سارة محمد',
-  'عمر خالد',
-  'مريم يوسف',
-  'فاطمة الزهراء',
-  'عبد الله حسن',
-  'ياسين محمود',
-  'نور الهدى',
+export interface StudentItem {
+  id: string;
+  name: string;
+  imageDataUrl?: string;
+}
+
+const DEFAULT_STUDENTS: StudentItem[] = [
+  { id: '1', name: 'أحمد علي' },
+  { id: '2', name: 'سارة محمد' },
+  { id: '3', name: 'عمر خالد' },
+  { id: '4', name: 'مريم يوسف' },
+  { id: '5', name: 'فاطمة الزهراء' },
+  { id: '6', name: 'عبد الله حسن' },
+  { id: '7', name: 'ياسين محمود' },
+  { id: '8', name: 'نور الهدى' },
 ];
 
 export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
@@ -23,9 +29,9 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
   language,
 }) => {
   const isAr = language.toLowerCase().startsWith('ar');
-  const [students, setStudents] = useState<string[]>(DEFAULT_STUDENTS);
-  const [inputText, setInputText] = useState(DEFAULT_STUDENTS.join('\n'));
-  const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
+  const [students, setStudents] = useState<StudentItem[]>(DEFAULT_STUDENTS);
+  const [inputText, setInputText] = useState(DEFAULT_STUDENTS.map(s => s.name).join('\n'));
+  const [selectedWinner, setSelectedWinner] = useState<StudentItem | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
@@ -34,15 +40,16 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const padCanvasRef = useRef<HTMLCanvasElement>(null);
   const wheelCanvasRef = useRef<HTMLCanvasElement>(null);
+  const loadedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('smartboard_student_list');
+      const saved = localStorage.getItem('smartboard_student_list_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setStudents(parsed);
-          setInputText(parsed.join('\n'));
+          setInputText(parsed.map((s: any) => typeof s === 'string' ? s : s.name).join('\n'));
         }
       }
     } catch (e) {
@@ -52,13 +59,17 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
 
   const handleSaveList = (text: string) => {
     setInputText(text);
-    const list = text
+    const names = text
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
+    const list: StudentItem[] = names.map((n, idx) => {
+      const existing = students.find((s) => s.name === n);
+      return existing || { id: `st_${Date.now()}_${idx}`, name: n };
+    });
     setStudents(list);
     try {
-      localStorage.setItem('smartboard_student_list', JSON.stringify(list));
+      localStorage.setItem('smartboard_student_list_v2', JSON.stringify(list));
     } catch (e) {
       /* ignore */
     }
@@ -112,40 +123,77 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Slice Text Label
+      // Slice Content (Handwritten image or Text)
       ctx.save();
       ctx.rotate(startAngle + sliceAngle / 2);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 13px "IBM Plex Sans Arabic", sans-serif';
-      ctx.shadowColor = 'rgba(0,0,0,0.6)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(student, radius - 15, 4);
+
+      if (student.imageDataUrl) {
+        let img = loadedImagesRef.current.get(student.id);
+        if (!img) {
+          img = new Image();
+          img.src = student.imageDataUrl;
+          loadedImagesRef.current.set(student.id, img);
+        }
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.save();
+          ctx.translate(radius - 50, 0);
+          ctx.drawImage(img, -35, -15, 70, 30);
+          ctx.restore();
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px "IBM Plex Sans Arabic", sans-serif';
+          ctx.fillText(student.name, radius - 15, 4);
+        }
+      } else {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px "IBM Plex Sans Arabic", sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(student.name, radius - 15, 4);
+      }
       ctx.restore();
     });
 
     ctx.restore();
   }, [students, rotation]);
 
-  // Spin wheel with realistic deceleration physics
+  // Audio beep / sound effect simulation on slice pass
+  const [tickerBouncing, setTickerBouncing] = useState(false);
+
+  // Spin wheel with realistic deceleration physics & ticker bounce
   const spinWheel = () => {
     if (isSpinning || students.length === 0) return;
     setIsSpinning(true);
     setSelectedWinner(null);
 
-    const extraSpins = 6 + Math.floor(Math.random() * 4);
+    const extraSpins = 8 + Math.floor(Math.random() * 5);
     const randomAngle = Math.floor(Math.random() * 360);
     const totalNewRotation = rotation + extraSpins * 360 + randomAngle;
+
+    // Trigger ticker bounce effect repeatedly during spin
+    let currentBounces = 0;
+    const bounceInterval = setInterval(() => {
+      currentBounces++;
+      setTickerBouncing(true);
+      setTimeout(() => setTickerBouncing(false), 80);
+      if (currentBounces >= 25) clearInterval(bounceInterval);
+    }, 150);
 
     setRotation(totalNewRotation);
 
     setTimeout(() => {
       setIsSpinning(false);
+      clearInterval(bounceInterval);
+
+      // Determine winner based on pointer position at top (270 degrees in SVG/Canvas coordinate space)
       const normalizedAngle = (360 - (totalNewRotation % 360)) % 360;
       const sliceSize = 360 / students.length;
       const winnerIndex = Math.floor(normalizedAngle / sliceSize);
-      setSelectedWinner(students[winnerIndex]);
-    }, 4500);
+      const winner = students[winnerIndex % students.length];
+      setSelectedWinner(winner);
+    }, 4800);
   };
 
   // Handwritten drawing pad methods
@@ -192,11 +240,21 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
   const addHandwrittenName = () => {
     const canvas = padCanvasRef.current;
     if (!canvas) return;
-    // Simple mock detection label from handwritten stroke
-    const newName = `${isAr ? 'طالب برسم اليد' : 'Handwritten'} #${students.length + 1}`;
-    const nextList = [...students, newName];
+    const imageDataUrl = canvas.toDataURL('image/png');
+    const studentName = `${isAr ? 'رسم يد' : 'Handwritten'} #${students.length + 1}`;
+    const newItem: StudentItem = {
+      id: `hw_${Date.now()}`,
+      name: studentName,
+      imageDataUrl,
+    };
+    const nextList = [...students, newItem];
     setStudents(nextList);
-    setInputText(nextList.join('\n'));
+    setInputText(nextList.map((s) => s.name).join('\n'));
+    try {
+      localStorage.setItem('smartboard_student_list_v2', JSON.stringify(nextList));
+    } catch (e) {
+      /* ignore */
+    }
     clearHandwrittenCanvas();
   };
 
@@ -207,16 +265,24 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
       <div className="bg-[#080D1E] border border-white/10 text-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col md:flex-row">
         {/* Wheel Display Side */}
         <div className="flex-1 p-6 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-white/10">
-          <div className="absolute top-4 z-10 text-[#F59E0B] drop-shadow-md">
-            <span className="material-symbols-rounded text-4xl">arrow_drop_down</span>
+          <div
+            className={`absolute top-4 z-10 text-[#F59E0B] drop-shadow-lg transition-transform duration-75 ${
+              tickerBouncing ? '-translate-y-1 scale-125 text-[#00E5FF]' : ''
+            }`}
+          >
+            <span className="material-symbols-rounded text-5xl">arrow_drop_down</span>
           </div>
 
           <div className="relative my-4">
             <canvas
               ref={wheelCanvasRef}
-              width={280}
-              height={280}
-              className="transition-all duration-[4500ms] ease-[cubic-bezier(0.1,0.9,0.2,1)]"
+              width={290}
+              height={290}
+              style={{
+                transform: `rotate(${rotation}deg)`,
+                transition: isSpinning ? 'transform 4800ms cubic-bezier(0.15, 0.9, 0.2, 1)' : 'none',
+              }}
+              className="rounded-full shadow-2xl border-4 border-[#00E5FF]/30"
             />
           </div>
 
@@ -235,13 +301,19 @@ export const StudentPickerModal: React.FC<StudentPickerModalProps> = ({
           </button>
 
           {selectedWinner && !isSpinning && (
-            <div className="mt-4 p-3 bg-[#00E5FF]/20 border border-[#00E5FF]/40 rounded-xl text-center w-full animate-bounce">
-              <span className="text-[10px] text-[#00E5FF] block font-semibold">
-                {isAr ? 'الطالب المختار:' : 'Selected Student:'}
+            <div className="mt-4 p-3 bg-gradient-to-r from-[#00E5FF]/20 via-[#D946EF]/20 to-[#F59E0B]/20 border border-[#00E5FF]/50 rounded-xl text-center w-full animate-bounce shadow-xl">
+              <span className="text-[11px] text-[#00E5FF] block font-semibold">
+                🎉 {isAr ? 'الفائز في القرعة:' : 'Selected Winner:'}
               </span>
-              <span className="text-lg font-bold text-white font-arabic">
-                🎉 {selectedWinner}
-              </span>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                {selectedWinner.imageDataUrl ? (
+                  <img src={selectedWinner.imageDataUrl} alt={selectedWinner.name} className="h-10 max-w-[120px] object-contain bg-black/40 p-1 rounded-lg border border-white/20" />
+                ) : (
+                  <span className="text-xl font-bold text-white font-arabic">
+                    {selectedWinner.name}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

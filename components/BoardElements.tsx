@@ -106,7 +106,7 @@ export const RulerNode = memo(({ id, data, selected }: NodeProps<ElementData>) =
 
             {selected && (
                 <div 
-                    className="absolute -right-8 top-1/2 -translate-y-1/2 w-6 h-6 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition-colors flex items-center justify-center cursor-alias z-10 pointer-events-auto"
+                    className="absolute -right-8 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#00E5FF] text-black rounded-full shadow-md hover:brightness-110 transition-colors flex items-center justify-center cursor-alias z-10 pointer-events-auto"
                     onPointerDown={onRotateStart}
                     title="Drag to rotate"
                 >
@@ -488,7 +488,7 @@ export const ComparisonNode = memo(({ data, selected }: NodeProps<ElementData>) 
                 `}</style>
                 {col.items?.map((item, itemIdx) => (
                   <li key={itemIdx} className={`text-base text-gray-600 flex items-start gap-3 ${fontClass}`} dir="auto">
-                     <i className={`fa-solid ${colIdx === 0 ? 'fa-check text-green-500' : 'fa-star text-orange-400'} mt-1 text-sm`}></i>
+                     <i className={`fa-solid ${colIdx === 0 ? 'fa-check text-[#00E5FF]' : 'fa-star text-orange-400'} mt-1 text-sm`}></i>
                     <span className="leading-snug" dangerouslySetInnerHTML={{__html: item}}></span>
                   </li>
                 ))}
