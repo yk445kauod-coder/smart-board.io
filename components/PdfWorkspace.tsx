@@ -120,6 +120,8 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     }
   };
 
+  const renderTaskRef = useRef<any>(null);
+
   const loadPdf = async (file: File) => {
     setIsParsing(true);
     setProgress(0);
@@ -127,7 +129,8 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
       if (fileBlobUrl) {
         URL.revokeObjectURL(fileBlobUrl);
       }
-      const objectUrl = URL.createObjectURL(file);
+      const pdfBlob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
+      const objectUrl = URL.createObjectURL(pdfBlob);
       setFileBlobUrl(objectUrl);
 
       const buf = await file.arrayBuffer();
@@ -143,7 +146,6 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
         setViewMode('canvas');
       }
 
-      await renderPage(pdfDoc, 1);
       const parsed = await parsePdfFile(file, (done, total) => {
         setProgress(Math.round((done / total) * 100));
       });
@@ -171,24 +173,43 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
   }, [fileBlobUrl]);
 
   const renderPage = useCallback(async (pdfDoc: PDFDocumentProxy, pageNum: number) => {
-    const page = await pdfDoc.getPage(pageNum);
-    const scale = Math.min(1.5, 1600 / page.view[2]);
-    const viewport = page.getViewport({ scale });
-    const canvas = canvasRef.current;
-    const overlay = overlayRef.current;
-    if (!canvas) return;
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    if (overlay) {
-      overlay.width = viewport.width;
-      overlay.height = viewport.height;
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch (_) { /* ignore cancellation */ }
     }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    await page.render({ canvas, canvasContext: ctx, viewport }).promise;
-    setCanvasUrl(canvas.toDataURL('image/png'));
-    redrawOverlay(pageNum);
+    try {
+      const page = await pdfDoc.getPage(pageNum);
+      const scale = Math.min(1.5, 1600 / page.view[2]);
+      const viewport = page.getViewport({ scale });
+      const canvas = canvasRef.current;
+      const overlay = overlayRef.current;
+      if (!canvas) return;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      if (overlay) {
+        overlay.width = viewport.width;
+        overlay.height = viewport.height;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      renderTaskRef.current = renderTask;
+      await renderTask.promise;
+      setCanvasUrl(canvas.toDataURL('image/png'));
+      redrawOverlay(pageNum);
+    } catch (err: any) {
+      if (err?.name !== 'RenderingCancelledException') {
+        console.warn('PDF page render error:', err);
+      }
+    }
   }, [redrawOverlay]);
+
+  useEffect(() => {
+    if (pdf && viewMode === 'canvas') {
+      renderPage(pdf, currentPage);
+    }
+  }, [pdf, currentPage, viewMode, renderPage]);
 
   const goPage = async (delta: number) => {
     if (!pdf) return;
@@ -197,7 +218,6 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     setCurrentPage(next);
     setDrawing(null);
     setNoteDraft(null);
-    await renderPage(pdf, next);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -451,11 +471,13 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
                     {t('جارٍ استخراج النص للذكاء الاصطناعي...', 'Extracting text for AI...')} {progress}%
                   </div>
                 )}
-                <iframe
-                  src={fileBlobUrl}
-                  title={pdfName}
+                <object
+                  data={`${fileBlobUrl}#toolbar=1&navpanes=1`}
+                  type="application/pdf"
                   className="w-full h-full border-none"
-                />
+                >
+                  <embed src={`${fileBlobUrl}#toolbar=1&navpanes=1`} type="application/pdf" className="w-full h-full border-none" />
+                </object>
               </div>
             )}
             {pdf && viewMode === 'canvas' && (
