@@ -31,3 +31,4 @@ dist-ssr
 
 # Local verification artifacts
 screenshots/
+_worker.bundle
