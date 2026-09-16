@@ -8,14 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "npm run test:data && npm run test:ai && npm run test:lab && npm run test:toolkit && npm run test:edge",
+    "test": "pnpm run test:data && pnpm run test:ai && pnpm run test:lab && pnpm run test:toolkit && pnpm run test:edge",
     "test:data": "tsx tests/data-smoke.test.ts",
     "test:ai": "tsx --import ./tests/dom-shims.ts tests/ai-agent.test.ts",
     "test:lab": "tsx --import ./tests/dom-shims.ts tests/lab-smoke.test.ts",
     "test:toolkit": "tsx --import ./tests/dom-shims.ts tests/classroom-toolkit.test.ts",
     "test:edge": "tsx --import ./tests/dom-shims.ts tests/edge-cases.test.ts",
-    "deploy": "npm run build && wrangler pages deploy dist",
-    "deploy:dry": "npm run build && wrangler pages deploy dist --dry-run"
+    "deploy": "pnpm run build && wrangler pages deploy dist",
+    "deploy:dry": "pnpm run build"
   },
   "dependencies": {
     "@google/genai": "^1.31.0",
