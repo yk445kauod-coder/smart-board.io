@@ -34,7 +34,9 @@ export const onRequest = async (context) => {
   for (const k of ENV_KEYS) {
     const v = (env as any)[k];
     if (typeof v === 'string' && v.length > 0) {
-      (process as any).env[k] = v;
+      if (typeof process !== 'undefined' && (process as any).env) {
+        (process as any).env[k] = v;
+      }
     }
   }
   const secretEnv = env as Record<string, string>;
