@@ -32,6 +32,14 @@ type Slide = SlideData<Node<ElementData>, Edge>;
 
 const THEME_IDS = THEME_LIST.map(t => t.id);
 
+const getInitialViewFromPath = (): 'home' | 'language-select' | 'board' => {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname;
+  if (path.startsWith('/app/board')) return 'board';
+  if (path.startsWith('/app/setup')) return 'language-select';
+  return 'home';
+};
+
 const AppContent: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -39,7 +47,31 @@ const AppContent: React.FC = () => {
 
   // App State
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
-  const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
+  const [view, setView] = useState<'home' | 'language-select' | 'board'>(getInitialViewFromPath);
+
+  const navigateToView = useCallback((nextView: 'home' | 'language-select' | 'board') => {
+    setView(nextView);
+    if (typeof window !== 'undefined') {
+      const targetPath = nextView === 'board' ? '/app/board' : nextView === 'language-select' ? '/app/setup' : '/app';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ view: nextView }, '', targetPath);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/' || path === '' || !path.startsWith('/app')) {
+        window.history.replaceState({ view: getInitialViewFromPath() }, '', '/app');
+      }
+      const handlePopState = () => {
+        setView(getInitialViewFromPath());
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, []);
   const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'English', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female', ttsMode: 'gemini' });
   const settingsHydrated = useRef(false);
   useEffect(() => {
@@ -778,7 +810,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
   }, [view]);
 
   if (view === 'home') {
-    return <HomeScreen language={settings.language} onStart={() => setView('language-select')} />;
+    return <HomeScreen language={settings.language} onStart={() => navigateToView('language-select')} />;
   }
 
   if (view === 'language-select') {
@@ -798,7 +830,7 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
           setChatPrefill(data.topic.trim()
             ? (settings.language.toLowerCase().startsWith('ar') ? `حضّر درسًا كاملًا عن: ${data.topic.trim()}` : `Prepare a complete lesson on: ${data.topic.trim()}`)
             : (settings.language.toLowerCase().startsWith('ar') ? 'حضّر درسًا كاملًا' : 'Prepare a complete lesson'));
-          setView('board');
+          navigateToView('board');
         }}
       />
     );
