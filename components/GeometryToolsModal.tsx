@@ -681,7 +681,7 @@ export const GeometryToolsOverlay: React.FC<GeometryToolsOverlayProps> = ({
                         : 'The sum of internal angles of any triangle in Euclidean geometry always equals 180 degrees.'}
                     </p>
                     <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-sm text-[#00E5FF]">
-                      \angle A + \angle B + \angle C = 180^\circ \quad (\pi \text{ rad})
+                      {'\\angle A + \\angle B + \\angle C = 180^\\circ \\quad (\\pi \\text{ rad})'}
                     </div>
                   </div>
                 )}
@@ -697,7 +697,7 @@ export const GeometryToolsOverlay: React.FC<GeometryToolsOverlayProps> = ({
                         : 'Fundamental postulates of classical Euclidean geometry connecting points, lines, circles and angles.'}
                     </p>
                     <div className="bg-white/5 border border-white/10 rounded-xl p-3 font-mono text-center text-xs text-[#00E5FF]">
-                      \forall P_1, P_2 \in \mathbb{`{R}`}^2, \exists! \text{ Line } L \text{ connecting } P_1, P_2
+                      {'\\forall P_1, P_2 \\in \\mathbb{R}^2, \\exists! \\text{ Line } L \\text{ connecting } P_1, P_2'}
                     </div>
                   </div>
                 )}

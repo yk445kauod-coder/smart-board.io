@@ -28,3 +28,6 @@ dist-ssr
 *.sln
 *.sw?
 .wrangler/
+
+# Local verification artifacts
+screenshots/

@@ -161,7 +161,7 @@ const PdfWorkspace: React.FC<PdfWorkspaceProps> = ({
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+    await page.render({ canvasContext: ctx, viewport }).promise;
     setCanvasUrl(canvas.toDataURL('image/png'));
     redrawOverlay(pageNum);
   }, [redrawOverlay]);

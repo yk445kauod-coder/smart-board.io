@@ -76,7 +76,7 @@ export const MButton: React.FC<{
   const base = 'mat-btn px-5 py-2.5 rounded-full font-medium text-sm inline-flex items-center gap-2 transition-all disabled:opacity-40';
   const styles: Record<string, string> = {
     primary: 'bg-primary text-white shadow-elev-1 hover:shadow-elev-2',
-    tonal: 'bg-tonal text-[#4a3f9e] hover:brightness-95',
+    tonal: 'bg-tonal text-[#047857] hover:brightness-95',
     outline: 'border border-black/15 text-on-surface hover:bg-surface-variant/50',
     text: 'text-primary hover:bg-tonal/60',
   };
