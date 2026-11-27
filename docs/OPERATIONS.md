@@ -73,6 +73,26 @@ Migration order:
 `org_id` for every existing user/lesson/usage/run. It is safe on a populated
 database but **take a backup first**.
 
+## First deploy
+
+Create the D1 database once, then copy its `database_id` into
+`worker/wrangler.toml` (the committed value is a placeholder):
+
+```bash
+wrangler d1 create smartboard --config worker/wrangler.toml
+```
+
+Required Cloudflare API token permissions for non-interactive deploys:
+
+- Account → Workers Scripts → Edit
+- Account → Workers D1 → Edit
+- Account → Cloudflare Pages → Edit
+- Account → Account Settings → Read
+- User → User Details → Read (for `wrangler whoami`)
+
+Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the shell or CI secrets.
+Never commit the token.
+
 ## Deploy
 
 ```bash
