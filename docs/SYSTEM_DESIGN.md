@@ -195,8 +195,8 @@ Secrets:  wrangler secret put OPENROUTER_API_KEY (etc.)
 ```
 
 The worker serves `/admin` and `/docs` from its own origin, so the console has
-same-origin cookies and no CORS. The SPA points at the worker via
-`VITE_API_BASE`.
+same-origin cookies and no CORS. The SPA calls `/api`; Pages Functions proxy
+those requests to the worker so the browser only sees first-party cookies.
 
 ## 10. Open questions
 

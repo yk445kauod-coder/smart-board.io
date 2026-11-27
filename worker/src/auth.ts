@@ -8,7 +8,7 @@ import { findApiKey, getOrgContext } from './orgs';
 import type { PlanDef } from './plans';
 
 export const SESSION_COOKIE = 'sb_session';
-const PBKDF2_ITERATIONS = 210_000;
+const PBKDF2_ITERATIONS = 100_000;
 const enc = new TextEncoder();
 
 const bytesToBase64 = (bytes: Uint8Array): string => {

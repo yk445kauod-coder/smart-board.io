@@ -3,6 +3,7 @@ export interface Env {
   AI: Ai;
   OPENROUTER_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  POLLINATIONS_API_KEY?: string;
   DEEPSEEK_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   FREELLMAPI_BASE_URL?: string;

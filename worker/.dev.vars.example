@@ -1,8 +1,16 @@
 # Copy to worker/.dev.vars and fill in. Never commit .dev.vars.
+# Local overrides for the production values committed in wrangler.toml.
+APP_ORIGIN=http://localhost:3000
+PUBLIC_APP_URL=http://localhost:3000
+COOKIE_SECURE=false
+COOKIE_SAMESITE=Lax
+PLATFORM_ADMIN_EMAILS=teacher@example.com
+
 OPENROUTER_API_KEY=
 GEMINI_API_KEY=
 DEEPSEEK_API_KEY=
 ANTHROPIC_API_KEY=
+POLLINATIONS_API_KEY=
 
 # Optional: self-hosted FreeLLMAPI gateway (OpenAI-compatible).
 FREELLMAPI_BASE_URL=

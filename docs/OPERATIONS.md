@@ -20,15 +20,15 @@ Docs: `http://localhost:8787/docs`
 
 | Var | Default | Purpose |
 | :--- | :--- | :--- |
-| `APP_ORIGIN` | `http://localhost:3000` | CORS allowlist (comma-separated) |
-| `PUBLIC_APP_URL` | `http://localhost:3000` | Stripe success/cancel redirects |
-| `COOKIE_SECURE` | `false` local, `true` prod | Secure cookie flag |
-| `COOKIE_SAMESITE` | `Lax` local, `None` prod for cross-site | Cookie policy |
+| `APP_ORIGIN` | `https://smartboard-eg.pages.dev` | CORS allowlist (comma-separated) |
+| `PUBLIC_APP_URL` | `https://smartboard-eg.pages.dev` | Stripe success/cancel redirects |
+| `COOKIE_SECURE` | `true` in committed prod config | Secure cookie flag |
+| `COOKIE_SAMESITE` | `None` in committed prod config | Cookie policy |
 | `SESSION_DAYS` | `30` | Session lifetime |
 | `DAILY_CHAT_LIMIT` | `50` | Overrides plan daily chats for all plans (testing) |
 | `AUTH_RATE_LIMIT` | `60` | Login attempts per 15 min per IP |
 | `REGISTER_RATE_LIMIT` | `10` | Registrations per hour per IP |
-| `PLATFORM_ADMIN_EMAILS` | `teacher@example.com` | Founder allowlist |
+| `PLATFORM_ADMIN_EMAILS` | `yk445kauod@gmail.com` | Founder allowlist |
 | `PAYMENT_CONTACT` | `SmartBoard team (WhatsApp)` | Shown in payment instructions |
 | `PAYMENT_WHATSAPP` | empty | WhatsApp link/number |
 | `PAYMENT_INSTAPAY` | empty | InstaPay address |
@@ -43,6 +43,7 @@ Docs: `http://localhost:8787/docs`
 cd worker
 wrangler secret put OPENROUTER_API_KEY
 wrangler secret put GEMINI_API_KEY
+wrangler secret put POLLINATIONS_API_KEY
 wrangler secret put DEEPSEEK_API_KEY
 wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put FREELLMAPI_API_KEY
@@ -75,8 +76,9 @@ database but **take a backup first**.
 
 ## First deploy
 
-Create the D1 database once, then copy its `database_id` into
-`worker/wrangler.toml` (the committed value is a placeholder):
+The production D1 database is `smartboard` (ENAM) with id
+`d4c73a35-de91-4042-928b-3a5320dfff97`, already written into
+`worker/wrangler.toml`. To create a separate database:
 
 ```bash
 wrangler d1 create smartboard --config worker/wrangler.toml
@@ -95,28 +97,35 @@ Never commit the token.
 
 ## Deploy
 
+Live production:
+
+- Frontend: <https://smartboard-eg.pages.dev>
+- Worker: <https://smartboard-api.yk445kauod.workers.dev>
+- D1: `smartboard` (`d4c73a35-de91-4042-928b-3a5320dfff97`)
+
 ```bash
 # 1. D1 (always before the worker code that uses it)
 wrangler d1 migrations apply smartboard --remote --config worker/wrangler.toml
 
-# 2. worker (production origins + cross-site cookies)
-wrangler deploy --config worker/wrangler.toml \
-  --var APP_ORIGIN:https://smartboard-eg.pages.dev \
-  --var PUBLIC_APP_URL:https://smartboard-eg.pages.dev \
-  --var COOKIE_SECURE:true \
-  --var COOKIE_SAMESITE:None
+# 2. worker (production vars are committed in worker/wrangler.toml)
+cd worker && wrangler deploy
 
-# 3. frontend (point it at the worker origin)
-VITE_API_BASE=https://smartboard-api.<account>.workers.dev npm run build
+# 3. frontend (same-origin /api proxy, no VITE_API_BASE)
+cd .. && npm run build
 npx wrangler pages deploy dist --project-name smartboard-eg
 ```
 
 `smartboard-eg` is the Pages project; `smartboard-api` is the Worker. Both need
 `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` when running non-interactively.
 
-Set `VITE_API_BASE` in the Pages build environment to the worker origin. The
-worker must allow the Pages origin in `APP_ORIGIN` and use `COOKIE_SECURE=true`,
-`COOKIE_SAMESITE=None` for cross-site cookies.
+The SPA uses the default `API_BASE = '/api'`. `functions/api/[[path]].ts` proxies
+`/api/*` to the Worker, so session cookies are first-party. This avoids Chrome's
+third-party cookie blocking and means the frontend must **not** set
+`VITE_API_BASE` to the Worker host. Keep `APP_ORIGIN` as the Pages origin for
+direct Worker calls and CORS preflights.
+
+Workers PBKDF2 caps iterations at 100,000. `worker/src/auth.ts` must not exceed
+that value or registration fails at runtime with `NotSupportedError`.
 
 ## Backups
 
@@ -143,9 +152,9 @@ Restore into a new database first, verify counts, then switch the binding.
 | Symptom | Likely cause | Fix |
 | :--- | :--- | :--- |
 | `/admin` shows "Access denied" | Email not in `PLATFORM_ADMIN_EMAILS` and flag 0 | Set flag or add email |
-| Login 401 after register | Cookie blocked by cross-site policy | Set `COOKIE_SAMESITE=None`, `COOKIE_SECURE=true`, use HTTPS |
+| Login 401 after register | Cookie blocked by cross-site policy | Use the same-origin `/api` proxy; do not point the SPA directly at the Worker |
 | Stream 503 | Concrete model key missing | Use `auto` or configure the key |
-| Every stream falls to offline | Pollinations/Workers AI down | Check `/v1/providers`; configure OpenRouter/Gemini |
+| Every stream falls to offline | Providers down or deprecated model id | Check `/v1/providers`; keep Workers AI model ids current; configure Gemini |
 | Manual code invalid | Code already used/revoked/expired, or typed lowercase (handled) | Issue a new code |
 | Stripe webhook 400 | Wrong `STRIPE_WEBHOOK_SECRET` or stale timestamp | Re-copy secret; retry within 5 min |
 | 402 on save | Free plan 30-lesson cap | Upgrade or delete old lessons |

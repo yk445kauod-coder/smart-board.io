@@ -55,16 +55,16 @@ export function buildChain(planId?: string): ModelDef[] {
   const paid = planTier(planId) >= 1;
   const premium = pick([
     'freellmapi/auto',
-    'openrouter/google/gemini-2.5-flash',
     'gemini/gemini-2.5-flash',
+    'openrouter/google/gemini-2.5-flash',
     'openrouter/anthropic/claude-3.5-haiku',
     'anthropic/claude-3-5-haiku-latest',
     'deepseek/deepseek-chat',
   ]);
   const keyless = pick([
     'freellmapi/auto',
+    'workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
     'pollinations/openai',
-    'workers-ai/@cf/meta/llama-3.1-8b-instruct',
     'openrouter/meta-llama/llama-3.3-70b-instruct',
     'openrouter/deepseek/deepseek-chat',
   ]);

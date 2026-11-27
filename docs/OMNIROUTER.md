@@ -9,7 +9,7 @@ lesson generator working when a provider is missing, rate-limited, or down.
 
 1. **FreeLLMAPI** (if `FREELLMAPI_BASE_URL` is set)
 2. **Pollinations** — keyless, OpenAI-compatible
-3. **Cloudflare Workers AI** — `@cf/meta/llama-3.1-8b-instruct`, binding `AI`
+3. **Cloudflare Workers AI** — `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, binding `AI`
 4. **OpenRouter free models** — if `OPENROUTER_API_KEY` is set
 5. **Offline deterministic builder** — always works
 
@@ -72,7 +72,7 @@ chains. If the URL is empty, the provider is skipped without an error.
 ### Cloudflare Workers AI
 
 - Binding: `AI` in `worker/wrangler.toml`.
-- Model: `@cf/meta/llama-3.1-8b-instruct`.
+- Model: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
 - No external key; billed through the Cloudflare account.
 - More reliable than Pollinations for JSON-shaped output.
 

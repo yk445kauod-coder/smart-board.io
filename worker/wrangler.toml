@@ -4,15 +4,15 @@ compatibility_date = "2026-09-18"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-APP_ORIGIN = "http://localhost:3000"
-COOKIE_SECURE = "false"
-COOKIE_SAMESITE = "Lax"
+APP_ORIGIN = "https://smartboard-eg.pages.dev"
+COOKIE_SECURE = "true"
+COOKIE_SAMESITE = "None"
 SESSION_DAYS = "30"
 DAILY_CHAT_LIMIT = "50"
 AUTH_RATE_LIMIT = "60"
 REGISTER_RATE_LIMIT = "10"
-PUBLIC_APP_URL = "http://localhost:3000"
-PLATFORM_ADMIN_EMAILS = "teacher@example.com"
+PUBLIC_APP_URL = "https://smartboard-eg.pages.dev"
+PLATFORM_ADMIN_EMAILS = "yk445kauod@gmail.com"
 PAYMENT_CONTACT = "SmartBoard team (WhatsApp)"
 PAYMENT_WHATSAPP = ""
 PAYMENT_INSTAPAY = ""
@@ -25,7 +25,7 @@ VAPID_SUBJECT = "mailto:admin@smartboard.ai"
 [[d1_databases]]
 binding = "DB"
 database_name = "smartboard"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "d4c73a35-de91-4042-928b-3a5320dfff97"
 migrations_dir = "migrations"
 
 [ai]

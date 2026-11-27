@@ -116,10 +116,12 @@ async function* streamPollinations(opts: StreamChatOptions): AsyncGenerator<stri
     messages: [{ role: 'system', content: opts.system }, ...opts.messages.filter((m) => m.role !== 'system')],
     temperature: opts.temperature ?? 0.4,
   };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts.env.POLLINATIONS_API_KEY) headers.Authorization = `Bearer ${opts.env.POLLINATIONS_API_KEY}`;
   try {
     const res = await fetch(baseUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
       signal: withTimeout(opts.signal, 60_000),
     });
@@ -141,12 +143,34 @@ async function* streamPollinations(opts: StreamChatOptions): AsyncGenerator<stri
       if (emitted) return;
     }
   } catch (err) {
-    console.warn('[omni] Pollinations stream failed, retrying text endpoint:', (err as Error).message);
+    console.warn('[omni] Pollinations stream failed, retrying non-stream:', (err as Error).message);
+  }
+
+  try {
+    const res = await fetch(baseUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...body, stream: false }),
+      signal: withTimeout(opts.signal, 60_000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = data.choices?.[0]?.message?.content;
+      if (text) {
+        yield text;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[omni] Pollinations non-stream retry failed:', (err as Error).message);
   }
 
   const prompt = `${opts.system}\n\n${opts.messages.map((m) => m.content).join('\n')}`.slice(0, 6000);
   const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai&json=true`;
-  const res = await fetch(url, { signal: withTimeout(opts.signal, 60_000) });
+  const res = await fetch(url, {
+    headers: opts.env.POLLINATIONS_API_KEY ? { Authorization: `Bearer ${opts.env.POLLINATIONS_API_KEY}` } : undefined,
+    signal: withTimeout(opts.signal, 60_000),
+  });
   if (!res.ok) throw new Error('Pollinations HTTP ' + res.status);
   const text = (await res.text()).trim();
   if (!text) throw new Error('Pollinations returned an empty response');

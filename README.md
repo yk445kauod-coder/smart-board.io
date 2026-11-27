@@ -119,7 +119,7 @@ The app works with **zero AI keys**: OmniRouter falls back to keyless
 Pollinations, the Workers AI binding, and a deterministic offline lesson
 builder. See [`docs/OMNIROUTER.md`](docs/OMNIROUTER.md).
 
-Set `APP_ORIGIN` in `worker/wrangler.toml` to the frontend origin (comma-separated list is supported). For a separate frontend origin, build with `VITE_API_BASE=https://<worker-host>` and set `COOKIE_SECURE="true"` and `COOKIE_SAMESITE="None"`. For a same-site deployment, `Lax` is enough. `AUTH_RATE_LIMIT`, `REGISTER_RATE_LIMIT`, and `DAILY_CHAT_LIMIT` are tunable per deployment.
+The SPA calls `/api` and Pages Functions proxy it to the Worker, so cookies stay first-party. Do not build with `VITE_API_BASE` pointing at the Worker host. `APP_ORIGIN` in `worker/wrangler.toml` stays the Pages origin. `AUTH_RATE_LIMIT`, `REGISTER_RATE_LIMIT`, and `DAILY_CHAT_LIMIT` are tunable per deployment.
 
 ## Verify the project
 
