@@ -21,10 +21,21 @@ export default tseslint.config(
       'tests/*.ts',
       'public/**',
       'brand-assets/**',
+      '.wrangler/**',
+      '.neon/**',
+      'test-results/**',
+      'playwright-report/**',
+      'coverage/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ['tests/e2e/**/*.ts', 'tests/integration/**/*.ts', 'playwright.config.ts', 'drizzle.config.ts'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly', URL: 'readonly', fetch: 'readonly' },
+    },
+  },
   {
     files: ['src/**/*.{ts,tsx}', 'shared/**/*.ts', 'api/**/*.ts', 'db/**/*.ts'],
     languageOptions: {

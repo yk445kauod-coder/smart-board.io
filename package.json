@@ -16,7 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:isolation && pnpm build && pnpm e2e",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts && tsx db/extra.ts",
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
@@ -33,7 +33,8 @@
     "test:legacy:edge": "tsx --import ./tests/dom-shims.ts tests/edge-cases.test.ts",
     "test:legacy:protocol": "tsx tests/protocol.test.ts",
     "test:legacy:auth": "tsx tests/auth.test.ts",
-    "test:legacy:push": "tsx tests/push.test.ts"
+    "test:legacy:push": "tsx tests/push.test.ts",
+    "test:isolation": "tsx tests/integration/isolation.ts"
   },
   "dependencies": {
     "@google/genai": "^1.31.0",
