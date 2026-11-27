@@ -20,7 +20,6 @@ interface AuthClientLike {
   signIn: { email: (input: { email: string; password: string }) => Promise<unknown> };
   signOut: () => Promise<unknown>;
   getSession: () => Promise<unknown>;
-  token?: () => Promise<unknown>;
 }
 
 const baseUrl = (import.meta.env.VITE_NEON_AUTH_BASE_URL as string | undefined) ?? '';
@@ -56,16 +55,15 @@ function extractError(result: unknown): string | null {
 }
 
 async function readToken(): Promise<string | null> {
-  if (!client?.token) return null;
+  if (!baseUrl) return null;
   try {
-    const result = await client.token();
-    if (!result || typeof result !== 'object') return null;
-    const data = 'data' in result ? (result as { data?: unknown }).data : result;
-    if (data && typeof data === 'object' && 'token' in data) {
-      const token = (data as { token?: unknown }).token;
-      if (typeof token === 'string') return token;
-    }
-    return null;
+    const response = await fetch(`${baseUrl}/token`, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { token?: unknown };
+    return typeof data.token === 'string' ? data.token : null;
   } catch {
     return null;
   }

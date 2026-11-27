@@ -1,4 +1,5 @@
 import type { OrgContext } from '../db/scoped';
+import type { Pool } from '@neondatabase/serverless';
 
 export interface Env {
   DATABASE_URL: string;
@@ -22,6 +23,7 @@ export interface AuthUser {
 }
 
 export interface Variables {
+  pool: Pool;
   user: AuthUser;
   org: OrgContext;
   requestId: string;

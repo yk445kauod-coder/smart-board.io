@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import type { MiddlewareHandler } from 'hono';
@@ -7,7 +8,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 import { BoardDoc } from '../shared/board/model';
 import { ORG_KINDS, ROLES, can, type Action } from '../shared/auth/roles';
-import { getPool } from '../db/client';
+import { createPool } from '../db/client';
 import type { OrgContext } from '../db/scoped';
 import {
   addMember,
@@ -57,6 +58,20 @@ app.use('*', async (c, next) => {
   await next();
 });
 
+app.use('*', async (c, next) => {
+  const db = createPool(c.env.DATABASE_URL);
+  c.set('pool', db);
+  try {
+    await next();
+  } finally {
+    try {
+      c.executionCtx.waitUntil(db.end());
+    } catch {
+      void db.end();
+    }
+  }
+});
+
 app.use('*', cors({
   origin: (origin, c) => {
     const env = c.env as AppEnv['Bindings'];
@@ -64,7 +79,7 @@ app.use('*', cors({
       .split(',')
       .map((s: string) => s.trim())
       .filter(Boolean);
-    return allowed.includes(origin) ? origin : (allowed[0] ?? 'http://localhost:3000');
+    return allowed.includes(origin) ? origin : undefined;
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -73,7 +88,12 @@ app.use('*', cors({
   maxAge: 86400,
 }));
 
-const pool = (c: { env: AppEnv['Bindings'] }) => getPool(c.env.DATABASE_URL);
+const pool = (c: Context<AppEnv>) => c.get('pool');
+
+app.use('/api/*', async (c, next) => {
+  limit(c, 'api', 240, 60_000);
+  await next();
+});
 
 const rateBuckets = new Map<string, { count: number; reset: number }>();
 
@@ -269,7 +289,7 @@ app.post('/api/orgs/:orgId/boards/:boardId/live', permit('board.read'), async (c
   const dbName = c.env.NEON_REALTIME_DB ?? new URL(c.env.DATABASE_URL).pathname.replace(/^\//, '') ?? 'neondb';
   const realtime = createRealtime({ secret: c.env.NEON_REALTIME_SECRET, db: dbName || 'neondb' });
   const sealed = await realtime.seal({
-    query: rawSql('select id, title, doc, updated_at from boards where id = $1 and org_id = $2', [
+    query: rawSql('select id, title, doc, updated_at from public.board_live where id = $1 and org_id = $2', [
       boardId,
       org.orgId,
     ]),

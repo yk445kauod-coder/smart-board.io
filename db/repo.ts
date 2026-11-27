@@ -1,5 +1,5 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
-import type { Pool } from 'pg';
+import type { Pool } from '@neondatabase/serverless';
 import { randomUUID } from 'node:crypto';
 import type { BoardDoc } from '../shared/board/model';
 import type { OrgKind, Role } from '../shared/auth/roles';

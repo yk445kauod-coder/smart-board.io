@@ -48,6 +48,9 @@ function BoardScreen({ guest = false, orgId = '', boardId = '' }: { guest?: bool
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const docRef = useRef<BoardDoc | null>(null);
   const titleRef = useRef(title);
+  useEffect(() => {
+    titleRef.current = title;
+  }, [title]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cacheKey = guest ? 'guest:main' : `board:${orgId}:${boardId}`;
 
@@ -154,8 +157,10 @@ function BoardScreen({ guest = false, orgId = '', boardId = '' }: { guest?: bool
   }, [saveState, persist]);
 
   useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+    if (!timer.current) return;
+    clearTimeout(timer.current);
+    if (docRef.current) void persist(docRef.current, titleRef.current);
+  }, [persist]);
 
   const saveToLibrary = async (nextDoc: BoardDoc) => {
     if (guest || !token) return;

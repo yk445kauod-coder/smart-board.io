@@ -114,6 +114,7 @@ export function BoardEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const editorInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [scale, setScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -130,6 +131,15 @@ export function BoardEditor({
   useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
+
+  // Focus after the opening pointerup, otherwise the browser's default focus
+  // handling blurs the textarea immediately and commits an empty element.
+  const editorOpen = editor !== null;
+  useEffect(() => {
+    if (!editorOpen) return;
+    const id = setTimeout(() => editorInputRef.current?.focus(), 30);
+    return () => clearTimeout(id);
+  }, [editorOpen]);
 
   const run = useCallback((command: unknown) => {
     setHistory((current) => {
@@ -474,7 +484,6 @@ export function BoardEditor({
 
   const renderElement = (element: BoardElement) => {
     const common = {
-      key: element.id,
       id: element.id,
       draggable: tool === 'select' && !editor,
       onClick: () => { if (tool === 'select') setSelectedId(element.id); },
@@ -487,6 +496,7 @@ export function BoardEditor({
       const flat = element.points.flatMap((p) => [p.x, p.y]);
       return (
         <Line
+          key={element.id}
           {...common}
           points={flat}
           stroke={element.color}
@@ -510,6 +520,7 @@ export function BoardEditor({
     if (element.kind === 'line') {
       return (
         <Arrow
+          key={element.id}
           {...common}
           points={[element.x1, element.y1, element.x2, element.y2]}
           stroke={element.color}
@@ -530,7 +541,7 @@ export function BoardEditor({
 
     if (element.kind === 'image') {
       return (
-        <Group {...common} x={element.x} y={element.y} ref={(node) => { if (node) nodeRefs.current.set(element.id, node); }}>
+        <Group key={element.id} {...common} x={element.x} y={element.y} ref={(node) => { if (node) nodeRefs.current.set(element.id, node); }}>
           <Rect width={element.w} height={element.h} stroke="#94a3b8" dash={[8, 4]} fill="#f1f5f9" />
           <KonvaText width={element.w} height={element.h} align="center" verticalAlign="middle" text={element.alt || 'صورة'} fill="#64748b" fontSize={16} />
         </Group>
@@ -539,6 +550,7 @@ export function BoardEditor({
 
     return (
       <Group
+        key={element.id}
         {...common}
         x={element.x}
         y={element.y}
@@ -718,7 +730,7 @@ export function BoardEditor({
 
         {editor && editorScreen && (
           <textarea
-            autoFocus
+            ref={editorInputRef}
             dir="auto"
             className={editor.kind === 'sticky' ? 'sticky-editor' : 'text-editor'}
             style={{

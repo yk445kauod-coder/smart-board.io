@@ -1,10 +1,10 @@
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { Pool, PoolClient } from 'pg';
+import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
+import type { Pool, PoolClient } from '@neondatabase/serverless';
 import { z } from 'zod';
 import * as schema from './schema';
 import type { Role } from '../shared/auth/roles';
 
-export type ScopedDb = NodePgDatabase<typeof schema>;
+export type ScopedDb = NeonDatabase<typeof schema>;
 
 export interface OrgContext {
   orgId: string;

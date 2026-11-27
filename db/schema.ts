@@ -85,6 +85,23 @@ export const boards = pgTable(
   (t) => [index('boards_org_project_idx').on(t.orgId, t.projectId)],
 );
 
+/**
+ * Denormalised projection of boards for Neon Realtime. Realtime's query
+ * compiler refuses relations with row security, so live reads use this table;
+ * it carries org_id and every sealed query filters by it.
+ */
+export const boardLive = pgTable(
+  'board_live',
+  {
+    id: uuid('id').primaryKey().references(() => boards.id, { onDelete: 'cascade' }),
+    orgId: uuid('org_id').notNull(),
+    title: text('title').notNull(),
+    doc: jsonb('doc').$type<BoardDoc>().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('board_live_org_idx').on(t.orgId)],
+);
+
 export const libraryItems = pgTable(
   'library_items',
   {

@@ -11,3 +11,8 @@ $$;
 
 revoke all on function public.resolve_user_id(text) from public;
 grant execute on function public.resolve_user_id(text) to app_user;
+
+
+-- Realtime reads the board_live projection (see migration 0001); the base
+-- table keeps RLS forced for every application query.
+alter table boards force row level security;

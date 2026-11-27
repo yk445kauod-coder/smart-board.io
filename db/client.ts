@@ -1,25 +1,37 @@
-import { Pool } from 'pg';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 
-let pool: Pool | undefined;
+// Cloudflare Workers expose a global WebSocket; Node 22+ does too. The
+// serverless driver uses it for session-scoped transactions (SET LOCAL ROLE).
+if (typeof WebSocket !== 'undefined') {
+  neonConfig.webSocketConstructor = WebSocket;
+}
+
+const options = {
+  max: 2,
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+  maxLifetimeSeconds: 0,
+};
+
+/**
+ * Workers forbid reusing I/O objects across request contexts, so the API creates
+ * one pool per request. Node scripts can keep a cached pool via getPool().
+ */
+export function createPool(connectionString: string): Pool {
+  return new Pool({ connectionString, ...options });
+}
+
+let cached: Pool | undefined;
 
 export function getPool(connectionString: string): Pool {
-  if (!pool) {
-    pool = new Pool({
-      connectionString,
-      max: 3,
-      idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 10_000,
-      allowExitOnIdle: true,
-      ssl: { rejectUnauthorized: true },
-    });
-  }
-  return pool;
+  if (!cached) cached = createPool(connectionString);
+  return cached;
 }
 
 export async function closePool(): Promise<void> {
-  if (pool) {
-    const p = pool;
-    pool = undefined;
+  if (cached) {
+    const p = cached;
+    cached = undefined;
     await p.end();
   }
 }
