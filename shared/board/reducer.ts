@@ -64,7 +64,7 @@ export function applyCommand(doc: BoardDoc, command: BoardCommand): BoardDoc {
         id: command.newId,
         z: nextZ(doc),
       });
-      const moved = clampElement(translateElement(copy, command.dx, command.dy));
+      const moved = clampElement(translateElement(copy, command.dx ?? 24, command.dy ?? 24));
       return { ...doc, elements: [...doc.elements, moved] };
     }
     case 'element.reorder': {

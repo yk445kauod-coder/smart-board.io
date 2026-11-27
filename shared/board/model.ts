@@ -122,8 +122,8 @@ export const BoardCommand = z.discriminatedUnion('type', [
     type: z.literal('element.duplicate'),
     id: ElementId,
     newId: ElementId,
-    dx: MoveDelta.default(24),
-    dy: MoveDelta.default(24),
+    dx: MoveDelta.optional(),
+    dy: MoveDelta.optional(),
   }),
   z.object({
     type: z.literal('element.reorder'),

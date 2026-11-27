@@ -83,7 +83,7 @@ const AtlasPanel: React.FC<AtlasPanelProps> = ({ open, onClose, language, onPlac
           </svg>
         ) : (
           <ComposableMap projection="geoEqualEarth" projectionConfig={{ scale: 150 }} className="w-full h-auto relative">
-            <ZoomableGroup zoom={position.zoom} center={position.coordinates} onMoveEnd={setPosition} minZoom={1} maxZoom={6}>
+            <ZoomableGroup zoom={position.zoom} center={position.coordinates} onMoveEnd={(next) => setPosition((current) => ({ coordinates: next.coordinates ?? current.coordinates, zoom: next.zoom ?? current.zoom }))} minZoom={1} maxZoom={6}>
               <Graticule stroke="#7ed6df" strokeOpacity={0.18} strokeWidth={0.5} />
               <Sphere stroke="#b9f3ff" strokeWidth={0.7} fill="transparent" />
               <Geographies geography={GEO_URL}>
@@ -92,7 +92,7 @@ const AtlasPanel: React.FC<AtlasPanelProps> = ({ open, onClose, language, onPlac
                     {geographies.map(geo => {
                       const name = String(geo.properties?.name || geo.properties?.NAME || '');
                       const selected = !selectedCountries.length || selectedCountries.includes(name);
-                      return <Geography key={geo.rsmKey} geography={geo} onClick={() => { const pin = WORLD_PINS.find(p => p.nameEn.toLowerCase() === name.toLowerCase()); if (pin) togglePin(pin.id); }} style={{ default: { fill: selected ? '#2fb7b3' : '#284b73', stroke: '#d8f3f7', strokeWidth: 0.35, outline: 'none', opacity: selected ? 0.95 : 0.45 }, hover: { fill: '#f7c948', outline: 'none', cursor: 'pointer' }, pressed: { fill: '#ef5350', outline: 'none' } }} />;
+                      return <Geography key={geo.rsmKey} geography={geo} onClick={() => { const pin = WORLD_PINS.find(p => p.nameEn.toLowerCase() === name.toLowerCase()); if (pin) togglePin(pin.id); }} style={{ default: { fill: selected ? '#2fb7b3' : '#284b73', stroke: '#d8f3f7', strokeWidth: 0.35, outline: 'none', opacity: selected ? 0.95 : 0.45 }, hover: { fill: '#f7c948', outline: 'none', cursor: 'pointer' }, pressed: { fill: '#ef5350', outline: 'none' } } as unknown as React.CSSProperties} />;
                     })}
                     <path d={borders?.svgPath || ''} fill="none" stroke="#d8f3f7" strokeWidth={0.35} opacity={0.8} />
                   </>

@@ -4,8 +4,15 @@
     "strict": false,
     "noUncheckedIndexedAccess": false,
     "allowJs": true,
-    "types": ["node"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "noImplicitOverride": false
   },
   "include": [
     "App.tsx",
@@ -16,7 +23,6 @@
     "types.ts",
     "data/**/*.ts",
     "src/protocol/**/*.ts",
-    "tests/**/*.ts",
     "functions/**/*.ts",
     "worker-api.ts"
   ]

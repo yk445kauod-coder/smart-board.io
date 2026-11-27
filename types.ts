@@ -76,7 +76,7 @@ export interface KnowledgeDoc {
 
 export interface PDFPageAnnotation {
   id: string;
-  kind: 'pen' | 'note';
+  kind: 'pen' | 'note' | 'eraser';
   points?: { x: number; y: number }[];
   color?: string;
   strokeWidth?: number;
