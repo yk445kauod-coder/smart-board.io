@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SmartBoard AI — Developer Docs</title>
+<style>
+:root{--navy:#080d1e;--navy2:#0d1730;--cyan:#00e5ff;--amber:#f59e0b;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--code:#0b1220}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:#0e7490;text-decoration:none}a:hover{text-decoration:underline}
+.hero{background:radial-gradient(circle at 15% 0,#12305a 0,var(--navy) 55%);color:#e2e8f0;padding:44px 28px 40px}
+.hero-inner{max-width:1180px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.mark{width:38px;height:38px;border-radius:50%;border:2px solid var(--cyan);display:grid;place-items:center;color:var(--cyan);font-weight:900;box-shadow:0 0 26px rgba(0,229,255,.35)}
+.brand b{color:#fff;font-size:16px}.brand small{display:block;color:#7dd3fc;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+.hero h1{font-size:clamp(28px,4vw,44px);line-height:1.1;margin:0 0 12px;letter-spacing:-.03em;color:#fff}
+.hero p{max-width:760px;color:#bae6fd;margin:0 0 20px;font-size:16px}
+.hero .ar{color:#e0f2fe;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:12px 14px;max-width:760px;font-size:13.5px;direction:rtl;text-align:right}
+.cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:10px 15px;font-weight:800;font-size:13px;border:1px solid rgba(255,255,255,.18);color:#fff;background:rgba(255,255,255,.06)}
+.btn.cyan{background:var(--cyan);color:#06121f;border-color:var(--cyan)}
+.layout{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:34px;padding:32px 28px 80px}
+.toc{position:sticky;top:20px;align-self:start;font-size:13px}
+.toc b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.toc a{display:block;padding:7px 10px;border-radius:8px;color:#334155}
+.toc a:hover{background:#e2e8f0;text-decoration:none}
+.content{min-width:0}
+section{margin:0 0 34px;scroll-margin-top:20px}
+h2{font-size:22px;letter-spacing:-.02em;margin:0 0 8px}
+h3{font-size:15px;margin:20px 0 6px}
+p{color:#334155}
+code{background:#e2e8f0;border-radius:5px;padding:1px 5px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code);color:#dbeafe;border-radius:14px;padding:16px 18px;overflow:auto;font-size:12.5px;line-height:1.65;border:1px solid #1e293b}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin:12px 0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.k{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+.v{font-weight:800;font-size:16px;margin-top:4px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #eef2f7}
+th{background:#f8fafc;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.badge.cyan{background:#ecfeff;color:#0e7490}.badge.amber{background:#fffbeb;color:#b45309}.badge.green{background:#ecfdf5;color:#047857}
+.note{border-left:3px solid var(--amber);background:#fffbeb;border-radius:0 10px 10px 0;padding:10px 14px;color:#78350f;font-size:13px;margin:12px 0}
+.footer{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;color:var(--muted);font-size:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.toc{position:relative;top:0;display:grid;grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="hero"><div class="hero-inner">
+  <div class="brand"><div class="mark">S</div><div><b>SmartBoard AI</b><small>Developer Platform</small></div></div>
+  <h1>Build lessons that draw themselves.</h1>
+  <p>One API for bilingual lesson generation, whiteboard protocols, saved lessons, API keys, plans, and MCP tools. Start with zero AI keys thanks to OmniRouter's keyless fallbacks.</p>
+  <div class="ar">واجهة برمجية واحدة لبناء الدروس على السبورة: توليد بروتوكول الرسم، حفظ الدروس، مفاتيح API، الخطط، وأدوات MCP. تعمل حتى بدون مفاتيح مزودين بفضل OmniRouter.</div>
+  <div class="cta"><a class="btn cyan" href="#quickstart">Quickstart</a><a class="btn" href="/v1/openapi.json">OpenAPI 3.1</a><a class="btn" href="/mcp">MCP server</a><a class="btn" href="/admin">Platform console</a></div>
+</div></div>
+
+<div class="layout">
+  <nav class="toc">
+    <b>Guide</b>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#auth">Authentication</a>
+    <a href="#lessons">Lessons</a>
+    <a href="#stream">Streaming</a>
+    <a href="#mcp">MCP</a>
+    <a href="#omni">OmniRouter</a>
+    <a href="#billing">Manual billing</a>
+    <a href="#codes">Activation codes</a>
+    <a href="#admin">Admin console</a>
+    <a href="#errors">Errors &amp; limits</a>
+  </nav>
+  <main class="content">
+
+    <section id="quickstart">
+      <h2>Quickstart</h2>
+      <p>Create an account, make an API key, then generate a lesson. The free plan includes 50 AI turns per day, 30 saved lessons, and one API key.</p>
+      <pre><code># 1. Create an account (sets the sb_session cookie)
+curl -i -X POST http://localhost:8787/auth/register \\
+  -H 'Content-Type: application/json' \\
+  -d '{"email":"teacher@example.com","password":"change-me-123","name":"Teacher"}'
+
+# 2. Create an API key (cookie auth)
+curl -X POST http://localhost:8787/v1/api-keys \\
+  -H 'Content-Type: application/json' \\
+  -b 'sb_session=...' \\
+  -d '{"name":"CLI"}'
+# => {"key":"sb_live_...","apiKey":{...}}
+
+# 3. Generate a lesson
+curl -N -X POST http://localhost:8787/v1/chat/stream \\
+  -H 'Authorization: Bearer sb_live_...' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"model":"auto","messages":[{"role":"user","content":"Teach fractions with a pizza example"}],"lang":"en"}'</code></pre>
+      <div class="note">In local development, Vite proxies <code>/api</code> to the worker on port 8787. In production, point <code>VITE_API_BASE</code> at the worker origin.</div>
+    </section>
+
+    <section id="auth">
+      <h2>Authentication</h2>
+      <p>Two methods are supported:</p>
+      <div class="grid">
+        <div class="card"><div class="k">Browser session</div><div class="v">sb_session cookie</div><p style="font-size:13px;margin:6px 0 0">HttpOnly, SameSite, created by register/login. Used by the app and the admin console.</p></div>
+        <div class="card"><div class="k">Server-to-server</div><div class="v">Bearer API key</div><p style="font-size:13px;margin:6px 0 0"><code>Authorization: Bearer sb_live_…</code> or <code>x-api-key</code>. Keys are hashed; the raw value is shown once.</p></div>
+      </div>
+      <pre><code>GET /auth/me
+# => { user, org, plan, subscription }</code></pre>
+    </section>
+
+    <section id="lessons">
+      <h2>Lessons</h2>
+      <table><thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead><tbody>
+        <tr><td>GET</td><td><code>/v1/lessons</code></td><td>List lessons in the active workspace</td></tr>
+        <tr><td>POST</td><td><code>/v1/lessons</code></td><td>Save a validated protocol script</td></tr>
+        <tr><td>GET</td><td><code>/v1/lessons/:id</code></td><td>Load one lesson</td></tr>
+        <tr><td>PUT</td><td><code>/v1/lessons/:id</code></td><td>Replace title, language, or script</td></tr>
+        <tr><td>DELETE</td><td><code>/v1/lessons/:id</code></td><td>Delete a lesson</td></tr>
+      </tbody></table>
+      <p>A protocol script is a JSON object with <code>title</code>, <code>lang</code>, and <code>steps[]</code>. Each step has <code>ops[]</code> using <code>write</code>, <code>line</code>, <code>rect</code>, <code>ellipse</code>, <code>path</code>, <code>erase</code>, plus extended ops such as <code>table</code>, <code>graph</code>, <code>atlas</code>, and <code>periodic</code>.</p>
+    </section>
+
+    <section id="stream">
+      <h2>Streaming</h2>
+      <p><code>POST /v1/chat/stream</code> returns Server-Sent Events. The scanner emits each op as soon as its JSON object closes, so the board starts drawing before the model finishes.</p>
+      <table><thead><tr><th>Event</th><th>Payload</th></tr></thead><tbody>
+        <tr><td><code>meta</code></td><td><code>{requestId, model}</code></td></tr>
+        <tr><td><code>provider</code></td><td><code>{provider, model}</code> when OmniRouter picks a provider</td></tr>
+        <tr><td><code>delta</code></td><td><code>{text}</code> raw model chunk</td></tr>
+        <tr><td><code>op</code></td><td><code>{op}</code> one validated protocol operation</td></tr>
+        <tr><td><code>step</code></td><td><code>{count}</code> completed steps</td></tr>
+        <tr><td><code>warning</code></td><td><code>{errors[]}</code> skipped invalid ops</td></tr>
+        <tr><td><code>done</code></td><td><code>{requestId, chars, ops, steps}</code></td></tr>
+        <tr><td><code>error</code></td><td><code>{requestId, message}</code></td></tr>
+      </tbody></table>
+      <pre><code>const res = await fetch('/v1/chat/stream', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sb_live_...' },
+  body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: 'Teach photosynthesis' }], lang: 'ar' })
+});
+const reader = res.body.getReader();
+// Parse SSE blocks separated by a blank line.</code></pre>
+    </section>
+
+    <section id="mcp">
+      <h2>MCP server</h2>
+      <p>SmartBoard exposes a Streamable HTTP MCP endpoint at <code>/mcp</code>. Use an API key in the <code>Authorization</code> header.</p>
+      <pre><code>{
+  "mcpServers": {
+    "smartboard": {
+      "url": "http://localhost:8787/mcp",
+      "headers": { "Authorization": "Bearer sb_live_..." }
+    }
+  }
+}</code></pre>
+      <table><thead><tr><th>Tool</th><th>What it does</th></tr></thead><tbody>
+        <tr><td><code>smartboard_health</code></td><td>API, D1, user, workspace</td></tr>
+        <tr><td><code>smartboard_list_models</code></td><td>Models, tiers, provider availability</td></tr>
+        <tr><td><code>smartboard_generate_lesson</code></td><td>Generate a protocol script from a prompt</td></tr>
+        <tr><td><code>smartboard_save_lesson</code></td><td>Save a validated script</td></tr>
+        <tr><td><code>smartboard_list_lessons</code></td><td>List workspace lessons</td></tr>
+        <tr><td><code>smartboard_get_lesson</code></td><td>Load a lesson by id</td></tr>
+        <tr><td><code>smartboard_usage</code></td><td>Plan limits and today's usage</td></tr>
+      </tbody></table>
+      <pre><code>curl -X POST http://localhost:8787/mcp \\
+  -H 'Authorization: Bearer sb_live_...' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
+    </section>
+
+    <section id="omni">
+      <h2>OmniRouter</h2>
+      <p>Send <code>"model": "auto"</code> and the router tries providers in plan order. A failure before the first token falls through to the next provider; a failure after streaming starts is surfaced to the client instead of duplicating output.</p>
+      <div class="grid">
+        <div class="card"><div class="k">Keyless</div><div class="v">Pollinations + Workers AI</div><p style="font-size:13px;margin:6px 0 0">Works with no external API keys. Workers AI uses the Cloudflare binding.</p></div>
+        <div class="card"><div class="k">Self-hosted</div><div class="v">FreeLLMAPI</div><p style="font-size:13px;margin:6px 0 0">Set <code>FREELLMAPI_BASE_URL</code> and optionally <code>FREELLMAPI_API_KEY</code>. It becomes the first provider.</p></div>
+        <div class="card"><div class="k">Premium</div><div class="v">OpenRouter · Gemini · Claude · DeepSeek</div><p style="font-size:13px;margin:6px 0 0">Used first on Pro and School when their secrets are configured.</p></div>
+        <div class="card"><div class="k">Guaranteed</div><div class="v">Offline builder</div><p style="font-size:13px;margin:6px 0 0">A deterministic valid protocol script when every network provider fails.</p></div>
+      </div>
+      <pre><code># Provider health (public)
+curl http://localhost:8787/v1/models
+
+# Admin view (platform admin)
+curl -b 'sb_session=...' http://localhost:8787/v1/admin/providers</code></pre>
+    </section>
+
+    <section id="billing">
+      <h2>Manual billing</h2>
+      <p>For Egypt and the Gulf, the product supports manual payment without a payment gateway: InstaPay, cash wallet, or bank transfer after a short call. The team confirms the transfer and issues an activation code.</p>
+      <table><thead><tr><th>Plan</th><th>Price</th><th>Seats</th><th>AI turns / day</th></tr></thead><tbody>
+        <tr><td>Free</td><td>EGP 0</td><td>1</td><td>50</td></tr>
+        <tr><td>Pro</td><td>EGP 299 / month</td><td>1</td><td>500</td></tr>
+        <tr><td>School</td><td>EGP 1,499 / month</td><td>25</td><td>2,000</td></tr>
+        <tr><td>Enterprise</td><td>Contact</td><td>Custom</td><td>Custom</td></tr>
+      </tbody></table>
+      <h3>1. Submit a payment request</h3>
+      <pre><code>curl -X POST http://localhost:8787/v1/billing/manual-request \\
+  -H 'Authorization: Bearer sb_live_...' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"plan":"pro","method":"instapay","reference":"INV-12345","note":"Paid 299 EGP"}'</code></pre>
+      <h3>2. Team approves</h3>
+      <p>In <a href="/admin">the platform console</a> → Payments → <b>Approve &amp; issue code</b>. The code is shown once; only its hash is stored.</p>
+      <h3>3. Redeem</h3>
+      <pre><code>curl -X POST http://localhost:8787/v1/billing/redeem \\
+  -H 'Authorization: Bearer sb_live_...' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"code":"SB-XXXX-XXXX-XXXX"}'</code></pre>
+      <div class="note">Payment instructions are configurable with <code>PAYMENT_INSTAPAY</code>, <code>PAYMENT_WALLET</code>, <code>PAYMENT_BANK</code>, <code>PAYMENT_CONTACT</code>, and <code>PAYMENT_WHATSAPP</code>.</div>
+    </section>
+
+    <section id="codes">
+      <h2>Activation codes</h2>
+      <p>Codes are one-time, hashed, revocable, and expire after a configurable number of days. A code can also be created manually from the console for a school or a partner.</p>
+      <pre><code>POST /v1/admin/activation-codes
+{ "plan":"school", "seats":25, "days":30, "maxUses":1, "note":"Partner pilot" }
+# => { "code":"SB-...", "record":{...} }</code></pre>
+    </section>
+
+    <section id="admin">
+      <h2>Admin console</h2>
+      <p>The platform console at <a href="/admin">/admin</a> is for founders and co-founders. It requires a session whose email is in <code>PLATFORM_ADMIN_EMAILS</code> (or <code>users.is_platform_admin = 1</code>).</p>
+      <div class="grid">
+        <div class="card"><div class="k">Growth</div><div class="v">KPIs + MRR</div></div>
+        <div class="card"><div class="k">Workspaces</div><div class="v">Plans, seats, suspend</div></div>
+        <div class="card"><div class="k">Money</div><div class="v">Manual payments, codes</div></div>
+        <div class="card"><div class="k">AI</div><div class="v">Provider health</div></div>
+      </div>
+    </section>
+
+    <section id="errors">
+      <h2>Errors &amp; limits</h2>
+      <table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td><code>400</code></td><td>Validation failed; the message lists the failing fields</td></tr>
+        <tr><td><code>401</code></td><td>Missing or invalid session / API key</td></tr>
+        <tr><td><code>402</code></td><td>Plan limit reached; response includes <code>upgrade:true</code></td></tr>
+        <tr><td><code>403</code></td><td>Wrong workspace, role, or suspended account</td></tr>
+        <tr><td><code>415</code></td><td>Body is not <code>application/json</code></td></tr>
+        <tr><td><code>429</code></td><td>Rate limited; retry later</td></tr>
+        <tr><td><code>503</code></td><td>No AI provider or billing configured</td></tr>
+      </tbody></table>
+      <p>Every response includes <code>x-request-id</code>. Include it when reporting an issue.</p>
+      <div class="footer">SmartBoard AI · <a href="/">App</a> · <a href="/admin">Console</a> · <a href="/v1/openapi.json">OpenAPI</a> · <a href="/mcp">MCP</a></div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

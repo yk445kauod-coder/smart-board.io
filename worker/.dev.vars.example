@@ -1,0 +1,16 @@
+# Copy to worker/.dev.vars and fill in. Never commit .dev.vars.
+OPENROUTER_API_KEY=
+GEMINI_API_KEY=
+DEEPSEEK_API_KEY=
+ANTHROPIC_API_KEY=
+
+# Optional: self-hosted FreeLLMAPI gateway (OpenAI-compatible).
+FREELLMAPI_BASE_URL=
+FREELLMAPI_API_KEY=
+FREELLMAPI_MODEL=auto
+
+# Optional: Stripe (manual InstaPay / wallet / bank transfer works without it).
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_PRO=
+STRIPE_PRICE_SCHOOL=

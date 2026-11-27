@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import SmartBoard from './components/Board';
 import Chat from './components/Chat';
 import SettingsModal from './components/SettingsModal';
+import BillingModal from './components/BillingModal';
 import VisualizeTextModal from './components/VisualizeTextModal';
 import PdfWorkspace from './components/PdfWorkspace';
 import Onboarding from './components/Onboarding';
@@ -11,6 +12,7 @@ import BottomToolbar from './components/BottomToolbar';
 import AISheet from './components/AISheet';
 import SlideRail from './components/SlideRail';
 import TopBar from './components/TopBar';
+import ProtocolBoard from './components/ProtocolBoard';
 import { TeacherPersona, ToolType, ElementData, LessonDetail, ToolbarPosition, ChatMessage, KnowledgeDoc, LessonMode, TeachingMode, BoardMode, BoardTheme, aiLangOf } from './types';
 import AtlasPanel from './components/AtlasPanel';
 import SmartLabPanel from './components/SmartLabPanel';
@@ -40,6 +42,7 @@ const AppContent: React.FC = () => {
   // App State
   const [activeTool, setActiveTool] = useState<ToolType>('pointer');
   const [view, setView] = useState<'home' | 'language-select' | 'board'>('home');
+  const [protocolMode, setProtocolMode] = useState(() => new URLSearchParams(window.location.search).get('protocol') === '1');
   const [settings, setSettings] = useState<TeacherPersona>({ name: 'Smart Tutor', language: 'English', aiLanguage: 'English', subject: 'General Knowledge', personality: 'Encouraging', voice: 'female', ttsMode: 'gemini' });
   const settingsHydrated = useRef(false);
   useEffect(() => {
@@ -60,6 +63,7 @@ const AppContent: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   useEffect(() => { setTtsMode(settings.ttsMode || 'gemini'); }, [settings.ttsMode]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isBillingOpen, setIsBillingOpen] = useState(false);
   const [isVisualizeModalOpen, setIsVisualizeModalOpen] = useState(false);
   const [isPdfOpen, setIsPdfOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -777,6 +781,10 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
     }
   }, [view]);
 
+  if (protocolMode) {
+    return <ProtocolBoard language={settings.language} onExit={() => setProtocolMode(false)} />;
+  }
+
   if (view === 'home') {
     return <HomeScreen language={settings.language} onStart={() => setView('language-select')} />;
   }
@@ -814,6 +822,8 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
           isOffline={isOffline}
           language={settings.language}
           onExportPdf={() => setIsPdfOpen(true)}
+          onOpenProtocol={() => setProtocolMode(true)}
+          onOpenBilling={() => setIsBillingOpen(true)}
         />
       )}
 
@@ -983,6 +993,14 @@ const submitPromptToAI = useCallback(async (prompt: string, mode?: LessonMode) =
             </div>
           </div>
         </div>
+      )}
+
+      {isBillingOpen && (
+        <BillingModal
+          open={isBillingOpen}
+          onClose={() => setIsBillingOpen(false)}
+          language={settings.language}
+        />
       )}
 
       {isSettingsOpen && (

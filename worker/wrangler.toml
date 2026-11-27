@@ -1,0 +1,36 @@
+name = "smartboard-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ORIGIN = "http://localhost:3000"
+COOKIE_SECURE = "false"
+COOKIE_SAMESITE = "Lax"
+SESSION_DAYS = "30"
+DAILY_CHAT_LIMIT = "50"
+AUTH_RATE_LIMIT = "60"
+REGISTER_RATE_LIMIT = "10"
+PUBLIC_APP_URL = "http://localhost:3000"
+PLATFORM_ADMIN_EMAILS = "teacher@example.com"
+PAYMENT_CONTACT = "SmartBoard team (WhatsApp)"
+PAYMENT_WHATSAPP = ""
+PAYMENT_INSTAPAY = ""
+PAYMENT_WALLET = ""
+PAYMENT_BANK = ""
+FREELLMAPI_BASE_URL = ""
+FREELLMAPI_MODEL = "auto"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "smartboard"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[ai]
+binding = "AI"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true

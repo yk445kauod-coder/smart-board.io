@@ -15,5 +15,10 @@ root.render(
 );
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+  } else {
+    void navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => undefined);
+    void caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => undefined);
+  }
 }

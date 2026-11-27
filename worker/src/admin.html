@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SmartBoard AI — Platform Console</title>
+<style>
+:root{
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f6f8fb; --card:#fff;
+  --navy:#080d1e; --navy2:#0d1730; --cyan:#00e5ff; --amber:#f59e0b; --green:#10b981; --red:#ef4444;
+  --radius:16px; --shadow:0 1px 3px rgba(15,23,42,.08),0 12px 28px -18px rgba(15,23,42,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+a{color:#0369a1}
+.shell{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.side{background:linear-gradient(180deg,var(--navy),var(--navy2));color:#dbeafe;padding:22px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 20px}
+.mark{width:34px;height:34px;border-radius:50%;border:2px solid var(--cyan);display:grid;place-items:center;color:var(--cyan);font-weight:800;box-shadow:0 0 24px rgba(0,229,255,.35)}
+.brand b{color:#fff;font-size:15px;letter-spacing:.2px}
+.brand small{display:block;color:#7dd3fc;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+.nav{display:grid;gap:4px;margin-top:8px}
+.nav button{all:unset;cursor:pointer;padding:10px 12px;border-radius:10px;color:#c7d2fe;display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px}
+.nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav button.on{background:rgba(0,229,255,.13);color:#fff;box-shadow:inset 3px 0 0 var(--cyan)}
+.nav .ico{width:18px;text-align:center;opacity:.9}
+.side-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,.08);padding-top:12px}
+.main{padding:26px 30px 60px;min-width:0}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+h1{font-size:22px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:4px 0 0;font-size:13px}
+.who{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 6px;box-shadow:var(--shadow)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--cyan);display:grid;place-items:center;font-weight:800;font-size:12px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.kpi .value{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:6px}
+.kpi .hint{color:var(--muted);font-size:11px;margin-top:4px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 12px}
+.search{flex:1;min-width:220px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;outline:none}
+.search:focus{border-color:#7dd3fc;box-shadow:0 0 0 3px rgba(0,229,255,.18)}
+.btn{all:unset;cursor:pointer;border-radius:10px;padding:9px 13px;font-weight:700;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.btn:hover{background:#f8fafc}
+.btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.danger{color:#b91c1c;border-color:#fecaca;background:#fef2f2}
+.table-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:auto;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:11px 13px;text-align:left;border-bottom:1px solid #eef2f7;white-space:nowrap;font-size:12.5px}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:#fbfdff}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fafcff}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.pill.free{background:#f1f5f9;color:#475569}.pill.pro{background:#ecfeff;color:#0e7490}.pill.school{background:#fffbeb;color:#b45309}.pill.enterprise{background:#f5f3ff;color:#6d28d9}
+.pill.ok{background:#ecfdf5;color:#047857}.pill.bad{background:#fef2f2;color:#b91c1c}.pill.warn{background:#fffbeb;color:#b45309}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#cbd5e1}.dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+.muted{color:var(--muted)}
+.empty{padding:36px;text-align:center;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:6px;height:150px;padding:12px 4px 0}
+.bar{flex:1;background:linear-gradient(180deg,var(--cyan),#0891b2);border-radius:6px 6px 2px 2px;min-height:2px;position:relative}
+.bar span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--muted);white-space:nowrap}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 10px}
+.section-title h2{font-size:14px;margin:0}
+.login-wrap{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 30% 10%,#12305a 0,#080d1e 55%)}
+.login{width:min(420px,92vw);background:#fff;border-radius:22px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.login h2{margin:0 0 4px;font-size:20px}.login p{margin:0 0 18px;color:var(--muted);font-size:13px}
+.field{display:grid;gap:6px;margin-bottom:12px}.field label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:800}
+.field input{border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none}
+.field input:focus{border-color:#7dd3fc;box-shadow:0 0 0 3px rgba(0,229,255,.18)}
+.msg{font-size:12px;border-radius:10px;padding:9px 11px;margin:10px 0;display:none}
+.msg.err{display:block;background:#fef2f2;color:#b91c1c}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.shell{grid-template-columns:1fr}.side{position:relative;height:auto}.side-foot{position:relative;left:auto;bottom:auto;margin-top:18px}.nav{grid-template-columns:repeat(3,1fr)}.main{padding:20px}}
+@media(max-width:560px){.kpis{grid-template-columns:1fr}.nav{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="app"><div class="login-wrap"><div class="login"><h2>Loading console…</h2><p>Checking your session.</p></div></div></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (n) => new Intl.NumberFormat('en-EG').format(Number(n)||0);
+const egp = (n) => 'EGP ' + fmt(n);
+const dt = (ts) => ts ? new Date(ts).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}) : '—';
+const state = { tab:'overview', user:null, orgs:[], users:[], subs:[], usage:[], audit:[], providers:[], keys:[], payments:[], codes:[] };
+
+async function api(path, opts={}) {
+  const res = await fetch(path, { credentials:'include', headers:{...(opts.body?{'Content-Type':'application/json'}:{}),...(opts.headers||{})}, ...opts });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
+function loginView(message='') {
+  $('#app').innerHTML = `
+  <div class="login-wrap"><form class="login" id="login-form">
+    <div class="brand" style="padding:0 0 18px"><div class="mark">S</div><div><b style="color:#0f172a">SmartBoard AI</b><small style="color:#0891b2">Platform Console</small></div></div>
+    <h2>Founder sign in</h2>
+    <p>Use the platform admin account to manage workspaces, plans, usage, and providers.</p>
+    <div class="msg ${message?'err':''}" id="login-msg">${esc(message)}</div>
+    <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required placeholder="founder@smartboard.ai" /></div>
+    <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required minlength="8" /></div>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:12px" type="submit">Sign in</button>
+  </form></div>`;
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try {
+      await api('/auth/login', {method:'POST', body:JSON.stringify({email:fd.get('email'), password:fd.get('password')})});
+      await boot();
+    } catch (err) { loginView(err.message); }
+  });
+}
+
+function shell() {
+  const initials = (state.user?.name || state.user?.email || 'A').slice(0,1).toUpperCase();
+  $('#app').innerHTML = `
+  <div class="shell">
+    <aside class="side">
+      <div class="brand"><div class="mark">S</div><div><b>SmartBoard AI</b><small>Platform Console</small></div></div>
+      <nav class="nav">
+        <button data-tab="overview" class="on"><span class="ico">◈</span>Overview</button>
+        <button data-tab="orgs"><span class="ico">▦</span>Workspaces</button>
+        <button data-tab="users"><span class="ico">◉</span>Users</button>
+        <button data-tab="subs"><span class="ico">◎</span>Subscriptions</button>
+        <button data-tab="usage"><span class="ico">▤</span>Usage</button>
+        <button data-tab="providers"><span class="ico">◇</span>AI providers</button>
+        <button data-tab="keys"><span class="ico">⌘</span>API keys</button>
+        <button data-tab="payments"><span class="ico">₤</span>Payments</button>
+        <button data-tab="codes"><span class="ico">✶</span>Activation codes</button>
+        <button data-tab="audit"><span class="ico">≡</span>Audit log</button>
+      </nav>
+      <div class="side-foot">v1.0 · <a href="/docs" style="color:#7dd3fc">Docs</a> · <a href="/v1/openapi.json" style="color:#7dd3fc">OpenAPI</a></div>
+    </aside>
+    <main class="main">
+      <div class="top"><div><h1 id="page-title">Overview</h1><p class="sub" id="page-sub">Platform health and growth at a glance.</p></div>
+        <div class="who"><div class="avatar">${esc(initials)}</div><div><div style="font-weight:800;font-size:12px">${esc(state.user?.name || 'Platform admin')}</div><div class="muted" style="font-size:11px">${esc(state.user?.email)}</div></div></div>
+      </div>
+      <div id="view"><div class="empty">Loading…</div></div>
+    </main>
+  </div>`;
+  document.querySelectorAll('.nav button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+}
+
+async function boot() {
+  try {
+    const me = await api('/auth/me');
+    state.user = me.user;
+    if (!me.user.isPlatformAdmin) {
+      $('#app').innerHTML = '<div class="login-wrap"><div class="login"><h2>Access denied</h2><p>This account is not a platform admin. Add its email to PLATFORM_ADMIN_EMAILS or set is_platform_admin.</p><a class="btn" href="/">Back to SmartBoard</a></div></div>';
+      return;
+    }
+    shell();
+    await go('overview');
+  } catch { loginView(); }
+}
+
+const titles = {
+  overview:['Overview','Platform health and growth at a glance.'],
+  orgs:['Workspaces','Every school, teacher workspace, plan, and seat.'],
+  users:['Users','Accounts, roles, and access status.'],
+  subs:['Subscriptions','Billing state and plan changes.'],
+  usage:['Usage','AI turns and lesson activity over time.'],
+  providers:['AI providers','OmniRouter health and keyless fallbacks.'],
+  keys:['API keys','Keys issued across the platform.'],
+  payments:['Manual payments','InstaPay, cash wallet, and bank transfer requests. Approve to issue an activation code.'],
+  codes:['Activation codes','One-time codes that upgrade a workspace.'],
+  audit:['Audit log','Who changed what, and when.']
+};
+
+async function go(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.nav button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+  const t = titles[tab] || ['Overview',''];
+  $('#page-title').textContent = t[0]; $('#page-sub').textContent = t[1];
+  $('#view').innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    if (tab === 'overview') { const d = await api('/v1/admin/overview'); renderOverview(d); }
+    else if (tab === 'orgs') { const d = await api('/v1/admin/orgs'); state.orgs = d.orgs; renderOrgs(); }
+    else if (tab === 'users') { const d = await api('/v1/admin/users'); state.users = d.users; renderUsers(); }
+    else if (tab === 'subs') { const d = await api('/v1/admin/subscriptions'); state.subs = d.subscriptions; renderSubs(); }
+    else if (tab === 'usage') { const d = await api('/v1/admin/usage?days=30'); state.usage = d.usage; renderUsage(); }
+    else if (tab === 'providers') { const d = await api('/v1/admin/providers'); state.providers = d.providers; renderProviders(d); }
+    else if (tab === 'keys') { const d = await api('/v1/admin/api-keys'); state.keys = d.apiKeys; renderKeys(); }
+    else if (tab === 'payments') { const d = await api('/v1/admin/payment-requests'); state.payments = d.requests; renderPayments(); }
+    else if (tab === 'codes') { const d = await api('/v1/admin/activation-codes'); state.codes = d.codes; renderCodes(); }
+    else if (tab === 'audit') { const d = await api('/v1/admin/audit?limit=100'); state.audit = d.audit; renderAudit(); }
+  } catch (err) { $('#view').innerHTML = '<div class="card" style="color:#b91c1c">' + esc(err.message) + '</div>'; }
+}
+
+function renderOverview(d) {
+  const o = d.overview;
+  $('#view').innerHTML = `
+  <div class="grid kpis">
+    <div class="card kpi"><div class="label">Workspaces</div><div class="value">${fmt(o.orgs)}</div><div class="hint">${fmt(o.newUsers7d)} new users · 7d</div></div>
+    <div class="card kpi"><div class="label">Paid subscriptions</div><div class="value">${fmt(o.paidSubscriptions)}</div><div class="hint">${fmt(o.users)} total users</div></div>
+    <div class="card kpi"><div class="label">MRR</div><div class="value">${egp(o.mrrEgp)}</div><div class="hint">${egp(o.arrEgp)} ARR</div></div>
+    <div class="card kpi"><div class="label">AI turns today</div><div class="value">${fmt(o.chatsToday)}</div><div class="hint">${fmt(o.lessons)} lessons saved</div></div>
+  </div>
+  <div class="section-title"><h2>Plan mix</h2><span class="muted" style="font-size:12px">Manual overrides are available in Workspaces.</span></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    ${d.plans.map((p) => `<div class="card"><div class="pill ${p.id}">${esc(p.id)}</div><div style="font-size:18px;font-weight:800;margin-top:10px">${egp(p.priceEgp)}<span class="muted" style="font-size:11px;font-weight:600"> / mo</span></div><div class="muted" style="font-size:12px;margin-top:4px">${esc(p.tagline)} · ${p.seats} seats · ${p.dailyChats} turns/day</div></div>`).join('')}
+  </div>
+  <div class="section-title"><h2>Recent activity</h2><span class="muted" style="font-size:12px">Last 12 audit events</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Action</th><th>Actor</th><th>Target</th><th>When</th></tr></thead><tbody>
+    ${d.recentAudit.length ? d.recentAudit.map((a) => `<tr><td class="mono">${esc(a.action)}</td><td>${esc(a.actor_email || 'system')}</td><td class="mono">${esc((a.target || '').slice(0,18))}</td><td class="muted">${dt(a.created_at)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No audit events yet.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+function renderOrgs() {
+  $('#view').innerHTML = `
+  <div class="toolbar"><input class="search" id="org-search" placeholder="Search workspace, slug, or owner email…" /><button class="btn" onclick="loadOrgs()">Search</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Workspace</th><th>Owner</th><th>Plan</th><th>Status</th><th>Members</th><th>Lessons</th><th>API keys</th><th>Actions</th></tr></thead><tbody id="org-rows">${orgRows(state.orgs)}</tbody></table></div>`;
+  $('#org-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadOrgs(); });
+}
+function orgRows(rows) {
+  return rows.length ? rows.map((o) => `<tr>
+    <td><b>${esc(o.name)}</b><div class="muted mono">${esc(o.slug)}</div></td>
+    <td>${esc(o.owner_email)}</td>
+    <td><select onchange="setPlan('${esc(o.id)}', this.value)" style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 7px">
+      ${['free','pro','school','enterprise'].map((p) => `<option ${p===o.plan?'selected':''}>${p}</option>`).join('')}
+    </select></td>
+    <td><span class="pill ${o.status==='active'?'ok':'bad'}">${esc(o.status)}</span></td>
+    <td>${fmt(o.members)}</td><td>${fmt(o.lessons)}</td><td>${fmt(o.api_keys)}</td>
+    <td><button class="btn ${o.status==='active'?'danger':''}" onclick="setOrgStatus('${esc(o.id)}','${o.status==='active'?'suspended':'active'}')">${o.status==='active'?'Suspend':'Reactivate'}</button></td>
+  </tr>`).join('') : '<tr><td colspan="8" class="empty">No workspaces found.</td></tr>';
+}
+async function loadOrgs() {
+  const q = $('#org-search')?.value || '';
+  try { const d = await api('/v1/admin/orgs?q=' + encodeURIComponent(q)); state.orgs = d.orgs; $('#org-rows').innerHTML = orgRows(d.orgs); } catch (e) { alert(e.message); }
+}
+async function setPlan(id, plan) {
+  if (!confirm('Change this workspace to the ' + plan + ' plan?')) return;
+  try { await api('/v1/admin/orgs/' + id, {method:'PATCH', body:JSON.stringify({plan})}); await go('orgs'); } catch (e) { alert(e.message); }
+}
+async function setOrgStatus(id, status) {
+  try { await api('/v1/admin/orgs/' + id, {method:'PATCH', body:JSON.stringify({status})}); await go('orgs'); } catch (e) { alert(e.message); }
+}
+
+function renderUsers() {
+  $('#view').innerHTML = `
+  <div class="toolbar"><input class="search" id="user-search" placeholder="Search email or name…" /><button class="btn" onclick="loadUsers()">Search</button></div>
+  <div class="table-wrap"><table><thead><tr><th>User</th><th>Workspace</th><th>Role</th><th>Plan</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="user-rows">${userRows(state.users)}</tbody></table></div>`;
+  $('#user-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUsers(); });
+}
+function userRows(rows) {
+  return rows.length ? rows.map((u) => `<tr>
+    <td><b>${esc(u.name || '—')}</b><div class="muted mono">${esc(u.email)}</div></td>
+    <td>${esc(u.org_name || '—')}</td><td>${esc(u.role || '—')}</td>
+    <td><span class="pill ${esc(u.org_plan || 'free')}">${esc(u.org_plan || 'free')}</span></td>
+    <td><span class="pill ${u.status==='active'?'ok':'bad'}">${esc(u.status || 'active')}</span> ${u.is_platform_admin?'<span class="pill warn">admin</span>':''}</td>
+    <td class="muted">${dt(u.created_at)}</td>
+    <td><button class="btn ${u.status==='active'?'danger':''}" onclick="setUserStatus('${esc(u.id)}','${u.status==='active'?'suspended':'active'}')">${u.status==='active'?'Suspend':'Activate'}</button></td>
+  </tr>`).join('') : '<tr><td colspan="7" class="empty">No users found.</td></tr>';
+}
+async function loadUsers() {
+  const q = $('#user-search')?.value || '';
+  try { const d = await api('/v1/admin/users?q=' + encodeURIComponent(q)); state.users = d.users; $('#user-rows').innerHTML = userRows(d.users); } catch (e) { alert(e.message); }
+}
+async function setUserStatus(id, status) {
+  try { await api('/v1/admin/users/' + id, {method:'PATCH', body:JSON.stringify({status})}); await go('users'); } catch (e) { alert(e.message); }
+}
+
+function renderSubs() {
+  $('#view').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Workspace</th><th>Owner</th><th>Plan</th><th>Status</th><th>Seats</th><th>Provider</th><th>Period end</th><th>Updated</th></tr></thead><tbody>
+  ${state.subs.length ? state.subs.map((s) => `<tr><td><b>${esc(s.org_name)}</b></td><td>${esc(s.owner_email)}</td><td><span class="pill ${esc(s.plan)}">${esc(s.plan)}</span></td><td><span class="pill ${s.status==='active'?'ok':(s.status==='past_due'?'warn':'bad')}">${esc(s.status)}</span></td><td>${fmt(s.seats)}</td><td>${esc(s.provider)}</td><td class="muted">${s.current_period_end?dt(s.current_period_end):'—'}</td><td class="muted">${dt(s.updated_at)}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No subscriptions.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+function renderUsage() {
+  const days = [...new Set(state.usage.map((u) => u.day))];
+  const byDay = days.map((d) => ({day:d, n: state.usage.filter((u) => u.day === d && u.kind === 'chat').reduce((a,b)=>a+Number(b.n||0),0)}));
+  const max = Math.max(1, ...byDay.map((d) => d.n));
+  $('#view').innerHTML = `
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>AI turns · last 30 days</b><span class="muted" style="font-size:12px">Total ${fmt(byDay.reduce((a,b)=>a+b.n,0))}</span></div>
+    <div class="bars">${byDay.length ? byDay.map((d) => `<div class="bar" style="height:${Math.max(2,Math.round(d.n/max*120))}px" title="${d.day}: ${d.n}"><span>${d.day.slice(5)}</span></div>`).join('') : '<div class="empty">No usage yet.</div>'}</div>
+  </div>
+  <div class="section-title"><h2>Breakdown</h2></div>
+  <div class="table-wrap"><table><thead><tr><th>Day</th><th>Kind</th><th>Count</th></tr></thead><tbody>
+  ${state.usage.length ? state.usage.map((u) => `<tr><td class="mono">${esc(u.day)}</td><td>${esc(u.kind)}</td><td>${fmt(u.n)}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No usage yet.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+function renderProviders(d) {
+  $('#view').innerHTML = `
+  <div class="grid kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card kpi"><div class="label">Configured</div><div class="value">${d.configured}/${d.total}</div><div class="hint">providers with credentials or bindings</div></div>
+    <div class="card kpi"><div class="label">Keyless</div><div class="value">${d.keyless}</div><div class="hint">works with zero API keys</div></div>
+    <div class="card kpi"><div class="label">FreeLLMAPI</div><div class="value" style="font-size:18px">${d.freellmapi?'Enabled':'Not configured'}</div><div class="hint">set FREELLMAPI_BASE_URL</div></div>
+  </div>
+  <div class="section-title"><h2>Provider registry</h2><span class="muted" style="font-size:12px">OmniRouter tries configured providers in plan order, then falls back to the offline builder.</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Provider</th><th>Model</th><th>Tier</th><th>Keyless</th><th>Status</th></tr></thead><tbody>
+  ${d.providers.map((p) => `<tr><td><b>${esc(p.provider)}</b></td><td class="mono">${esc(p.id)}</td><td>${esc(p.tier)}</td><td>${p.keyless?'yes':'no'}</td><td><span class="dot ${p.available?'on':''}"></span> ${p.available?'Ready':'Not configured'}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function renderKeys() {
+  $('#view').innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Prefix</th><th>Owner</th><th>Workspace</th><th>Scopes</th><th>Last used</th><th>Status</th><th>Action</th></tr></thead><tbody>
+  ${state.keys.length ? state.keys.map((k) => `<tr><td><b>${esc(k.name)}</b></td><td class="mono">${esc(k.prefix)}…</td><td>${esc(k.email)}</td><td>${esc(k.org_name)}</td><td class="mono">${esc(k.scopes)}</td><td class="muted">${k.last_used_at?dt(k.last_used_at):'never'}</td><td>${k.revoked_at?'<span class="pill bad">revoked</span>':'<span class="pill ok">active</span>'}</td><td>${k.revoked_at?'':`<button class="btn danger" onclick="revokeKey('${esc(k.id)}')">Revoke</button>`}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No API keys.</td></tr>'}
+  </tbody></table></div>`;
+}
+async function revokeKey(id) {
+  if (!confirm('Revoke this API key? Clients using it will fail immediately.')) return;
+  try { await api('/v1/admin/api-keys/' + id, {method:'DELETE'}); await go('keys'); } catch (e) { alert(e.message); }
+}
+
+function renderPayments() {
+  const pending = state.payments.filter((p) => p.status === 'pending');
+  $('#view').innerHTML = `
+  <div class="grid kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card kpi"><div class="label">Pending</div><div class="value">${fmt(pending.length)}</div><div class="hint">waiting for review</div></div>
+    <div class="card kpi"><div class="label">Approved</div><div class="value">${fmt(state.payments.filter((p)=>p.status==='approved').length)}</div><div class="hint">activation code issued</div></div>
+    <div class="card kpi"><div class="label">Collected</div><div class="value">${egp(state.payments.filter((p)=>p.status==='approved').reduce((a,b)=>a+Number(b.amount_egp||0),0))}</div><div class="hint">approved manual payments</div></div>
+  </div>
+  <div class="section-title"><h2>Payment requests</h2><span class="muted" style="font-size:12px">Approve only after the transfer is confirmed.</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Workspace</th><th>User</th><th>Plan</th><th>Method</th><th>Reference</th><th>Amount</th><th>Status</th><th>Requested</th><th>Actions</th></tr></thead><tbody>
+  ${state.payments.length ? state.payments.map((p) => `<tr>
+    <td><b>${esc(p.org_name)}</b><div class="muted mono">${esc(p.slug)}</div></td>
+    <td>${esc(p.user_email)}</td><td><span class="pill ${esc(p.plan)}">${esc(p.plan)}</span></td>
+    <td>${esc(p.method)}</td><td class="mono">${esc(p.reference || '—')}</td><td>${egp(p.amount_egp)}</td>
+    <td><span class="pill ${p.status==='pending'?'warn':(p.status==='approved'?'ok':'bad')}">${esc(p.status)}</span></td>
+    <td class="muted">${dt(p.created_at)}</td>
+    <td>${p.status==='pending' ? `<button class="btn primary" onclick="approvePayment('${esc(p.id)}')">Approve & issue code</button> <button class="btn danger" onclick="rejectPayment('${esc(p.id)}')">Reject</button>` : '—'}</td>
+  </tr>`).join('') : '<tr><td colspan="9" class="empty">No payment requests yet.</td></tr>'}
+  </tbody></table></div>
+  <div class="section-title"><h2>How manual billing works</h2></div>
+  <div class="card" style="font-size:13px;color:#475569;line-height:1.8">
+    <b style="color:#0f172a">1.</b> The teacher chooses Pro or School and contacts the team on WhatsApp or a short call.<br/>
+    <b style="color:#0f172a">2.</b> They pay by InstaPay, cash wallet, or bank transfer, then submit the reference in the app.<br/>
+    <b style="color:#0f172a">3.</b> You confirm the transfer and click <b>Approve &amp; issue code</b>. Send the one-time code to the customer.<br/>
+    <b style="color:#0f172a">4.</b> They redeem it in the app and the workspace is upgraded for 30 days.
+  </div>`;
+}
+async function approvePayment(id) {
+  if (!confirm('Confirm the transfer was received and issue a one-time activation code?')) return;
+  try {
+    const d = await api('/v1/admin/payment-requests/' + id + '/approve', {method:'POST', body:'{}'});
+    prompt('Payment approved. Send this activation code to the customer:', d.activationCode);
+    await go('payments');
+  } catch (e) { alert(e.message); }
+}
+async function rejectPayment(id) {
+  const note = prompt('Reason for rejection (optional):') || '';
+  try { await api('/v1/admin/payment-requests/' + id + '/reject', {method:'POST', body:JSON.stringify({note})}); await go('payments'); } catch (e) { alert(e.message); }
+}
+
+function renderCodes() {
+  $('#view').innerHTML = `
+  <div class="toolbar"><button class="btn primary" onclick="createCode()">+ Generate activation code</button><span class="muted" style="font-size:12px">Codes are shown once. Only the hash is stored.</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Prefix</th><th>Plan</th><th>Seats</th><th>Days</th><th>Uses</th><th>Note</th><th>Created</th><th>Status</th><th>Action</th></tr></thead><tbody>
+  ${state.codes.length ? state.codes.map((k) => `<tr><td class="mono">${esc(k.prefix)}…</td><td><span class="pill ${esc(k.plan)}">${esc(k.plan)}</span></td><td>${fmt(k.seats)}</td><td>${fmt(k.days)}</td><td>${fmt(k.uses)} / ${fmt(k.max_uses)}</td><td class="muted">${esc(k.note || '—')}</td><td class="muted">${dt(k.created_at)}</td><td>${k.revoked_at?'<span class="pill bad">revoked</span>':(k.uses>=k.max_uses?'<span class="pill warn">used</span>':'<span class="pill ok">active</span>')}</td><td>${k.revoked_at?'':`<button class="btn danger" onclick="revokeCode('${esc(k.id)}')">Revoke</button>`}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">No activation codes yet.</td></tr>'}
+  </tbody></table></div>`;
+}
+async function createCode() {
+  const plan = prompt('Plan? free, pro, school, enterprise', 'pro');
+  if (!plan) return;
+  const days = prompt('Days?', '30') || '30';
+  const seats = prompt('Seats?', plan === 'school' ? '25' : '1') || '1';
+  try {
+    const d = await api('/v1/admin/activation-codes', {method:'POST', body:JSON.stringify({plan, days:Number(days), seats:Number(seats), note:'Manual admin code'})});
+    prompt('Activation code (shown once):', d.code);
+    await go('codes');
+  } catch (e) { alert(e.message); }
+}
+async function revokeCode(id) {
+  if (!confirm('Revoke this activation code?')) return;
+  try { await api('/v1/admin/activation-codes/' + id + '/revoke', {method:'POST', body:'{}'}); await go('codes'); } catch (e) { alert(e.message); }
+}
+
+function renderAudit() {
+  $('#view').innerHTML = `<div class="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Actor</th><th>Workspace</th><th>Target</th><th>Meta</th></tr></thead><tbody>
+  ${state.audit.length ? state.audit.map((a) => `<tr><td class="muted">${dt(a.created_at)}</td><td class="mono">${esc(a.action)}</td><td>${esc(a.actor_email || 'system')}</td><td>${esc(a.org_name || '—')}</td><td class="mono">${esc((a.target || '').slice(0,22))}</td><td class="mono muted">${esc((a.meta_json || '').slice(0,60))}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No audit events.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+window.setPlan = setPlan; window.setOrgStatus = setOrgStatus; window.setUserStatus = setUserStatus;
+window.revokeKey = revokeKey; window.loadOrgs = loadOrgs; window.loadUsers = loadUsers;
+window.approvePayment = approvePayment; window.rejectPayment = rejectPayment;
+window.createCode = createCode; window.revokeCode = revokeCode;
+boot();
+</script>
+</body>
+</html>

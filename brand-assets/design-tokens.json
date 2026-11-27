@@ -1,0 +1,54 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "SmartBoard AI",
+  "version": "1.0.0",
+  "color": {
+    "brand": {
+      "cosmic-dark": "#080D1E",
+      "deep-navy": "#071A3D",
+      "orbital-cyan": "#00E5FF",
+      "starlight-amber": "#F59E0B",
+      "magenta": "#D946EF",
+      "electric-coral": "#FF5252"
+    },
+    "interface": {
+      "board": "#F8FAFC",
+      "surface": "#FFFFFF",
+      "on-surface": "#0F172A",
+      "surface-variant": "#F1F5F9",
+      "primary": "#059669",
+      "secondary": "#10B981",
+      "tonal": "#D1FAE5"
+    },
+    "board-themes": {
+      "white": { "surface": "#FFFFFF", "ink": "#0F172A" },
+      "cream": { "surface": "#FBF6E9", "ink": "#3B2F1E" },
+      "chalk": { "surface": "#1F3A2E", "ink": "#F2F7F3" },
+      "black": { "surface": "#0B0F14", "ink": "#F8FAFC" }
+    },
+    "pen": ["#000000", "#EF4444", "#22C55E", "#3B82F6", "#EAB308", "#A855F7"]
+  },
+  "font": {
+    "arabic-body": ["IBM Plex Sans Arabic", "Cairo", "sans-serif"],
+    "arabic-display": ["El Messiri", "Cairo", "sans-serif"],
+    "latin-body": ["Inter", "sans-serif"],
+    "latin-display": ["Space Grotesk", "sans-serif"],
+    "handwriting-ar": ["Playpen Sans Arabic", "cursive"],
+    "handwriting-en": ["Kalam", "cursive"]
+  },
+  "radius": {
+    "xl": "1rem",
+    "2xl": "1.25rem",
+    "3xl": "1.5rem",
+    "pill": "999px"
+  },
+  "shadow": {
+    "elev-1": "0 1px 3px 0 rgba(15,23,42,.08), 0 1px 2px -1px rgba(15,23,42,.08)",
+    "elev-2": "0 4px 6px -1px rgba(15,23,42,.10), 0 2px 4px -2px rgba(15,23,42,.08)",
+    "elev-3": "0 10px 15px -3px rgba(15,23,42,.12), 0 4px 6px -4px rgba(15,23,42,.08)",
+    "elev-12": "0 20px 25px -5px rgba(15,23,42,.15), 0 8px 10px -6px rgba(15,23,42,.10)"
+  },
+  "easing": {
+    "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)"
+  }
+}

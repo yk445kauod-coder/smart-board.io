@@ -16,6 +16,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+.dev.vars
 
 # Editor directories and files
 .vscode/*
@@ -32,3 +33,6 @@ dist-ssr
 # Local verification artifacts
 screenshots/
 _worker.bundle
+
+# Local agent memory
+.openhands/

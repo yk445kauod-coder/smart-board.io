@@ -6,6 +6,8 @@ interface TopBarProps {
   isOffline: boolean;
   language: string;
   onExportPdf: () => void;
+  onOpenProtocol?: () => void;
+  onOpenBilling?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -14,6 +16,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   isOffline,
   language,
   onExportPdf,
+  onOpenProtocol,
+  onOpenBilling,
 }) => {
   const isAr = language.toLowerCase().startsWith('ar');
 
@@ -130,6 +134,28 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Left side: Export PDF & Fullscreen */}
       <div className="flex items-center gap-2">
+        {onOpenBilling && (
+          <button
+            onClick={onOpenBilling}
+            aria-label={isAr ? 'الخطة والفوترة' : 'Plan & billing'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all border border-white/10 focus-visible:ring-2 focus-visible:ring-[#00E5FF]"
+            title={isAr ? 'الخطة والفوترة' : 'Plan & billing'}
+          >
+            <span className="material-symbols-rounded text-sm text-[#F59E0B]">workspace_premium</span>
+            <span className="hidden sm:inline">{isAr ? 'الخطة' : 'Plan'}</span>
+          </button>
+        )}
+        {onOpenProtocol && (
+          <button
+            onClick={onOpenProtocol}
+            aria-label={isAr ? 'استوديو البروتوكول' : 'Protocol Studio'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00E5FF] hover:bg-[#5CF0FF] text-[#080D1E] text-xs font-bold transition-all focus-visible:ring-2 focus-visible:ring-white"
+            title={isAr ? 'استوديو البروتوكول' : 'Protocol Studio'}
+          >
+            <span className="material-symbols-rounded text-sm">draw</span>
+            <span className="hidden sm:inline">{isAr ? 'استوديو البروتوكول' : 'Protocol Studio'}</span>
+          </button>
+        )}
         <button
           onClick={onExportPdf}
           aria-label={isAr ? 'تصدير الدرس بصيغة PDF' : 'Export Lesson PDF'}

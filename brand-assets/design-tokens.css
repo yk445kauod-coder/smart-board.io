@@ -1,0 +1,56 @@
+/* SmartBoard AI — design tokens (CSS custom properties)
+   Mirror of design-tokens.json. Import this file once at the app root. */
+
+:root {
+  /* Brand */
+  --sb-cosmic-dark: #080D1E;
+  --sb-deep-navy: #071A3D;
+  --sb-orbital-cyan: #00E5FF;
+  --sb-starlight-amber: #F59E0B;
+  --sb-magenta: #D946EF;
+  --sb-electric-coral: #FF5252;
+
+  /* Interface */
+  --sb-board: #F8FAFC;
+  --sb-surface: #FFFFFF;
+  --sb-on-surface: #0F172A;
+  --sb-surface-variant: #F1F5F9;
+  --sb-primary: #059669;
+  --sb-secondary: #10B981;
+  --sb-tonal: #D1FAE5;
+
+  /* Board themes */
+  --sb-board-white-surface: #FFFFFF;
+  --sb-board-white-ink: #0F172A;
+  --sb-board-cream-surface: #FBF6E9;
+  --sb-board-cream-ink: #3B2F1E;
+  --sb-board-chalk-surface: #1F3A2E;
+  --sb-board-chalk-ink: #F2F7F3;
+  --sb-board-black-surface: #0B0F14;
+  --sb-board-black-ink: #F8FAFC;
+
+  /* Typography */
+  --sb-font-arabic-body: "IBM Plex Sans Arabic", "Cairo", sans-serif;
+  --sb-font-arabic-display: "El Messiri", "Cairo", sans-serif;
+  --sb-font-latin-body: "Inter", sans-serif;
+  --sb-font-latin-display: "Space Grotesk", sans-serif;
+  --sb-font-hand-ar: "Playpen Sans Arabic", cursive;
+  --sb-font-hand-en: "Kalam", cursive;
+
+  /* Radius */
+  --sb-radius-xl: 1rem;
+  --sb-radius-2xl: 1.25rem;
+  --sb-radius-3xl: 1.5rem;
+  --sb-radius-pill: 999px;
+
+  /* Elevation */
+  --sb-elev-1: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
+  --sb-elev-2: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --sb-elev-3: 0 10px 15px -3px rgba(15, 23, 42, 0.12), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+  --sb-elev-12: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+
+  /* Motion */
+  --sb-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --sb-duration-fast: 150ms;
+  --sb-duration-base: 250ms;
+}
