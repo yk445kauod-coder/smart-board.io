@@ -20,6 +20,7 @@ PAYMENT_WALLET = ""
 PAYMENT_BANK = ""
 FREELLMAPI_BASE_URL = ""
 FREELLMAPI_MODEL = "auto"
+VAPID_SUBJECT = "mailto:admin@smartboard.ai"
 
 [[d1_databases]]
 binding = "DB"

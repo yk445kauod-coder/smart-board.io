@@ -48,6 +48,8 @@ wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put FREELLMAPI_API_KEY
 wrangler secret put STRIPE_SECRET_KEY
 wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put VAPID_PRIVATE_KEY
+wrangler secret put VAPID_PUBLIC_KEY
 ```
 
 Stripe price ids are vars, not secrets: `STRIPE_PRICE_PRO`, `STRIPE_PRICE_SCHOOL`.
@@ -65,6 +67,7 @@ Migration order:
 2. `0002_rate_limits.sql` — IP rate limits
 3. `0003_saas.sql` — orgs, memberships, subscriptions, API keys, audit, org_id backfill
 4. `0004_manual_payments.sql` — payment requests, activation codes
+5. `0005_push.sql` — Web Push subscriptions (org/user scoped)
 
 `0003` backfills a personal org, owner membership, free subscription, and
 `org_id` for every existing user/lesson/usage/run. It is safe on a populated
@@ -73,17 +76,27 @@ database but **take a backup first**.
 ## Deploy
 
 ```bash
-# frontend
-npm run build
-npx wrangler pages deploy dist --project-name smartboard
+# 1. D1 (always before the worker code that uses it)
+wrangler d1 migrations apply smartboard --remote --config worker/wrangler.toml
 
-# worker
-cd worker
-wrangler deploy
-wrangler d1 migrations apply smartboard --remote
+# 2. worker (production origins + cross-site cookies)
+wrangler deploy --config worker/wrangler.toml \
+  --var APP_ORIGIN:https://smartboard-eg.pages.dev \
+  --var PUBLIC_APP_URL:https://smartboard-eg.pages.dev \
+  --var COOKIE_SECURE:true \
+  --var COOKIE_SAMESITE:None
+
+# 3. frontend (point it at the worker origin)
+VITE_API_BASE=https://smartboard-api.<account>.workers.dev npm run build
+npx wrangler pages deploy dist --project-name smartboard-eg
 ```
 
-Set `VITE_API_BASE` in the Pages build environment to the worker origin.
+`smartboard-eg` is the Pages project; `smartboard-api` is the Worker. Both need
+`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` when running non-interactively.
+
+Set `VITE_API_BASE` in the Pages build environment to the worker origin. The
+worker must allow the Pages origin in `APP_ORIGIN` and use `COOKIE_SECURE=true`,
+`COOKIE_SAMESITE=None` for cross-site cookies.
 
 ## Backups
 

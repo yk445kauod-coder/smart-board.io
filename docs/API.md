@@ -163,6 +163,18 @@ curl -X POST http://localhost:8787/v1/billing/manual-request \
   -d '{"plan":"pro","method":"instapay","reference":"INV-12345"}'
 ```
 
+## Push notifications
+
+| Method | Path | Role | Purpose |
+| :--- | :--- | :--- | :--- |
+| GET | `/v1/push/public-key` | — | VAPID public key + `configured` flag |
+| POST | `/v1/push/subscribe` | yes | Store a browser push subscription |
+| DELETE | `/v1/push/subscribe` | yes | Revoke a subscription by endpoint |
+| POST | `/v1/push/test` | yes | Send a test notification to this user |
+
+Subscriptions are scoped to the caller's `org_id` and `user_id`. Endpoints must be
+HTTPS and belong to a known push service. See [`PUSH.md`](PUSH.md).
+
 ## Admin (platform)
 
 Requires a platform admin (`users.is_platform_admin = 1` or an email in

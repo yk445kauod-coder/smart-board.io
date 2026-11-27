@@ -99,6 +99,17 @@ export interface LessonDetail {
   updatedAt: number;
 }
 
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  userAgent?: string;
+}
+
+export interface PushPublicKey {
+  publicKey: string | null;
+  configured: boolean;
+}
+
 export interface ChatRequest {
   model: string;
   messages: { role: 'user' | 'assistant'; content: string }[];
@@ -251,6 +262,14 @@ export const api = {
       apiFetch<{ key: string; apiKey: ApiKeySummary }>('/v1/api-keys', { method: 'POST', body: JSON.stringify(body) }),
     revoke: (id: string) =>
       apiFetch<{ ok: true }>('/v1/api-keys/' + encodeURIComponent(id), { method: 'DELETE' }),
+  },
+  push: {
+    publicKey: () => apiFetch<PushPublicKey>('/v1/push/public-key'),
+    subscribe: (body: PushSubscriptionPayload) =>
+      apiFetch<{ ok: true }>('/v1/push/subscribe', { method: 'POST', body: JSON.stringify(body) }),
+    unsubscribe: (endpoint: string) =>
+      apiFetch<{ ok: true }>('/v1/push/subscribe', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+    test: () => apiFetch<{ ok: true; sent: number; total: number }>('/v1/push/test', { method: 'POST' }),
   },
   billing: {
     plans: () => apiFetch<{ plans: PlanInfo[]; currency: string }>('/v1/billing/plans'),

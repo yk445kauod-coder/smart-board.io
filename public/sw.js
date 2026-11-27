@@ -47,3 +47,33 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+self.addEventListener('push', event => {
+  let data = { title: 'SmartBoard AI', body: 'لديك تحديث جديد.', url: '/', tag: 'smartboard' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    if (event.data) data.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'SmartBoard AI', {
+      body: data.body || '',
+      icon: data.icon || '/smartboard-logo.png',
+      badge: '/smartboard-logo.png',
+      tag: data.tag || 'smartboard',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      const existing = clients.find(client => new URL(client.url).pathname === new URL(target, self.location.origin).pathname);
+      if (existing) return existing.focus();
+      return self.clients.openWindow(target);
+    })
+  );
+});

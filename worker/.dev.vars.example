@@ -14,3 +14,9 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_PRO=
 STRIPE_PRICE_SCHOOL=
+
+# Web Push (VAPID). Generate with: npx web-push generate-vapid-keys
+# Keep the private key as a Worker secret; the public key is served to the browser.
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@smartboard.ai

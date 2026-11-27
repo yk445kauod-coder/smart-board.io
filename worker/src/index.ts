@@ -37,6 +37,7 @@ import mcp from './mcp';
 import { openapi } from './openapi';
 import { adminHtml } from './admin-ui';
 import { docsHtml } from './docs-ui';
+import { b64urlToBytes, notifyUser, validateEndpoint } from './push';
 
 const app = new Hono<AppEnv>();
 
@@ -96,6 +97,15 @@ const ApiKeyBody = z.object({
   name: z.string().trim().max(60).optional(),
   scopes: z.string().trim().max(120).optional(),
 });
+const PushSubBody = z.object({
+  endpoint: z.string().url().max(2048),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+  userAgent: z.string().max(300).optional(),
+});
+const PushDeleteBody = z.object({ endpoint: z.string().url().max(2048) });
 
 const parseBody = async <T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T> => {
   if (!(c.req.header('content-type') || '').toLowerCase().includes('application/json')) {
@@ -330,6 +340,67 @@ app.delete('/v1/lessons/:id', requireAuth, requireOrg, async (c) => {
   const org = c.get('org')!;
   await dbRun(c.env.DB, 'DELETE FROM lessons WHERE id = ? AND org_id = ?', c.req.param('id'), org.id);
   return c.json({ ok: true });
+});
+
+app.get('/v1/push/public-key', (c) =>
+  c.json({ publicKey: c.env.VAPID_PUBLIC_KEY || null, configured: Boolean(c.env.VAPID_PUBLIC_KEY && c.env.VAPID_PRIVATE_KEY) }),
+);
+
+app.post('/v1/push/subscribe', requireAuth, requireOrg, authBodyLimit, async (c) => {
+  const body = await parseBody(c, PushSubBody);
+  try {
+    validateEndpoint(body.endpoint);
+    if (b64urlToBytes(body.keys.p256dh).length !== 65) throw new Error('invalid p256dh key');
+    if (b64urlToBytes(body.keys.auth).length !== 16) throw new Error('invalid auth secret');
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : 'invalid subscription' }, 400);
+  }
+  const org = c.get('org')!;
+  const user = c.get('user')!;
+  await dbRun(
+    c.env.DB,
+    `INSERT INTO push_subscriptions (id, org_id, user_id, endpoint, p256dh, auth, user_agent, created_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(endpoint) DO UPDATE SET
+       org_id = excluded.org_id, user_id = excluded.user_id, p256dh = excluded.p256dh,
+       auth = excluded.auth, user_agent = excluded.user_agent, last_seen_at = excluded.last_seen_at,
+       revoked_at = NULL`,
+    newId(),
+    org.id,
+    user.id,
+    body.endpoint,
+    body.keys.p256dh,
+    body.keys.auth,
+    body.userAgent || null,
+    now(),
+    now(),
+  );
+  return c.json({ ok: true });
+});
+
+app.delete('/v1/push/subscribe', requireAuth, requireOrg, authBodyLimit, async (c) => {
+  const body = await parseBody(c, PushDeleteBody);
+  await dbRun(
+    c.env.DB,
+    'UPDATE push_subscriptions SET revoked_at = ? WHERE endpoint = ? AND user_id = ?',
+    now(),
+    body.endpoint,
+    c.get('user')!.id,
+  );
+  return c.json({ ok: true });
+});
+
+app.post('/v1/push/test', requireAuth, requireOrg, async (c) => {
+  if (!c.env.VAPID_PUBLIC_KEY || !c.env.VAPID_PRIVATE_KEY) {
+    return c.json({ error: 'push is not configured' }, 503);
+  }
+  const result = await notifyUser(c.env, c.get('org')!.id, c.get('user')!.id, {
+    title: 'SmartBoard AI',
+    body: 'Push notifications are working. Your class updates will appear here.',
+    url: '/',
+    tag: 'smartboard-test',
+  });
+  return c.json({ ok: true, ...result });
 });
 
 app.get('/v1/api-keys', requireAuth, requireOrg, async (c) => {

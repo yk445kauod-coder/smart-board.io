@@ -24,6 +24,8 @@ SmartBoard is now a multi-tenant SaaS, not only a demo:
 - **OmniRouter** — `model: "auto"` routes across FreeLLMAPI, OpenRouter, Gemini, Anthropic, DeepSeek, Workers AI, and keyless Pollinations, with a deterministic offline fallback.
 - **Platform console** — `/admin` for users, workspaces, subscriptions, usage, providers, API keys, payment requests, activation codes, and audit.
 - **Developer docs** — `/docs` in the worker and `docs/` in the repo.
+- **Web Push** — zero-budget VAPID notifications (no FCM account); see `docs/PUSH.md`.
+- **Tenant isolation** — every tenant query is org-scoped; see `docs/RLS.md`.
 - **In-app billing** — the **Plan** button in the top bar opens plans, manual payment, activation, and API-key management.
 
 Start here:
@@ -39,6 +41,8 @@ Start here:
 | [`docs/OMNIROUTER.md`](docs/OMNIROUTER.md) | Provider chain, keyless providers, FreeLLMAPI |
 | [`docs/ADMIN.md`](docs/ADMIN.md) | Platform console and manual payment runbook |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Env vars, migrations, deploy, incidents |
+| [`docs/RLS.md`](docs/RLS.md) | D1 tenant isolation (application-level row security) |
+| [`docs/PUSH.md`](docs/PUSH.md) | Zero-budget Web Push (VAPID) setup and limits |
 
 ## Run locally
 

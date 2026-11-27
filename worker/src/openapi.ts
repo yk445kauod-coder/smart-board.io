@@ -157,6 +157,12 @@ export const openapi = {
     '/v1/billing/checkout': { post: { tags: ['Billing'], summary: 'Create Stripe Checkout session', responses: { '200': { description: 'OK' }, '503': { description: 'Billing not configured' } } } },
     '/v1/billing/portal': { post: { tags: ['Billing'], summary: 'Create Stripe billing portal session', responses: { '200': { description: 'OK' } } } },
     '/v1/billing/webhook': { post: { tags: ['Billing'], summary: 'Stripe webhook', security: [], responses: { '200': { description: 'OK' } } } },
+    '/v1/push/public-key': { get: { tags: ['Push'], summary: 'VAPID public key', security: [], responses: { '200': { description: 'OK' } } } },
+    '/v1/push/subscribe': {
+      post: { tags: ['Push'], summary: 'Register a Web Push subscription', responses: { '200': { description: 'OK' }, '400': { description: 'Invalid subscription' } } },
+      delete: { tags: ['Push'], summary: 'Revoke a Web Push subscription', responses: { '200': { description: 'OK' } } },
+    },
+    '/v1/push/test': { post: { tags: ['Push'], summary: 'Send a test notification', responses: { '200': { description: 'OK' }, '503': { description: 'Push not configured' } } } },
     '/v1/admin/overview': { get: { tags: ['Admin'], summary: 'Platform KPIs (platform admin only)', responses: { '200': { description: 'OK' }, '403': { description: 'Forbidden' } } } },
     '/v1/admin/users': { get: { tags: ['Admin'], summary: 'List users', responses: { '200': { description: 'OK' } } } },
     '/v1/admin/orgs': { get: { tags: ['Admin'], summary: 'List workspaces', responses: { '200': { description: 'OK' } } } },
