@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "allowJs": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "App.tsx",
+    "index.tsx",
+    "components/**/*.tsx",
+    "services/**/*.ts",
+    "lib/**/*.ts",
+    "types.ts",
+    "data/**/*.ts",
+    "src/protocol/**/*.ts",
+    "tests/**/*.ts",
+    "functions/**/*.ts",
+    "worker-api.ts"
+  ]
+}

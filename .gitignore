@@ -36,3 +36,11 @@ _worker.bundle
 
 # Local agent memory
 .openhands/
+.neon
+
+# Neon local link context
+.neon/
+# Playwright / coverage artifacts
+test-results/
+playwright-report/
+coverage/
