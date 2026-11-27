@@ -15,20 +15,25 @@
 **العواقب:** جدولان متوازيان مؤقتاً؛ توثيق الاختلاف في STATE. لا كتابة مزدوجة ولا مزامنة بيانات.
 **الحالة:** مُنفّذ.
 
-## ADR-002 — سائق Postgres: `pg` (node-postgres) + Drizzle `node-postgres`
+## ADR-002 — سائق Postgres: `@neondatabase/serverless` (Pool عبر WebSocket) + Drizzle
 
-**السياق:** Neon skill: على Cloudflare يُفضّل `node-postgres` مع Hyperdrive؛ و`@neondatabase/serverless`
-لبيئات edge. نحتاج **transactions** حقيقية لتنفيذ `SET LOCAL ROLE` + GUC للـ RLS، وledger atomic لاحقاً.
+**السياق:** نحتاج **transactions تفاعلية** لتنفيذ `SET LOCAL ROLE` + GUC للـ RLS، وledger atomic
+لاحقاً. Workers Free لا يسمح بـ TCP عادي إلا مع Hyperdrive/`nodejs_compat`، و`neon-http` لا يدعم
+الجلسات التفاعلية.
 
-**القرار:** `pg` Pool على Workers مع `nodejs_compat` (TLS إلى Neon)، `max` صغير،
-`DATABASE_URL` (pooled) للتطبيق و`DATABASE_URL_UNPOOLED` للـ migrations.
+**القرار:**
+- الـ API على Workers يستخدم `Pool` من `@neondatabase/serverless` فوق WebSocket (يدعم
+  `BEGIN/COMMIT` و`SET LOCAL`)، مع `max: 2` و`maxLifetimeSeconds: 0` (يمنع تعليق الاتصال عبر
+  سياقات الطلب في Workers).
+- كل طلب ينشئ Pool خاصاً به ويُغلق بـ `executionCtx.waitUntil(db.end())`؛ لا مشاركة I/O بين الطلبات.
+- سكربتات Node (migrations، isolation، realtime) تستخدم `pg` مباشرة مع `DATABASE_URL_UNPOOLED`.
 
-**البدائل المرفوضة:** `neon-http` (لا يدعم transactions تفاعلية → لا RLS بـ GUC ولا ledger atomic)؛
-Hyperdrive (يحتاج إعداداً/خطة إضافية، وليس مطلوباً للاختبار الحالي).
+**البدائل المرفوضة:** `neon-http` (لا transactions تفاعلية → لا RLS بـ GUC)؛ `pg` داخل Worker
+بدون Hyperdrive (TCP غير مضمون على الخطة المجانية)؛ D1 (ممنوع بقرار المالك).
 
-**العواقب/الحدود:** استهلاك اتصالات لكل isolate؛ إن تجاوزنا حدود Neon المجانية ننتقل إلى Hyperdrive
-أو neon-http مع إعادة تصميم العزل. موثّق كخطر.
-**الحالة:** مُنفّذ، ويُختبر end-to-end.
+**العواقب/الحدود:** Pool لكل طلب يستهلك اتصالات؛ إن تجاوزنا حدود Neon ننتقل إلى Hyperdrive أو
+نعيد تصميم العزل. موثّق كخطر في STATE.
+**الحالة:** مُنفّذ ومُختبر end-to-end.
 
 ## ADR-003 — محرك السبورة: Konva للتطبيق الإنتاجي، React Flow للقديم فقط
 
@@ -54,12 +59,16 @@ Hyperdrive (يحتاج إعداداً/خطة إضافية، وليس مطلوب�
 
 **السياق:** مطلوب إيميل/باسورد بدون Google، وجلسات آمنة، وبيانات في Postgres.
 
-**القرار:** `@neon/auth` في المتصفح (`signUp.email`, `signIn.email`, `.token()`), والـ Worker يتحقق من
-JWT (EdDSA/Ed25519، 15 دقيقة) عبر `NEON_AUTH_JWKS_URL` باستخدام `jose`. لا hashing لكلمات المرور
-داخل الـ Worker (حدود CPU).
+**القرار:**
+- `createAuthClient(VITE_NEON_AUTH_BASE_URL)` في المتصفح لـ `signUp.email` و`signIn.email`.
+- **فخ:** `client.getJWTToken()` يعيد session token وليس JWT. الـ Worker يتحقق من JWT عبر JWKS،
+  لذلك `readToken()` يقرأ `GET {baseUrl}/token` بـ `credentials: 'include'`.
+- الـ Worker يتحقق من JWT (EdDSA/Ed25519، ~15 دقيقة) عبر `NEON_AUTH_JWKS_URL` باستخدام `jose`،
+  مع `issuer`/`audience` = أصل `NEON_AUTH_BASE_URL`.
+- لا hashing لكلمات المرور داخل الـ Worker (حدود CPU)؛ Neon Auth يملك كلمات المرور.
 
 **العواقب:** التحقق من البريد في التطوير عبر SMTP مشترك؛ للإنتاج يلزم SMTP مخصص (قرار مفتوح).
-**الحالة:** مُنفّذ.
+**الحالة:** مُنفّذ ومُختبر (auth E2E).
 
 ## ADR-006 — عزل البيانات: طبقة استعلام واحدة + RLS
 
@@ -76,18 +85,22 @@ JWT (EdDSA/Ed25519، 15 دقيقة) عبر `NEON_AUTH_JWKS_URL` باستخدام
 
 ## ADR-007 — التخزين: Neon Object Storage خلف `StorageProvider`
 
-**القرار:** واجهة `StorageProvider` (`put/getSignedUrl/delete`) مع تنفيذ S3-compatible لـ Neon
-(`AWS_ENDPOINT_URL_S3` + مفاتيح branch)، وبديل IndexedDB للمتصفح عند غياب الشبكة.
-لا تُعاد مفاتيح S3 إلى المتصفح؛ الرفع عبر presigned URL من الـ API.
+**القرار:** واجهة `StorageProvider` (`put/get/delete`) مع تنفيذ S3-compatible لـ Neon
+(`AWS_ENDPOINT_URL_S3` + مفاتيح branch)، و`MemoryStorage` للاختبارات. المتصفح لا يرى مفاتيح S3:
+الرفع يمر عبر `POST /api/orgs/:orgId/uploads` (حتى 10 MB)، والتنزيل عبر
+`GET /api/orgs/:orgId/files?key=` بعد التحقق من بادئة `orgId`.
+IndexedDB يُستخدم لنسخة السبورة محلياً، لا لتخزين الملفات الكبيرة بعد.
 
-**الحدود:** bucket خاص افتراضياً؛ الروابط قصيرة العمر؛ السعة ضمن خطة Neon المجانية.
-**الحالة:** مُنفّذ (API + رفع/تنزيل مثبت).
+**الحدود:** bucket خاص؛ الرفع يستهلك CPU/ذاكرة الـ Worker (10 MB سقف) وليس presigned مباشراً؛
+سعة Neon Object Storage 5 GB/مشروع على Free.
+**الحالة:** مُنفّذ ومُختبر (رفع 201 + bytes متطابقة).
 
 ## ADR-008 — Realtime: Neon Realtime (sealed queries) لـ Live mode
 
 **القرار:** الـ API يُصدر "sealed query" موقّعاً (`NEON_REALTIME_SECRET` يبقى في الخادم) لصفوف
-السبورة، والمتصفح يشترك عبر `@neon/realtime/client`. لا يُكشف السر أبداً.
-**الحالة:** الطبقة الخلفية مثبتة؛ واجهة Live الكاملة في المرحلة 2.
+`board_live` (إسقاط يتزامن بـ trigger من `boards`، لأن Realtime يرفض RLS). المتصفح سيشترك عبر
+`@neon/realtime/client`؛ لا يُكشف السر أبداً.
+**الحالة:** الطبقة الخلفية مثبتة بسكربت اشتراك/تحديث؛ واجهة Live الكاملة في المرحلة 2.
 
 ## ADR-009 — إبقاء التطبيق القديم على `/legacy`
 
@@ -112,19 +125,25 @@ JWT (EdDSA/Ed25519، 15 دقيقة) عبر `NEON_AUTH_JWKS_URL` باستخدام
 
 ## ADR-012 — حدود المجاني وماذا يحدث عند نفادها
 
-| الخدمة | الحد المجاني (كما وثّقته الخدمة) | عند النفاد | البديل |
+مصدر أرقام Neon: <https://neon.com/pricing> (فُحص 2026-11-27؛ الخطة الدائمة Free بلا بطاقة).
+
+| الخدمة | الحد المجاني | عند النفاد | البديل |
 |---|---|---|---|
+| Neon Postgres | 100 مشروع/مؤسسة، 10 فروع/مشروع، **100 CU-hour/مشروع/شهر**، 1 GB تخزين/مشروع و20 GB للحساب، 5 GB شبكة/مشروع/شهر | تعليق compute حتى التجديد (SQLSTATE 53000 / HTTP 402)؛ البيانات لا تُحذف | انتظار التجديد؛ تقليل الاستعلامات/الفهارس |
+| Neon Auth | حتى **60k MAU/مشروع** | تسجيل/دخول يتوقف | مزود Auth بديل (خارج النطاق المجاني) |
+| Neon Object Storage | **5 GB/مشروع** | فشل رفع/تخزين | حذف ملفات قديمة؛ IndexedDB محلي مؤقت |
+| Neon Functions | **10 active + 400 waiting Capacity-Hours**، 1M invocation/مشروع | فشل تنفيذ | تنفيذ في Worker/المتصفح |
+| Neon Realtime | مجاني أثناء beta | انقطاع المزامنة | polling/إعادة اتصال |
 | Cloudflare Workers | 10ms CPU/طلب، 100k طلب/يوم، 50 subrequest | طلبات تفشل | معالجة في المتصفح، streaming، تخفيف |
 | Cloudflare Pages | بناء/نشر ثابت ضمن حد Pages | نشر يفشل | إعادة النشر لاحقاً |
-| Neon Postgres | CU-hours + نقل شبكة شهرياً (Free) | توقف الاتصال: SQLSTATE 53000 / HTTP 402، البيانات محفوظة | انتظار التجديد أو ترقية يدوية |
-| Neon Auth | ضمن خطة المشروع | تعطّل الدخول | — |
-| Neon Object Storage | ضمن خطة المشروع | فشل رفع | IndexedDB مؤقتاً |
-| Neon Functions | ضمن خطة المشروع | فشل تنفيذ | تنفيذ في Worker/المتصفح |
-| Neon Realtime | ضمن خطة المشروع | انقطاع المزامنة | polling/إعادة اتصال |
 | Workers AI (م2) | 10,000 Neurons/يوم | فشل الطلبات | مزود احتياطي ثم تعطيل الميزة |
 | Wikipedia API (م2) | مجاني بحدود مهذبة | 429 | تخزين مؤقت + إبلاغ |
 | OpenFreeMap (م3) | بدون ضمان | فشل الخرائط | تبديل المصدر |
 
+**ملاحظات:**
+- Neon AI Gateway **يحتاج بطاقة** → لا نستخدمه؛ الراوتر في المرحلة 2 داخل Worker.
+- Compute يتوقف تلقائياً بعد 5 دقائق خمول (scale-to-zero)؛ هذا مقبول لتطبيق تعليمي.
+- أي تجاوز لـ CU-hours يوقف الاتصال، لا يحذف البيانات؛ يجب مراقبة الاستهلاك قبل الإطلاق.
 **الحالة:** موثّق.
 
 ## ADR-013 — لا خدمات مدفوعة ولا بطاقات
@@ -132,3 +151,36 @@ JWT (EdDSA/Ed25519، 15 دقيقة) عبر `NEON_AUTH_JWKS_URL` باستخدام
 **القرار:** أي ميزة تحتاج دفعاً تُنفّذ في المتصفح أو بمكتبة مفتوحة أو بحصة مجانية؛ وإلا تُعلن
 "غير متاحة" صراحةً. لا تعدد حسابات لتحايل الحصص، ولا cookies/اشتراكات شخصية، ولا endpoints مجهولة.
 **الحالة:** ملزم لكل المراحل.
+
+## ADR-014 — Cloudflare Pages: SPA fallback + security headers ثابتة
+
+**السياق:** React Router يحتاج إعادة كل المسارات إلى `index.html`، وPages لا يطبّق رؤوس الـ Worker
+على الملفات الثابتة.
+
+**القرار:** `public/_redirects` بقاعدة `/* /index.html 200` (مع بقاء `/legacy.html` والملفات
+الثابتة)، و`public/_headers` برؤوس nosniff/frame-options/referrer/permissions/HSTS.
+رؤوس الـ API تبقى في Hono middleware.
+
+**العواقب:** لا يمكن اختبار `_redirects` محلياً عبر `vite preview`؛ التحقق النهائي بعد أول نشر
+على Pages (غير مختبر بعد).
+**الحالة:** مُضاف، غير مختبر على Pages.
+
+## ADR-015 — التعايش مع Worker القديم على D1
+
+**السياق:** `worker/` يضم auth محلي + billing + push + API keys على D1، ويخالف stack Neon.
+
+**القرار:** لا حذف ولا كتابة مزدوجة. `worker/` مرجعي غير منشور، والتطبيق القديم على `/legacy.html`.
+خطة الجدول المقابل والترحيل في `docs/MIGRATION_D1_TO_NEON.md`. حذف/أرشفة `worker/` يحتاج موافقة
+المالك.
+
+**العواقب:** هويتان مؤقتاً (D1 vs Neon Auth)؛ من سجّل قديماً لا يدخل الجديد بنفس كلمة المرور.
+**الحالة:** موثّق، بانتظار قرار المالك.
+
+## ADR-016 — حدود Rate limiting في Workers Free
+
+**القرار:** limiter داخلي (Map لكل isolate) بسقف 240 طلب/دقيقة/IP لكل `/api/*`، وحدود أضيق
+للعمليات الحساسة (إنشاء مؤسسة، رفع). هذا **best-effort** ولا يُعتمد عليه وحده؛ الحماية الحقيقية
+تكون بقواعد Cloudflare WAF/Rate limiting عند الإطلاق.
+
+**العواقب:** العداد لا يُشارك بين الـ isolates؛ قد يمر طلب زائد. موثّق كقيد.
+**الحالة:** مُنفّذ.

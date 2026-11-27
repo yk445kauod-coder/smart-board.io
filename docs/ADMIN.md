@@ -1,5 +1,11 @@
 # Platform Admin Console
 
+> **Legacy / غير منفّذ في الإنتاج:** هذا الملف يصف Worker القديم على D1 (`worker/`).
+> لوحة `/admin` الإنتاجية على Neon هي المرحلة 3 ولم تُنفّذ بعد. لا تستخدم أوامر D1 أدناه
+> على بيئة الإنتاج.
+
+
+
 Open `/admin` on the worker origin (for example `http://localhost:8787/admin`).
 
 ## Access

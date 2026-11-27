@@ -18,13 +18,14 @@
 
 ### بنية الريبو الحالية (للملاحظة السريعة)
 
-- `App.tsx`, `components/`, `services/`, `types.ts` — تطبيق العرض التجريبي القديم (React Flow، localStorage). **لا يُحذف**؛ يُقدَّم على `/legacy`.
-- `worker/` — Worker قديم على **D1** (auth/billing/admin/orgs/push). لا يُحذف، لكنه **ليس** مسار الإنتاج بعد قرار Neon.
-- `src/` — التطبيق الإنتاجي الجديد (React Router + Konva) و`src/protocol/` مشترك.
-- `api/` — Worker API الإنتاجي (Hono + Neon Postgres + Neon Auth).
+- `index.tsx` + `src/app/` — التطبيق الإنتاجي الجديد (React Router + Konva + Neon Auth). هو مدخل `/`.
+- `legacy.html` + `index-legacy.tsx` + `App.tsx`/`components/`/`services/` — العرض التجريبي القديم (React Flow، localStorage). **لا يُحذف**؛ يُقدَّم على `/legacy.html` و`/legacy` يعيد التوجيه إليه.
+- `worker/` — Worker قديم على **D1** (auth/billing/admin/orgs/push). **لا يُحذف**، وغير منشور كمسار إنتاج بعد قرار Neon. التفاصيل في `docs/MIGRATION_D1_TO_NEON.md`.
+- `api/` — Worker API الإنتاجي (Hono + Neon Postgres + Neon Auth + Realtime + S3 storage).
 - `shared/` — عقود Zod المشتركة بين الواجهة والـ API والاختبارات.
-- `db/` — مخطط Drizzle وmigrations وRLS.
-- `docs/` — PLAN / STATE / DECISIONS / RELEASE_REPORT.
+- `db/` — مخطط Drizzle وmigrations وRLS وطبقة `withOrg`/`withUser`.
+- `tests/unit/` — Vitest؛ `tests/integration/isolation.ts` — عزل RLS حقيقي؛ `tests/e2e/` — Playwright.
+- `docs/` — PLAN / STATE / DECISIONS / MIGRATION_D1_TO_NEON / RLS / API / ADMIN.
 
 ### أوامر
 
@@ -36,8 +37,24 @@ pnpm api:dev       # wrangler dev للـ API
 pnpm db:generate   # drizzle-kit generate
 pnpm db:migrate    # drizzle-kit migrate (DATABASE_URL_UNPOOLED)
 pnpm test          # vitest
+pnpm test:isolation # عزل RLS (يتخطى نفسه بدون DATABASE_URL)
 pnpm e2e           # playwright
+E2E_EMAIL=... E2E_PASSWORD=... pnpm e2e   # يشغّل اختبار المصادقة أيضاً
 ```
+
+### D1 ← → Neon (تعارض واعٍ)
+
+- الـ stack المعتمد **Neon Postgres**؛ لا يُستخدم D1 في أي كود جديد.
+- `worker/` القديم (D1 + كلمات مرور محلية + billing + push) باقٍ للقراءة فقط حتى تقرر حذفه.
+- لا كتابة مزدوجة ولا مزامنة بيانات بين D1 وNeon. خطة الترحيل والجدول المقابل في
+  `docs/MIGRATION_D1_TO_NEON.md`.
+
+### Neon Auth — فخ JWT
+
+- `createAuthClient(url)` يعيد عميل Better Auth، و`client.getJWTToken()` يعيد **session token**
+  وليس JWT. الـ Worker يتحقق من JWT عبر JWKS، لذلك نقرأ `GET {NEON_AUTH_BASE_URL}/token`
+  بـ `credentials: 'include'` في `src/app/auth.tsx`.
+- لا تضع أسرار S3/Realtime في المتصفح؛ الرفع والاشتراك يمران عبر الـ API.
 
 ### أسرار
 
