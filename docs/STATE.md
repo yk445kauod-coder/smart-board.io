@@ -43,7 +43,7 @@ pnpm dev                       # واجهة على 3000 مع proxy إلى 8787
 | رفع/تنزيل ملفات (Neon Object Storage) | ✅ | رفع 201 + تنزيل bytes متطابقة (جلسة سابقة) |
 | Realtime (sealed query) | ✅ | سكربت اشتراك + تحديث صف (جلسة سابقة) |
 | `pnpm verify` | ✅ | انظر سجل التحقق أدناه |
-| CI GitHub Actions | ⏳ | `.github/workflows/verify.yml` مضاف؛ لم يُشغّل بعد |
+| CI GitHub Actions | ✅ | run ناجح: https://github.com/yk445kauod-coder/smart-board.io/actions/runs/46076819282 |
 
 ## 4. سجل التحقق (ناتج الأوامر)
 
@@ -95,7 +95,6 @@ x-request-id: <uuid>
 
 ## 5. ما هو ناقص/غير مختبر (بصراحة)
 
-- **CI لم يُشغّل على GitHub بعد**؛ الملف موجود فقط.
 - **موبايل/تابلت/قلم/لمس** غير مختبرة فعلياً؛ E2E سطح مكتب فقط.
 - **offline/reconnect**: الرسم يُحفظ في IndexedDB، لكن سيناريو قطع الشبكة والعودة غير مختبر.
 - **zoom/pan/fit** منفذة بلا E2E.

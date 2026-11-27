@@ -23,7 +23,7 @@
   - القبول: كل مسار يفتح مباشرة (deep link) بدون 404، و`/legacy` يعرض التطبيق القديم.
 - [x] **P1-FND-05** `pnpm verify` = lint + typecheck + test + build + e2e، ويفشل عند أي فشل. — دليل: `pnpm verify` نجح: lint + typecheck + 21 اختبار + isolation PASS + build + 2 E2E.
   - القبول: الأمر يمر محلياً، ونفسه في GitHub Actions.
-- [~] **P1-FND-06** CI على GitHub Actions: job واحد `verify`، يمنع الدمج عند الفشل. — workflow `.github/workflows/verify.yml` مضاف؛ لم يُشغّل بعد على GitHub.
+- [x] **P1-FND-06** CI على GitHub Actions: job واحد `verify`، يمنع الدمج عند الفشل. — دليل: run ناجح https://github.com/yk445kauod-coder/smart-board.io/actions/runs/46076819282.
   - القبول: ملف workflow موجود ويشغّل نفس الخطوات؛ نتيجة آخر run مرفقة في PR.
 - [x] **P1-FND-07** إعدادات أمان أساسية: security headers من الـ Worker، CORS مقيّد، body limit. — دليل: `curl /health` يُظهر x-frame-options/x-content-type/referrer/permissions/HSTS؛ CORS allowlist؛ body 2MB؛ rate limit 240/دقيقة/IP (per-isolate).
   - القبول: اختبار يتحقق من الرؤوس على `/health`.
