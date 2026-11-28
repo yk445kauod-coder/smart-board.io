@@ -1,7 +1,7 @@
 # STATE — SmartBoard AI
 
-آخر تحديث: 2026-11-27 · الفرع: `phase-1` · الحالة: **المرحلة 1 مكتملة وظيفياً**،
-بانتظار مراجعة PR وتشغيل CI على GitHub.
+آخر تحديث: 2026-11-27 · الفرع: `main` @ `9e13803` · الحالة: **المرحلة 1 مدموجة**.
+PR #10 مدموج، وCI على `main` ناجح: https://github.com/yk445kauod-coder/smart-board.io/actions/runs/46152185451
 
 هذا الملف هو «أين وصلنا الآن». الخطة ومعايير القبول في `PLAN.md`، والقرارات في `DECISIONS.md`،
 وتعارض D1/Neon في `MIGRATION_D1_TO_NEON.md`.
@@ -47,7 +47,19 @@ pnpm dev                       # واجهة على 3000 مع proxy إلى 8787
 
 ## 4. سجل التحقق (ناتج الأوامر)
 
-### `pnpm verify` (مع `.env.local` وبيانات E2E)
+### `pnpm verify` بعد الدمج على `main` (مع `.env.local` وبيانات E2E)
+
+```
+pnpm lint      → exit 0
+pnpm typecheck → exit 0
+pnpm test      → Test Files 2 passed (2) · Tests 21 passed (21)
+pnpm test:isolation → ISOLATION PASS
+pnpm build     → ✓ 686 modules transformed · built in 4.63s
+pnpm e2e       → 2 passed (13.3s)
+exit code      → 0
+```
+
+### `pnpm verify` قبل الدمج (نفس النتيجة)
 
 ```
 pnpm lint      → exit 0
