@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --color-board: #f8fafc;
+  --color-toolbar: #080d1e;
+  --color-accent: #00e5ff;
+  --color-primary: #059669;
+  --color-secondary: #10b981;
+  --color-tonal: #d1fae5;
+  --color-on-surface: #0f172a;
+  --color-surface-variant: #f1f5f9;
+  --color-starlight-amber: #f59e0b;
+  --color-emerald-save: #10b981;
+
+  --font-sans: "IBM Plex Sans Arabic", Inter, Cairo, system-ui, sans-serif;
+  --font-arabic: "IBM Plex Sans Arabic", Cairo, sans-serif;
+  --font-display: "Space Grotesk", "El Messiri", Cairo, sans-serif;
+  --font-hand: Kalam, cursive;
+
+  --radius-3xl: 1.5rem;
+  --shadow-elev-1: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.08);
+  --shadow-elev-2: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --shadow-elev-3: 0 10px 15px -3px rgba(15, 23, 42, 0.12), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #f1f5f9;
+    color: var(--color-on-surface);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  /* Legacy demo expects a full-viewport, non-scrolling shell. */
+  body:has(#legacy-root) {
+    overflow: hidden;
+    background: #0f172a;
+  }
+
+  textarea,
+  input,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .font-ar {
+    font-family: "Playpen Sans Arabic", cursive;
+  }
+  .font-en {
+    font-family: Kalam, cursive;
+  }
+}
+
+.board-stage {
+  touch-action: none;
+  background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.28) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+
+.board-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.board-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 0.9rem;
+  color: #e2e8f0;
+  transition: background 0.15s var(--ease-out-expo), transform 0.1s var(--ease-out-expo);
+}
+.tool-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.tool-btn:active {
+  transform: scale(0.96);
+}
+.tool-btn[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sticky-editor {
+  position: absolute;
+  z-index: 30;
+  border-radius: 0.5rem;
+  border: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-elev-3);
+  padding: 0.5rem;
+  font-family: var(--font-sans);
+  resize: none;
+  outline: none;
+}
+
+.text-editor {
+  position: absolute;
+  z-index: 30;
+  border-radius: 0.4rem;
+  border: 2px dashed var(--color-primary);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.25rem 0.4rem;
+  font-family: var(--font-sans);
+  outline: none;
+  resize: none;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}

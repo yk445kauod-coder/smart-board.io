@@ -855,7 +855,7 @@ export const AtlasNode = memo(({ data, selected }: NodeProps<ElementData>) => {
                         default: { fill: '#284b73', stroke: '#d8f3f7', strokeWidth: 0.4, outline: 'none' },
                         hover: { fill: '#00E5FF', outline: 'none' },
                         pressed: { fill: '#F59E0B', outline: 'none' },
-                      }}
+                      } as unknown as React.CSSProperties}
                     />
                   ))
                 }

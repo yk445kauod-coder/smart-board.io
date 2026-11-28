@@ -1,77 +1,72 @@
-# Row-level security on D1
+# عزل البيانات — Neon Postgres RLS
 
-D1 is SQLite. It does **not** have PostgreSQL-style `ROW LEVEL SECURITY` policies.
-SmartBoard therefore enforces tenant isolation in the application layer, with the
-same rule everywhere: **a request may only touch rows whose `org_id` is the org
-resolved from the authenticated session or API key.**
+آخر تحديث: 2026-11-27 · الحالة: مُنفّذ ومُختبر (`ISOLATION PASS`).
 
-This is the zero-budget, D1-native equivalent of RLS. It is deliberate, testable,
-and does not depend on a paid database.
+---
 
-## 1. The rule
+## 1. القاعدة
 
-Every tenant-owned table has an `org_id` column:
-
-`lessons`, `usage_events`, `runs`, `api_keys`, `subscriptions`, `payment_requests`,
-`push_subscriptions`, and `audit_log` (nullable for platform-level events).
-
-Every read, update, and delete includes `org_id = ?` in the SQL. Every insert takes
-`org_id` from `c.get('org').id`, never from the request body.
+كل استعلام تطبيقي يمر عبر طبقة واحدة: `db/scoped.ts`.
 
 ```ts
-// correct
-await dbFirst(c.env.DB, 'SELECT * FROM lessons WHERE id = ? AND org_id = ?', id, org.id);
-
-// wrong — leaks another tenant's lesson
-await dbFirst(c.env.DB, 'SELECT * FROM lessons WHERE id = ?', id);
+withOrg(pool, { orgId, userId, role }, (db) => db.select().from(projects));
+withUser(pool, userId, (db) => db.select().from(organizations)); // قبل اختيار مؤسسة
 ```
 
-## 2. How the org is resolved
+- `withOrg` يرفض `orgId` الفارغ أو غير الـ UUID.
+- كل معاملة تبدأ بـ:
+  ```sql
+  BEGIN;
+  SET LOCAL ROLE app_user;
+  SELECT set_config('app.current_user_id', $1, true);
+  SELECT set_config('app.current_org_id', $2, true);
+  ```
+- `SET LOCAL` يعمل داخل المعاملة فقط؛ لا يتسرب بين الطلبات.
+- `app_user` دور `NOLOGIN` بصلاحيات CRUD فقط، ولا يملك الجداول، لذلك RLS يُطبّق عليه.
 
-1. `requireAuth` validates the `sb_session` cookie or `Authorization: Bearer sb_live_…`.
-2. `requireOrg` calls `getOrgContext(db, userId, requestedOrgId)`.
-3. `getOrgContext` only returns an org where the user has a `memberships` row.
-4. The resolved `org`, `membership`, `subscription`, and `plan` are stored in Hono
-   context. Route handlers read `c.get('org')`.
-5. API keys are bound to one `org_id`; a key cannot select another workspace.
+## 2. سياسات RLS
 
-## 3. Write rules
+الجداول: `organizations`, `memberships`, `projects`, `boards`, `library_items`, `audit_log`.
 
-- `POST /v1/lessons` sets `org_id` from context. The body cannot choose an org.
-- `PUT /v1/lessons/:id` and `DELETE /v1/lessons/:id` include `org_id` in the
-  `WHERE` clause.
-- `POST /v1/push/subscribe` stores `org_id` and `user_id` from context.
-- Manual payment requests and activation redemptions are org-scoped.
-- Admin endpoints use `requirePlatformAdmin`; they are the only routes allowed to
-  query across orgs, and every admin mutation writes an `audit_log` row.
+- `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` (المالك أيضاً يخضع للسياسة في
+  الاستعلامات التطبيقية؛ سكربتات الإدارة تستخدم دور الاتصال المالك).
+- السياسة الموحدة: `org_id = current_setting('app.current_org_id', true)::uuid`.
+- `organizations`: `id = current_org` أو عضوية المستخدم.
+- `memberships`: `org_id = current_org` أو `user_id = current_user` (لقراءة عضويتك).
+- `WITH CHECK` يمنع الكتابة في مؤسسة أخرى حتى لو حُقن `org_id` في الطلب.
 
-## 4. Response codes
+السياسات موجودة في `db/migrations/0000_melodic_the_fallen.sql`، وتُعاد تثبيتها في `db/extra.sql`.
 
-Cross-tenant access returns **404**, not 403. This avoids confirming that a lesson
-or workspace exists in another tenant.
+## 3. استثناء Realtime — `board_live`
 
-## 5. Audit checklist for new queries
+مُجمِّع استعلامات Neon Realtime يرفض الجداول ذات RLS. لذلك:
 
-Before merging a query on a tenant table:
+- `boards` يبقى محمياً بـ RLS.
+- `board_live` جدول إسقاط (projection) بلا RLS، لكنه **لا يُقرأ إلا عبر sealed query** موقّع من
+  الـ API، وكل استعلام يفلتر `org_id` صراحةً.
+- لا تُكتب أسرار S3/Realtime في المتصفح؛ الاشتراك يمر عبر الـ API.
 
-- [ ] Does the table have `org_id`?
-- [ ] Does the `WHERE` clause include `org_id = ?`?
-- [ ] Is the value from `c.get('org').id`, not from the body or query string?
-- [ ] For inserts, is `org_id` set by the server?
-- [ ] Is the route behind `requireAuth` + `requireOrg`?
-- [ ] Does the response avoid leaking another tenant's existence?
+## 4. اختبار العزل
 
-## 6. If you move to PostgreSQL/Supabase later
-
-Native RLS becomes possible. The migration is additive:
-
-```sql
-ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY lessons_tenant_isolation ON lessons
-  USING (org_id = current_setting('app.org_id', true))
-  WITH CHECK (org_id = current_setting('app.org_id', true));
+```bash
+DATABASE_URL=... pnpm test:isolation
 ```
 
-Set `app.org_id` per request/transaction from the verified session. Keep the
-application-level checks as defense in depth; do not remove them.
+السكربت `tests/integration/isolation.ts`:
+
+1. ينشئ مؤسستين ومستخدمين.
+2. يتحقق أن A لا يرى مشروع B عبر `listProjects`/`getProject`.
+3. يستعلم SQL خام بدور `app_user` → 0 صفوف من B.
+4. يحاول إدخال صف في مؤسسة B من جلسة A → يُرفض.
+5. يرفض `orgId` الفارغ.
+6. ينظّف الصفوف.
+
+بدون `DATABASE_URL` يطبع `ISOLATION SKIP` وينجح (لـ CI بلا قاعدة بيانات).
+
+## 5. checklist لأي استعلام جديد
+
+- [ ] يمر عبر `withOrg`/`withUser`، لا `pool.query` مباشر في route.
+- [ ] `org_id` من `c.get('org').orgId`، لا من body/query.
+- [ ] الجدول عليه RLS وسياسة `org_id`.
+- [ ] لا استثناءات جديدة إلا بـ sealed query موقّع + فلتر `org_id`.
+- [ ] اختبار عزل أو تحديث لاختبار قائم.

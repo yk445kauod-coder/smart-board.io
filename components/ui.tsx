@@ -38,7 +38,7 @@ export const ToolSeparator: React.FC = () => (
 export const Sheet: React.FC<{
   open: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   maxW?: string;
   footer?: React.ReactNode;

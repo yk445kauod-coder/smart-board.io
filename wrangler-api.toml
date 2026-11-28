@@ -1,7 +1,13 @@
 name = "smartboard-ai-api"
-main = "worker-api.ts"
+main = "api/index.ts"
 compatibility_date = "2026-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-[ai]
-binding = "AI"
+# Workers AI binding lands in Phase 2 (router); keeping it out of Phase 1 keeps
+# `wrangler dev` fully local and offline.
+[observability]
+enabled = true
+
+[vars]
+APP_ORIGIN = "http://localhost:3000,http://127.0.0.1:3000"
+ENVIRONMENT = "development"

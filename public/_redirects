@@ -1,0 +1,3 @@
+# Cloudflare Pages SPA fallback: deep links such as /app/projects/:id are served
+# by the client router. Existing files (assets, /legacy.html) are served first.
+/*    /index.html    200
